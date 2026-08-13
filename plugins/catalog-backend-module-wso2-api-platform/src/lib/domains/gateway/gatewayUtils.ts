@@ -43,7 +43,13 @@ export async function discoverWSO2PlatformGatewayApis(
           [];
 
         for (const gatewayApiItem of wso2ApiPlatformGatewayApis) {
-          const gatewayApiId = gatewayApiItem.id;
+          // Gateway-controller 1.2.x /rest-apis returns raw RestApi resources
+          // (the id lives at status.id and the stable handle at metadata.name)
+          // rather than flat {id, ...} items; support both shapes.
+          const gatewayApiId =
+            gatewayApiItem.id ??
+            gatewayApiItem.metadata?.name ??
+            gatewayApiItem.status?.id;
           if (!gatewayApiId) continue;
 
           try {
@@ -53,11 +59,29 @@ export async function discoverWSO2PlatformGatewayApis(
               gw.discoveryAuth,
             );
 
-            if (detailData.status !== 'success' || !detailData.api) {
+            // Accept both the {status: 'success', api: {...}} wrapper and the
+            // gateway-controller 1.2.x raw RestApi resource response.
+            let adaptedApi: any = undefined;
+            if (detailData.status === 'success' && detailData.api) {
+              adaptedApi = detailData.api;
+            } else if (detailData.kind === 'RestApi' && detailData.spec) {
+              adaptedApi = {
+                id: detailData.status?.id ?? detailData.metadata?.name,
+                name: detailData.spec.displayName ?? detailData.metadata?.name,
+                displayName: detailData.spec.displayName,
+                version: detailData.spec.version,
+                context: detailData.spec.context,
+                lifeCycleStatus: detailData.status?.state,
+                policies: detailData.spec.policies,
+                operations: detailData.spec.operations,
+                configuration: detailData,
+              };
+            }
+            if (!adaptedApi) {
               continue;
             }
 
-            const gatewayApiDetails = detailData.api;
+            const gatewayApiDetails = adaptedApi;
 
             const gatewayApi = {
               ...gatewayApiDetails,

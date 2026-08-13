@@ -123,6 +123,60 @@ describe('gateway/gatewayUtils', () => {
     );
   });
 
+  it('should discover APIs from gateway-controller 1.2.x raw RestApi responses', async () => {
+    const gateways: PlatformGateway[] = [
+      {
+        environmentName: 'oc-poc-gateway',
+        environmentType: 'PRODUCTION',
+        urls: ['https://gateway.com'],
+        discoveryUrl: 'https://controller.com/rest-apis',
+        discoveryAuth: 'Basic abc-auth',
+      },
+    ];
+
+    // 1.2.x list items are raw RestApi resources without a top-level id
+    const rawRestApi = {
+      apiVersion: 'gateway.api-platform.wso2.com/v1alpha1',
+      kind: 'RestApi',
+      metadata: { name: 'orders-api-dev-55b5a86f' },
+      spec: {
+        displayName: 'Orders API',
+        version: 'v1.0',
+        context: '/orders-api-dev-55b5a86f',
+        policies: [{ name: 'cors', version: 'v1' }],
+        operations: [{ method: 'GET', path: '/orders' }],
+      },
+      status: { id: '019ff545-0000-0000-0000-000000000000', state: 'Deployed' },
+    };
+
+    mockGetGatewayApis.mockResolvedValueOnce({ items: [rawRestApi] });
+    // 1.2.x detail responses are also raw resources, without the
+    // {status: 'success', api} wrapper
+    mockGetGatewayApiDetail.mockResolvedValueOnce(rawRestApi);
+
+    const result = await discoverWSO2PlatformGatewayApis(gateways, mockClient);
+
+    expect(mockGetGatewayApiDetail).toHaveBeenCalledWith(
+      'https://controller.com/rest-apis',
+      'orders-api-dev-55b5a86f',
+      'Basic abc-auth',
+    );
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual(
+      expect.objectContaining({
+        id: '019ff545-0000-0000-0000-000000000000',
+        name: 'Orders API',
+        version: 'v1.0',
+        context: '/orders-api-dev-55b5a86f',
+        lifeCycleStatus: 'Deployed',
+        initiatedFromGateway: true,
+        isDirectDiscovery: true,
+        environmentName: 'oc-poc-gateway',
+        fullConfig: rawRestApi,
+      }),
+    );
+  });
+
   it('should gracefully log and continue if one of the detail fetches fails', async () => {
     const gateways: PlatformGateway[] = [
       {
