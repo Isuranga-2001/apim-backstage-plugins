@@ -68,13 +68,9 @@ export class Wso2DiscoveryService {
       `[Wso2DiscoveryService] Starting discovery for provider ${providerId}`,
     );
 
-    if (!this.client) {
-      this.logger.error(
-        `[Wso2DiscoveryService] Skipping discovery for provider ${providerId} as client is not defined`,
-      );
-      return [];
-    }
-
+    // Gateway discovery only needs the per-gateway discovery URL and auth, so
+    // it runs even when the API Manager integration (and its client) is not
+    // configured.
     const WSO2PlatformGatewayApisList = await discoverWSO2PlatformGatewayApis(
       platformGateways,
       this.client,
@@ -86,7 +82,11 @@ export class Wso2DiscoveryService {
     let mcpList: any[] = [];
     let serviceList: any[] = [];
 
-    if (apiManagerEnabled) {
+    if (apiManagerEnabled && !this.client) {
+      this.logger.error(
+        `[Wso2DiscoveryService] Skipping API Manager discovery for provider ${providerId} as client is not defined`,
+      );
+    } else if (apiManagerEnabled && this.client) {
       // 1. Fetch raw data from WSO2 domains
       globalSettings = await fetchGlobalSettings(this.client);
 

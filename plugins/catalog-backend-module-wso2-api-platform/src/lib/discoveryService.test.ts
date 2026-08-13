@@ -215,4 +215,39 @@ Total Backstage entities registered: ${result.length}
 `),
     );
   });
+
+  it('should run gateway discovery without a client when API Manager is disabled', async () => {
+    const gatewayOnlyService = new Wso2DiscoveryService({
+      client: undefined,
+      logger,
+    });
+    const platformGateways = [
+      { environmentName: 'gw-1', urls: ['https://gw1.com'] },
+    ] as any;
+
+    const discoveredEntity = {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'API',
+      metadata: { name: 'discovered-1' },
+    } as any;
+    mockDiscoverWSO2PlatformGatewayApis.mockResolvedValueOnce([
+      { id: 'gate-api-1' },
+    ]);
+    mockMapDiscoveredApiToEntity.mockReturnValueOnce(discoveredEntity);
+
+    const result = await gatewayOnlyService.discoverAll({
+      namespace: 'default',
+      providerId: 'wso2-provider',
+      platformGateways,
+      apiManagerEnabled: false,
+    });
+
+    expect(result).toEqual([discoveredEntity]);
+    expect(mockDiscoverWSO2PlatformGatewayApis).toHaveBeenCalledWith(
+      platformGateways,
+      undefined,
+    );
+    expect(mockFetchGlobalSettings).not.toHaveBeenCalled();
+    expect(mockFetchApiList).not.toHaveBeenCalled();
+  });
 });
