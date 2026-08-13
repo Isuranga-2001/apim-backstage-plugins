@@ -41,12 +41,23 @@ export class Wso2Client {
   protected readonly tokenUrl: string;
 
   constructor(options: { config: Config; logger: LoggerService }) {
-    this.baseUrl = options.config.getString('wso2ApiPlatform.baseUrl');
+    // API Manager connection settings are only required when the API Manager
+    // integration is enabled; the client can still be constructed without
+    // them (e.g. for gateway-only deployments) as long as no API Manager
+    // request is made.
+    const apiManagerEnabled =
+      options.config.getOptionalBoolean('wso2ApiPlatform.enabled') ?? false;
 
-    this.clientId = options.config.getString('wso2ApiPlatform.auth.clientId');
-    this.clientSecret = options.config.getString(
-      'wso2ApiPlatform.auth.clientSecret',
-    );
+    this.baseUrl = apiManagerEnabled
+      ? options.config.getString('wso2ApiPlatform.baseUrl')
+      : '';
+
+    this.clientId = apiManagerEnabled
+      ? options.config.getString('wso2ApiPlatform.auth.clientId')
+      : '';
+    this.clientSecret = apiManagerEnabled
+      ? options.config.getString('wso2ApiPlatform.auth.clientSecret')
+      : '';
     this.logger = options.logger;
 
     const rejectUnauthorized =
@@ -55,9 +66,9 @@ export class Wso2Client {
       ) ?? true;
     this.dispatcher = new Agent({ connect: { rejectUnauthorized } });
 
-    this.publisherBasePath = options.config.getString(
-      'wso2ApiPlatform.publisherBasePath',
-    );
+    this.publisherBasePath = apiManagerEnabled
+      ? options.config.getString('wso2ApiPlatform.publisherBasePath')
+      : '';
     this.serviceCatalogBasePath =
       options.config.getOptionalString(
         'wso2ApiPlatform.serviceCatalogBasePath',
@@ -66,9 +77,9 @@ export class Wso2Client {
       (options.config.getOptionalNumber(
         'wso2ApiPlatform.requestTimeoutSeconds',
       ) ?? 30) * 1000;
-    const requiredScopes = options.config.getStringArray(
-      'wso2ApiPlatform.auth.requiredScopes',
-    );
+    const requiredScopes = apiManagerEnabled
+      ? options.config.getStringArray('wso2ApiPlatform.auth.requiredScopes')
+      : [];
     this.scopes = Array.from(new Set([...requiredScopes])).join(' ');
 
     // Token URL configuration: use explicit tokenUrl if provided, otherwise default to baseUrl/oauth2/token

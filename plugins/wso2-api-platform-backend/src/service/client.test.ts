@@ -173,6 +173,8 @@ describe('client and Wso2ApiPlatformClient', () => {
   describe('Wso2ApiPlatformClient operations', () => {
     let client: Wso2ApiPlatformClient;
     const clientConfig = {
+      // top-level `enabled` is read by the base Wso2Client from the raw config
+      enabled: true,
       apiManager: {
         enabled: true,
       },

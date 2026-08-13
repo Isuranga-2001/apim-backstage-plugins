@@ -43,6 +43,7 @@ describe('Wso2Client', () => {
 
   const config = new ConfigReader({
     wso2ApiPlatform: {
+      enabled: true,
       baseUrl: 'https://apim.wso2.com',
       auth: {
         clientId: 'test-client-id',

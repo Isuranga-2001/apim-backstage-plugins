@@ -32,8 +32,14 @@ export interface Config {
      * Defaults to false.
      */
     enabled?: boolean;
-    baseUrl: string;
-    publisherBasePath: string;
+    /**
+     * Required when enabled is true.
+     */
+    baseUrl?: string;
+    /**
+     * Required when enabled is true.
+     */
+    publisherBasePath?: string;
     serviceCatalogBasePath?: string;
     /**
      * Request timeout in seconds. Defaults to 30.
@@ -42,13 +48,16 @@ export interface Config {
     tls?: {
       rejectUnauthorized?: boolean;
     };
-    auth: {
+    /**
+     * Required when enabled is true.
+     */
+    auth?: {
       tokenUrl?: string;
       /** @visibility secret */
-      clientId: string;
+      clientId?: string;
       /** @visibility secret */
-      clientSecret: string;
-      requiredScopes: string[];
+      clientSecret?: string;
+      requiredScopes?: string[];
     };
   };
   wso2ApiPlatformGateway?: {

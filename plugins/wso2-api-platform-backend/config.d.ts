@@ -6,19 +6,31 @@ export interface Config {
      * @visibility frontend
      */
     enabled?: boolean;
-    baseUrl: string;
-    publisherBasePath: string;
-    developerBasePath: string;
+    /**
+     * Required when enabled is true.
+     */
+    baseUrl?: string;
+    /**
+     * Required when enabled is true.
+     */
+    publisherBasePath?: string;
+    /**
+     * Required when enabled is true.
+     */
+    developerBasePath?: string;
     serviceCatalogBasePath?: string;
     tls?: {
       rejectUnauthorized?: boolean;
     };
-    auth: {
+    /**
+     * Required when enabled is true.
+     */
+    auth?: {
       tokenUrl?: string;
       /** @visibility secret */
-      clientId: string;
+      clientId?: string;
       /** @visibility secret */
-      clientSecret: string;
+      clientSecret?: string;
       /** @visibility secret */
       username?: string;
       /** @visibility secret */
