@@ -27,6 +27,11 @@ export function mapDiscoveredApiToEntity(api: any): ApiEntity {
   const displayName = spec.displayName;
   const normalizedName = normalizeEntityName(displayName);
   const discoveryNamespace = 'wso2-gateways';
+  const isOpenChoreo = api.integration === 'openchoreo';
+  const gatewayLabel = isOpenChoreo ? 'OpenChoreo' : 'Self Hosted';
+  const discoveryType = isOpenChoreo
+    ? 'openchoreo-gateway'
+    : 'self-hosted-gateway';
 
   return {
     apiVersion: 'backstage.io/v1alpha1',
@@ -46,13 +51,13 @@ export function mapDiscoveredApiToEntity(api: any): ApiEntity {
         'wso2-gateway.com/api-version': spec.version || '1.0.0',
         'wso2-gateway.com/api-context': spec.context || '/',
         'wso2.com/api-type': resolveApiType(api, spec),
-        'wso2.com/api-gateway': 'Self Hosted',
-        'wso2.com/api-discovery-type': 'self-hosted-gateway',
+        'wso2.com/api-gateway': gatewayLabel,
+        'wso2.com/api-discovery-type': discoveryType,
         'wso2-gateway.com/api-endpoints': JSON.stringify([
           {
             environmentName: api.environmentName,
             environmentType: api.environmentType || 'WSO2',
-            gatewayType: 'Self Hosted',
+            gatewayType: gatewayLabel,
             urls: (api.gatewayUrls || []).map((u: string) => {
               const base = u.replace(/\/$/, '');
               const ctx = spec.context?.startsWith('/')

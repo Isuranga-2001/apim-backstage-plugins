@@ -64,10 +64,12 @@ export function registerGatewayRoutes(
               status = 'Offline';
             }
           }
+          const gatewayType =
+            gw.integration === 'openchoreo' ? 'OpenChoreo' : 'Self Hosted';
           return {
             name: gw.name,
             type: 'wso2',
-            gatewayType: 'Self Hosted',
+            gatewayType,
             description: gw.description || `Self-Hosted Gateway: ${gw.name}`,
             source: 'Config',
             urls: gw.discoveryUrl ? [gw.discoveryUrl] : [],

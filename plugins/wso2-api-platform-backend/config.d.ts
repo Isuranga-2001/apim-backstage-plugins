@@ -66,6 +66,8 @@ export interface Config {
       environmentType?: string;
       description?: string;
       organizationId?: string;
+      /** @visibility frontend */
+      integration?: 'self-hosted' | 'openchoreo';
     }>;
   };
 }

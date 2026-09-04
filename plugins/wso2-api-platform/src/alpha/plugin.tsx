@@ -42,9 +42,15 @@ const isWso2ApiEntity = (entity?: Entity): boolean =>
       entity.metadata.annotations?.['wso2-gateway.com/api-id'],
   );
 
+const GATEWAY_DISCOVERY_TYPES = new Set([
+  'self-hosted-gateway',
+  'openchoreo-gateway',
+]);
+
 const isSelfHostedGatewayEntity = (entity?: Entity): boolean =>
-  entity?.metadata.annotations?.['wso2.com/api-discovery-type'] ===
-  'self-hosted-gateway';
+  GATEWAY_DISCOVERY_TYPES.has(
+    entity?.metadata.annotations?.['wso2.com/api-discovery-type'] ?? '',
+  );
 
 const isApiPlatformEntity = (entity?: Entity): boolean =>
   !!entity?.metadata.annotations?.['wso2.com/platform-gateway-endpoints'];

@@ -16,6 +16,8 @@
  * under the License.
  */
 
+export type GatewayIntegration = 'self-hosted' | 'openchoreo';
+
 export interface PlatformGateway {
   environmentName: string;
   environmentType: string;
@@ -23,4 +25,5 @@ export interface PlatformGateway {
   discoveryUrl?: string;
   discoveryAuth?: string;
   organizationId?: string;
+  integration?: GatewayIntegration;
 }

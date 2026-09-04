@@ -76,6 +76,7 @@ export interface Config {
       discoveryPassword?: string;
       environmentType?: string;
       organizationId?: string;
+      integration?: 'self-hosted' | 'openchoreo';
     }>;
   };
 }

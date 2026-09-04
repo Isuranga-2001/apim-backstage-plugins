@@ -156,6 +156,7 @@ export function normalizeGatewayType(type?: string): string {
   )
     return 'WSO2';
   if (t === 'self hosted' || t === 'self-hosted') return 'Self Hosted';
+  if (t === 'openchoreo') return 'OpenChoreo';
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
 

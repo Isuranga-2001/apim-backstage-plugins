@@ -229,6 +229,7 @@ Expected Exception:
               'base64',
             )}`,
             organizationId: 'tenant-1',
+            integration: 'self-hosted',
           },
         ],
       });

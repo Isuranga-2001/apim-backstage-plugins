@@ -92,6 +92,7 @@ export type Wso2ApiPlatformConfig = {
     environmentType: string;
     description?: string;
     organizationId?: string;
+    integration: 'self-hosted' | 'openchoreo';
   }>;
 };
 

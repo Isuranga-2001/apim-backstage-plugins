@@ -105,6 +105,10 @@ export function readWso2ApiPlatformConfig(
             gw.getOptionalString('environmentType') || 'PRODUCTION',
           description: gw.getOptionalString('description'),
           organizationId: gw.getOptionalString('organizationId'),
+          integration:
+            gw.getOptionalString('integration') === 'openchoreo'
+              ? ('openchoreo' as const)
+              : ('self-hosted' as const),
         };
       })
     : [];
