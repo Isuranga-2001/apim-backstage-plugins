@@ -87,10 +87,7 @@ export const EntityWso2ServiceOverviewCard = () => {
           <Grid container spacing={3}>
             {fields.map(field => (
               <Grid item xs={12} sm={6} md={4} key={field.label}>
-                <AboutField
-                  label={field.label}
-                  value={field.value}
-                />
+                <AboutField label={field.label} value={field.value} />
               </Grid>
             ))}
           </Grid>

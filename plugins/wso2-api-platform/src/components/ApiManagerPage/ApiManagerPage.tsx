@@ -148,8 +148,7 @@ export const Wso2ApiPlatformPage = () => {
 
   // Poll gateway connectivity only — catalog is populated by the backend entity provider
   // on its own schedule, re-fetching it from the frontend won't bring new data sooner.
-  const hasGatewayIssue =
-    offlineGateways.length > 0 || !!gatewaysState.error;
+  const hasGatewayIssue = offlineGateways.length > 0 || !!gatewaysState.error;
 
   const gatewayRetryRef = useRef(gatewaysState.retry);
   useEffect(() => {

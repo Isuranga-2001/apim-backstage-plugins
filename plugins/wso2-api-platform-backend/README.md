@@ -2,8 +2,7 @@
 
 This is the backend plugin for **WSO2 API Manager** in Backstage. It acts as a secure bridge between the frontend plugin and your WSO2 API Manager (and Gateway) instances.
 
-> [!IMPORTANT] 
-> **This package is part of the WSO2 suite.**
+> [!IMPORTANT] > **This package is part of the WSO2 suite.**
 > Please see the [Main Plugin Page](https://npmjs.com/package/@wso2/backstage-plugin-wso2-api-platform) for full installation and configuration instructions.
 
 ## Responsibilities

@@ -16,22 +16,59 @@
  * under the License.
  */
 
-import { Wso2Client } from '../../client';
+import { fetch as undiciFetch, Agent } from 'undici';
 import { PlatformGateway } from './types';
+
+/**
+ * The subset of Wso2Client used for gateway discovery. Gateway discovery
+ * endpoints carry their own URL and auth, so discovery can also run with a
+ * standalone fetcher when the API Manager integration is disabled.
+ */
+export interface GatewayApiFetcher {
+  getGatewayApis(discoveryUrl: string, auth?: string): Promise<any>;
+  getGatewayApiDetail(
+    discoveryUrl: string,
+    apiId: string,
+    auth?: string,
+  ): Promise<any>;
+}
+
+/**
+ * Creates a gateway discovery fetcher that does not depend on any
+ * wso2ApiPlatform (API Manager) configuration.
+ */
+export function createGatewayApiFetcher(): GatewayApiFetcher {
+  const dispatcher = new Agent();
+  const getJson = async (url: string, auth?: string): Promise<any> => {
+    const headers: Record<string, string> = { Accept: 'application/json' };
+    if (auth) headers.Authorization = auth;
+    const response = await undiciFetch(url, { headers, dispatcher });
+    if (!response.ok) {
+      throw new Error(`Gateway request failed with status ${response.status}`);
+    }
+    return response.json();
+  };
+  return {
+    getGatewayApis: (discoveryUrl, auth) => getJson(discoveryUrl, auth),
+    getGatewayApiDetail: (discoveryUrl, apiId, auth) =>
+      getJson(`${discoveryUrl}/${apiId}`, auth),
+  };
+}
 
 /**
  * Discovers APIs directly from self-hosted gateways.
  */
 export async function discoverWSO2PlatformGatewayApis(
   platformGateways: PlatformGateway[],
-  client: Wso2Client,
+  client?: GatewayApiFetcher,
 ): Promise<any[]> {
   const discoveredWso2PlatformGatewayApis: any[] = [];
+  const fetcher = client ?? createGatewayApiFetcher();
 
   for (const gw of platformGateways) {
     if (gw.discoveryUrl) {
       try {
-        const data = await client.getGatewayApis(
+        const data = await fetcher.getGatewayApis(
           gw.discoveryUrl,
           gw.discoveryAuth,
         );
@@ -43,21 +80,45 @@ export async function discoverWSO2PlatformGatewayApis(
           [];
 
         for (const gatewayApiItem of wso2ApiPlatformGatewayApis) {
-          const gatewayApiId = gatewayApiItem.id;
+          // Gateway-controller 1.2.x /rest-apis returns raw RestApi resources
+          // (the id lives at status.id and the stable handle at metadata.name)
+          // rather than flat {id, ...} items; support both shapes.
+          const gatewayApiId =
+            gatewayApiItem.id ??
+            gatewayApiItem.metadata?.name ??
+            gatewayApiItem.status?.id;
           if (!gatewayApiId) continue;
 
           try {
-            const detailData = await client.getGatewayApiDetail(
+            const detailData = await fetcher.getGatewayApiDetail(
               gw.discoveryUrl,
               gatewayApiId,
               gw.discoveryAuth,
             );
 
-            if (detailData.status !== 'success' || !detailData.api) {
+            // Accept both the {status: 'success', api: {...}} wrapper and the
+            // gateway-controller 1.2.x raw RestApi resource response.
+            let adaptedApi: any = undefined;
+            if (detailData.status === 'success' && detailData.api) {
+              adaptedApi = detailData.api;
+            } else if (detailData.kind === 'RestApi' && detailData.spec) {
+              adaptedApi = {
+                id: detailData.status?.id ?? detailData.metadata?.name,
+                name: detailData.spec.displayName ?? detailData.metadata?.name,
+                displayName: detailData.spec.displayName,
+                version: detailData.spec.version,
+                context: detailData.spec.context,
+                lifeCycleStatus: detailData.status?.state,
+                policies: detailData.spec.policies,
+                operations: detailData.spec.operations,
+                configuration: detailData,
+              };
+            }
+            if (!adaptedApi) {
               continue;
             }
 
-            const gatewayApiDetails = detailData.api;
+            const gatewayApiDetails = adaptedApi;
 
             const gatewayApi = {
               ...gatewayApiDetails,
