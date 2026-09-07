@@ -160,11 +160,7 @@ export const entityWso2DefinitionContent: ExtensionDefinition =
       path: '/definition',
       title: 'Definition',
       group: 'wso2-definition',
-      filter: e => {
-        return (
-          isWso2ApiEntityExceptServiceAndMcp(e) && !isSelfHostedGatewayEntity(e)
-        );
-      },
+      filter: isWso2ApiEntityExceptServiceAndMcp,
       loader: () =>
         import('../components/EntityTabs/DefinitionTab').then(m => (
           <m.EntityWso2ApiDefinitionTab />

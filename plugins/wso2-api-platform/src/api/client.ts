@@ -21,6 +21,8 @@ import { DiscoveryApi, FetchApi } from '@backstage/core-plugin-api';
 import {
   CreateWso2ApiDocumentRequest,
   UpdateWso2ApiDocumentMetadataRequest,
+  UpsertWso2ApiDefinitionRequest,
+  Wso2ApiDefinitionResponse,
   Wso2ApiDocument,
   Wso2ApiDocumentListResponse,
   Wso2ApiRevisionsResponse,
@@ -116,6 +118,13 @@ export class Wso2ApiPlatformClient implements Wso2ApiPlatformApi {
     const namespace = encodeURIComponent(entityRef.namespace || 'default');
     const name = encodeURIComponent(entityRef.name);
     return `/entities/${kind}/${namespace}/${name}/documents`;
+  }
+
+  private entityDefinitionPath(entityRef: CompoundEntityRef): string {
+    const kind = encodeURIComponent(entityRef.kind.toLowerCase());
+    const namespace = encodeURIComponent(entityRef.namespace || 'default');
+    const name = encodeURIComponent(entityRef.name);
+    return `/entities/${kind}/${namespace}/${name}/definition`;
   }
 
   async generateApiKey(
@@ -257,5 +266,23 @@ export class Wso2ApiPlatformClient implements Wso2ApiPlatformApi {
     return `${baseUrl}${this.entityDocumentsPath(
       entityRef,
     )}/${encodeURIComponent(documentId)}/content`;
+  }
+
+  async getDefinition(
+    entityRef: CompoundEntityRef,
+  ): Promise<Wso2ApiDefinitionResponse> {
+    return this.request<Wso2ApiDefinitionResponse>(
+      this.entityDefinitionPath(entityRef),
+    );
+  }
+
+  async upsertDefinition(
+    entityRef: CompoundEntityRef,
+    input: UpsertWso2ApiDefinitionRequest,
+  ): Promise<Wso2ApiDefinitionResponse> {
+    return this.request<Wso2ApiDefinitionResponse>(
+      this.entityDefinitionPath(entityRef),
+      { method: 'PUT', body: input },
+    );
   }
 }

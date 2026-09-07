@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import { InfoCard, EmptyState } from '@backstage/core-components';
+import { InfoCard } from '@backstage/core-components';
 import Box from '@material-ui/core/Box';
 import Tabs from '@material-ui/core/Tabs';
 import Tab from '@material-ui/core/Tab';
@@ -12,6 +12,7 @@ import { useAsync } from 'react-use';
 import { useApi } from '@backstage/core-plugin-api';
 import { wso2ApiPlatformApiRef } from '../../../api';
 import { ApiDefinitionViewer } from './ApiDefinitionViewer';
+import { DefinitionPanel } from './DefinitionPanel';
 import { isApiProductEntity } from '../../../utils';
 import { EntityWso2ApiProductResourcesTab } from './ApiProductResourcesTab';
 
@@ -39,8 +40,6 @@ export const EntityWso2ApiDefinitionTab = () => {
   const [activeTab, setActiveTab] = useState<'source' | 'wsdl' | 'resources'>(
     'source',
   );
-
-  const definitionStr = entity.spec?.definition as string | undefined;
 
   const apiId =
     entity.metadata.annotations?.['wso2.com/api-id'] ||
@@ -80,25 +79,12 @@ export const EntityWso2ApiDefinitionTab = () => {
   }, [apiId, isSoap, entity.metadata.annotations, apiClient]);
 
   if (!hasTabs) {
-    if (
-      !definitionStr ||
-      definitionStr === 'WSO2 API Document content placeholder'
-    ) {
-      return (
-        <EmptyState
-          title="No Definition"
-          missing="data"
-          description="This API does not have a definition available."
-        />
-      );
-    }
     return (
-      <InfoCard>
-        <ApiDefinitionViewer
-          value={definitionStr}
-          language={typeStr === 'GRAPHQL' ? 'graphql' : undefined}
-        />
-      </InfoCard>
+      <DefinitionPanel
+        entity={entity}
+        language={typeStr === 'GRAPHQL' ? 'graphql' : undefined}
+        wrapInCard
+      />
     );
   }
 
@@ -132,26 +118,10 @@ export const EntityWso2ApiDefinitionTab = () => {
 
       {activeTab === 'source' && (
         <Box p={2}>
-          {!definitionStr ||
-          definitionStr === 'WSO2 API Document content placeholder' ? (
-            <Box
-              p={4}
-              border={1}
-              borderColor="divider"
-              borderRadius={4}
-              textAlign="center"
-              bgcolor="background.default"
-            >
-              <Typography variant="body2" color="textSecondary">
-                API definition is not available for this API.
-              </Typography>
-            </Box>
-          ) : (
-            <ApiDefinitionViewer
-              value={definitionStr}
-              language={typeStr === 'GRAPHQL' ? 'graphql' : undefined}
-            />
-          )}
+          <DefinitionPanel
+            entity={entity}
+            language={typeStr === 'GRAPHQL' ? 'graphql' : undefined}
+          />
         </Box>
       )}
 

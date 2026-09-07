@@ -46,6 +46,12 @@ export interface Config {
          */
         allowedExtensions?: string[];
       };
+      definitions?: {
+        /**
+         * @visibility frontend
+         */
+        maxSizeKb?: number;
+      };
     };
   };
   wso2ApiPlatformGateway?: {

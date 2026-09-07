@@ -21,3 +21,5 @@ export type { ApiDefinitionViewerProps } from './ApiDefinitionViewer';
 export { EntityWso2ServiceDefinitionCard } from './ServiceTab';
 export { EntityWso2McpToolsTab } from './McpToolsTab';
 export { EntityWso2ApiDefinitionTab } from './ApiTab';
+export { DefinitionPanel } from './DefinitionPanel';
+export { DefinitionUploadDialog } from './DefinitionUploadDialog';

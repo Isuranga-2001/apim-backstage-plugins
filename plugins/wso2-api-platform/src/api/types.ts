@@ -192,6 +192,34 @@ export type UpdateWso2ApiDocumentMetadataRequest = {
   /** only honoured when the stored document's sourceType is URL */
   sourceUrl?: string;
 };
+export type Wso2ApiDefinitionFormat = 'YAML' | 'JSON';
+
+export type Wso2ApiDefinition = {
+  content: string;
+  format: Wso2ApiDefinitionFormat;
+  fileName?: string;
+  sizeBytes?: number;
+  createdBy?: string;
+  createdTime?: string;
+  lastUpdatedBy?: string;
+  lastUpdatedTime?: string;
+};
+
+export type Wso2ApiDefinitionCapabilities = {
+  read: boolean;
+  write: boolean;
+};
+
+export type Wso2ApiDefinitionResponse = {
+  definition: Wso2ApiDefinition | null;
+  capabilities: Wso2ApiDefinitionCapabilities;
+};
+
+export type UpsertWso2ApiDefinitionRequest = {
+  fileName: string;
+  content: string;
+};
+
 export type Wso2ApiRevision = {
   id: string;
   displayName: string;
@@ -282,4 +310,11 @@ export interface Wso2ApiPlatformApi {
     entityRef: CompoundEntityRef,
     documentId: string,
   ): Promise<string>;
+  getDefinition(
+    entityRef: CompoundEntityRef,
+  ): Promise<Wso2ApiDefinitionResponse>;
+  upsertDefinition(
+    entityRef: CompoundEntityRef,
+    input: UpsertWso2ApiDefinitionRequest,
+  ): Promise<Wso2ApiDefinitionResponse>;
 }
