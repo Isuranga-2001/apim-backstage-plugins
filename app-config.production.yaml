@@ -23,6 +23,11 @@ backend:
       # see https://www.postgresql.org/docs/current/libpq-ssl.html Table 33.1. SSL Mode Descriptions (e.g. require)
       # ssl:
       #   rejectUnauthorized: false
+    # The WSO2 API Platform document store (plugins/wso2-api-platform-backend)
+    # inherits this instance-wide PostgreSQL config automatically — no
+    # per-plugin setup is required. Only add a `plugin.wso2-api-platform`
+    # override here if documents should live in a separate database/instance;
+    # see plugins/wso2-api-platform-backend/README.md.
 
 catalog:
   # Overrides the default list locations from app-config.yaml as these contain example data.

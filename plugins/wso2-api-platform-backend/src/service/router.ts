@@ -20,6 +20,7 @@ import express from 'express';
 import Router from 'express-promise-router';
 import {
   AuthService,
+  DatabaseService,
   HttpAuthService,
   LoggerService,
   RootConfigService,
@@ -31,11 +32,20 @@ import { registerApiRoutes } from './routes/apiRoutes';
 import { registerConfigRoutes } from './routes/configRoutes';
 import { registerStreamingRoutes } from './routes/streamingRoutes';
 import { registerGatewayRoutes } from './routes/gatewayRoutes';
+import { registerDocumentRoutes } from './routes/documentRoutes';
 import { RouteContext } from './routes/types';
+import { deriveJsonBodyLimitBytes, readDocumentStorageConfig } from './documents/config';
+import { ArtifactDao } from './documents/dao/ArtifactDao';
+import { applyDatabaseMigrations } from './documents/dao/migrations';
+import { DatabaseBinaryStorage } from './documents/storage/DatabaseBinaryStorage';
+import { ApiDocumentStoreResolver } from './documents/stores/ApiDocumentStoreResolver';
+import { ApimPublisherDocumentStore } from './documents/stores/ApimPublisherDocumentStore';
+import { DatabaseApiDocumentStore } from './documents/stores/DatabaseApiDocumentStore';
 
 export interface RouterOptions {
   auth?: AuthService;
   catalog?: CatalogService;
+  database?: DatabaseService;
   logger: LoggerService;
   httpAuth: HttpAuthService;
   config: RootConfigService;
@@ -44,13 +54,14 @@ export interface RouterOptions {
 export async function createRouter(
   options: RouterOptions,
 ): Promise<express.Router> {
-  const { logger, httpAuth, config } = options;
+  const { logger, httpAuth, catalog, database, config } = options;
   const wso2Config = readWso2ApiPlatformConfig(config);
   const client = new Wso2ApiPlatformClient({
     config: wso2Config,
     rawConfig: config,
     logger,
   });
+  const documentStorage = readDocumentStorageConfig(config);
 
   async function ensureAuthenticated(
     req: express.Request,
@@ -61,7 +72,9 @@ export async function createRouter(
   }
 
   const router = Router();
-  router.use(express.json({ limit: '10mb' }));
+  router.use(
+    express.json({ limit: deriveJsonBodyLimitBytes(documentStorage) }),
+  );
 
   const routeContext: RouteContext = {
     client,
@@ -73,6 +86,38 @@ export async function createRouter(
   registerApiRoutes(router, routeContext);
   registerStreamingRoutes(router, routeContext);
   registerGatewayRoutes(router, routeContext);
+
+  // Document storage is only wired up once both a database and a catalog
+  // client are available — both are optional on RouterOptions for backward
+  // compatibility with existing test doubles.
+  if (database && catalog) {
+    const knex = await database.getClient();
+    if (!database.migrations?.skip) {
+      await applyDatabaseMigrations(knex);
+    }
+
+    const dao = new ArtifactDao(knex);
+    const binaryStorage = new DatabaseBinaryStorage();
+    const databaseStore = new DatabaseApiDocumentStore(dao, binaryStorage);
+    const apimStore = new ApimPublisherDocumentStore(client);
+    const storeResolver = new ApiDocumentStoreResolver(
+      catalog,
+      databaseStore,
+      apimStore,
+    );
+
+    registerDocumentRoutes(router, {
+      ...routeContext,
+      storeResolver,
+      httpAuth,
+      catalog,
+      documentStorage,
+    });
+  } else {
+    logger.warn(
+      'WSO2 API Platform document storage routes are disabled: database and/or catalog service not provided to createRouter',
+    );
+  }
 
   logger.info('WSO2 API Manager backend router initialized');
   return router;

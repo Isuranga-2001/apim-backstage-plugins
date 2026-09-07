@@ -42,6 +42,52 @@ export interface Config {
      * @visibility frontend
      */
     catalogSyncTimeoutSeconds?: number;
+    /**
+     * Configuration for the plugin-owned document store used by APIs
+     * discovered from self-hosted gateways and OpenChoreo.
+     */
+    storage?: {
+      /**
+       * Master switch for document storage. When false, document routes
+       * return 501 and the frontend Docs tab falls back to its
+       * "unavailable" empty state.
+       * Defaults to true.
+       * @visibility frontend
+       */
+      enabled?: boolean;
+      documents?: {
+        /**
+         * Maximum size, in megabytes, for FILE document uploads.
+         * Defaults to 10.
+         * @visibility frontend
+         */
+        maxFileSizeMb?: number;
+        /**
+         * Maximum size, in kilobytes, for INLINE/MARKDOWN document bodies.
+         * Defaults to 512.
+         * @visibility frontend
+         */
+        maxInlineSizeKb?: number;
+        /**
+         * Allowed file extensions for FILE uploads (no leading dot). An
+         * empty array disables extension checking.
+         * @visibility frontend
+         */
+        allowedExtensions?: string[];
+        /**
+         * Optional stricter MIME-type allow-list. An empty array derives
+         * allowed types from allowedExtensions instead.
+         */
+        allowedMimeTypes?: string[];
+      };
+      binary?: {
+        /**
+         * Where FILE document bytes are stored. Only 'database' is
+         * implemented today; 's3' and 'filesystem' are reserved.
+         */
+        backend?: 'database' | 's3' | 'filesystem';
+      };
+    };
   };
   /**
    * Configuration for self-hosted WSO2 API Platform Gateways.

@@ -81,6 +81,18 @@ backend:
     client: better-sqlite3
     connection:
       directory: backstage-data
+    # Per-plugin override: point just the WSO2 API Platform document store at
+    # PostgreSQL (or any other Knex-supported dialect) instead of the SQLite
+    # instance default above. See plugins/wso2-api-platform-backend/README.md.
+    # plugin:
+    #   wso2-api-platform:
+    #     client: pg
+    #     connection:
+    #       host: ${WSO2_DOC_DB_HOST}
+    #       port: 5432
+    #       user: ${WSO2_DOC_DB_USER}
+    #       password: ${WSO2_DOC_DB_PASSWORD}
+    #       database: backstage_plugin_wso2_api_platform
   # see https://backstage.io/docs/ai/mcp-actions#actions-configuration for more details
   actions:
     pluginSources:
@@ -172,6 +184,33 @@ wso2ApiPlatform:
 
     grantType: client_credentials
   catalogSyncTimeoutSeconds: 60
+  # Document attachments for APIs discovered from self-hosted gateways and
+  # OpenChoreo, backed by the plugin's own database (SQLite by default via
+  # backend.database above). Read-only for on-prem APIM in this release.
+  storage:
+    enabled: true
+    documents:
+      maxFileSizeMb: 10
+      maxInlineSizeKb: 512
+      allowedExtensions:
+        - pdf
+        - txt
+        - doc
+        - docx
+        - xls
+        - xlsx
+        - odt
+        - ods
+        - json
+        - yaml
+        - yml
+        - md
+        - png
+        - jpg
+        - jpeg
+        - svg
+    binary:
+      backend: database
 
 wso2ApiPlatformGateway:
   enabled: true
