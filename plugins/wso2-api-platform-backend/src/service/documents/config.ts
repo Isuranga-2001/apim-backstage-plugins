@@ -131,3 +131,28 @@ export function deriveJsonBodyLimitBytes(
   const FLOOR_BYTES = 10 * 1024 * 1024;
   return Math.max(documentStorage.maxInlineSizeBytes, FLOOR_BYTES);
 }
+
+export type DefinitionStorageConfig = {
+  enabled: boolean;
+  maxSizeBytes: number;
+};
+
+const DEFAULT_MAX_DEFINITION_SIZE_KB = 1024;
+
+export function readDefinitionStorageConfig(
+  config: RootConfigService,
+): DefinitionStorageConfig {
+  const storageConfig = getOptionalConfig(config, 'wso2ApiPlatform.storage');
+  const enabled = storageConfig?.getOptionalBoolean('enabled') ?? true;
+
+  const maxSizeKb =
+    getOptionalNumber(
+      config,
+      'wso2ApiPlatform.storage.definitions.maxSizeKb',
+    ) ?? DEFAULT_MAX_DEFINITION_SIZE_KB;
+
+  return {
+    enabled: enabled ?? true,
+    maxSizeBytes: Math.floor(maxSizeKb * 1024),
+  };
+}

@@ -16,36 +16,27 @@
  * under the License.
  */
 
-import {
-  BackstageCredentials,
-  BackstageUserPrincipal,
-} from '@backstage/backend-plugin-api';
-import {
-  InputError,
-  NotAllowedError,
-  NotImplementedError,
-} from '@backstage/errors';
+import { InputError, NotAllowedError } from '@backstage/errors';
 import express from 'express';
 import multer, { MulterError } from 'multer';
 import { pipeWebStreamToResponse } from './streamUtils';
 import { RouteContext } from './types';
+import {
+  actorFor,
+  assertEnabled,
+  refreshCatalogEntityAdvisory,
+} from './artifactRouteHelpers';
 import {
   assertFileAllowed,
   assertInlineSizeWithinLimit,
   parseCreateDocumentMetadata,
   parseUpdateDocumentMetadata,
 } from '../documents/validation';
-import { Actor, CreateDocumentInput } from '../documents/types';
+import { CreateDocumentInput } from '../documents/types';
 
 const BASE_PATH = '/entities/:kind/:namespace/:name/documents';
 const DOCUMENT_PATH = `${BASE_PATH}/:documentId`;
 const CONTENT_PATH = `${DOCUMENT_PATH}/content`;
-
-function actorFor(
-  credentials: BackstageCredentials<BackstageUserPrincipal>,
-): Actor {
-  return { userEntityRef: credentials.principal.userEntityRef };
-}
 
 /** Strips characters that would let a document name break out of the
  * Content-Disposition header value. */
@@ -122,24 +113,10 @@ export function registerDocumentRoutes(
   }
 
   function assertStorageEnabled() {
-    if (!documentStorage.enabled) {
-      throw new NotImplementedError(
-        'Document storage is disabled (wso2ApiPlatform.storage.enabled=false)',
-      );
-    }
-  }
-
-  async function refreshCatalogEntityAdvisory(
-    entityRef: string,
-    credentials: BackstageCredentials,
-  ) {
-    try {
-      await catalog.refreshEntity(entityRef, { credentials });
-    } catch (e) {
-      logger.debug(
-        `Catalog refresh after document mutation is advisory; ignored: ${e}`,
-      );
-    }
+    assertEnabled(
+      documentStorage.enabled,
+      'Document storage is disabled (wso2ApiPlatform.storage.enabled=false)',
+    );
   }
 
   router.get(BASE_PATH, async (req, res) => {
@@ -195,7 +172,12 @@ export function registerDocumentRoutes(
     }
 
     const created = await store.create(apiRef, input, actorFor(credentials));
-    await refreshCatalogEntityAdvisory(apiRef.entityRef, credentials);
+    await refreshCatalogEntityAdvisory(
+      catalog,
+      apiRef.entityRef,
+      credentials,
+      logger,
+    );
     res.status(201).json(created);
   });
 
@@ -219,7 +201,12 @@ export function registerDocumentRoutes(
       patch,
       actorFor(credentials),
     );
-    await refreshCatalogEntityAdvisory(apiRef.entityRef, credentials);
+    await refreshCatalogEntityAdvisory(
+      catalog,
+      apiRef.entityRef,
+      credentials,
+      logger,
+    );
     res.json(updated);
   });
 
@@ -231,7 +218,12 @@ export function registerDocumentRoutes(
       );
     }
     await store.delete(apiRef, req.params.documentId, actorFor(credentials));
-    await refreshCatalogEntityAdvisory(apiRef.entityRef, credentials);
+    await refreshCatalogEntityAdvisory(
+      catalog,
+      apiRef.entityRef,
+      credentials,
+      logger,
+    );
     res.status(204).send();
   });
 

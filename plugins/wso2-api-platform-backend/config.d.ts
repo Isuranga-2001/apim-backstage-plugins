@@ -87,6 +87,14 @@ export interface Config {
          */
         backend?: 'database' | 's3' | 'filesystem';
       };
+      definitions?: {
+        /**
+         * Maximum size, in kilobytes, for an uploaded API definition.
+         * Defaults to 1024.
+         * @visibility frontend
+         */
+        maxSizeKb?: number;
+      };
     };
   };
   /**

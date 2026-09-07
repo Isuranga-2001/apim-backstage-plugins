@@ -123,3 +123,26 @@ export type DocumentContentResult =
       fileName?: string;
     }
   | { kind: 'redirect'; url: string };
+
+export type ApiDefinitionFormat = 'YAML' | 'JSON';
+
+export type ApiDefinition = {
+  content: string;
+  format: ApiDefinitionFormat;
+  fileName?: string;
+  sizeBytes?: number;
+  createdBy?: string;
+  createdTime?: string;
+  lastUpdatedBy?: string;
+  lastUpdatedTime?: string;
+};
+
+export type ApiDefinitionCapabilities = {
+  read: boolean;
+  write: boolean;
+};
+
+export type UpsertDefinitionInput = {
+  fileName: string;
+  content: string;
+};

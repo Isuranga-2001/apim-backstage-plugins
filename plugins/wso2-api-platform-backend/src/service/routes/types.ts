@@ -20,8 +20,12 @@ import express from 'express';
 import { HttpAuthService, LoggerService } from '@backstage/backend-plugin-api';
 import type { CatalogService } from '@backstage/plugin-catalog-node';
 import { Wso2ApiPlatformClient } from '../client';
-import { DocumentStorageConfig } from '../documents/config';
+import {
+  DefinitionStorageConfig,
+  DocumentStorageConfig,
+} from '../documents/config';
 import { ApiDocumentStoreResolver } from '../documents/stores/ApiDocumentStoreResolver';
+import { ApiDefinitionStoreResolver } from '../documents/stores/ApiDefinitionStoreResolver';
 
 export type EnsureAuthenticated = (
   req: express.Request,
@@ -32,10 +36,13 @@ export type RouteContext = {
   ensureAuthenticated: EnsureAuthenticated;
   logger: LoggerService;
   // Present only once the router has database + catalog support wired up
-  // (see router.ts); registerDocumentRoutes no-ops without them so older
-  // test doubles that build a bare RouteContext keep working unmodified.
+  // (see router.ts); registerDocumentRoutes/registerDefinitionRoutes no-op
+  // without them so older test doubles that build a bare RouteContext keep
+  // working unmodified.
   storeResolver?: ApiDocumentStoreResolver;
   httpAuth?: HttpAuthService;
   catalog?: CatalogService;
   documentStorage?: DocumentStorageConfig;
+  definitionStoreResolver?: ApiDefinitionStoreResolver;
+  definitionStorage?: DefinitionStorageConfig;
 };

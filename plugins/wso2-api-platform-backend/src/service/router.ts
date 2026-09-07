@@ -33,9 +33,11 @@ import { registerConfigRoutes } from './routes/configRoutes';
 import { registerStreamingRoutes } from './routes/streamingRoutes';
 import { registerGatewayRoutes } from './routes/gatewayRoutes';
 import { registerDocumentRoutes } from './routes/documentRoutes';
+import { registerDefinitionRoutes } from './routes/definitionRoutes';
 import { RouteContext } from './routes/types';
 import {
   deriveJsonBodyLimitBytes,
+  readDefinitionStorageConfig,
   readDocumentStorageConfig,
 } from './documents/config';
 import { ArtifactDao } from './documents/dao/ArtifactDao';
@@ -44,6 +46,8 @@ import { DatabaseBinaryStorage } from './documents/storage/DatabaseBinaryStorage
 import { ApiDocumentStoreResolver } from './documents/stores/ApiDocumentStoreResolver';
 import { ApimPublisherDocumentStore } from './documents/stores/ApimPublisherDocumentStore';
 import { DatabaseApiDocumentStore } from './documents/stores/DatabaseApiDocumentStore';
+import { ApiDefinitionStoreResolver } from './documents/stores/ApiDefinitionStoreResolver';
+import { DatabaseApiDefinitionStore } from './documents/stores/DatabaseApiDefinitionStore';
 
 export interface RouterOptions {
   auth?: AuthService;
@@ -65,6 +69,7 @@ export async function createRouter(
     logger,
   });
   const documentStorage = readDocumentStorageConfig(config);
+  const definitionStorage = readDefinitionStorageConfig(config);
 
   async function ensureAuthenticated(
     req: express.Request,
@@ -99,7 +104,7 @@ export async function createRouter(
       await applyDatabaseMigrations(knex);
     }
 
-    const dao = new ArtifactDao(knex);
+    const dao = new ArtifactDao(knex, 'document');
     const binaryStorage = new DatabaseBinaryStorage();
     const databaseStore = new DatabaseApiDocumentStore(dao, binaryStorage);
     const apimStore = new ApimPublisherDocumentStore(client);
@@ -116,9 +121,26 @@ export async function createRouter(
       catalog,
       documentStorage,
     });
+
+    const definitionDao = new ArtifactDao(knex, 'definition');
+    const definitionDatabaseStore = new DatabaseApiDefinitionStore(
+      definitionDao,
+    );
+    const definitionStoreResolver = new ApiDefinitionStoreResolver(
+      catalog,
+      definitionDatabaseStore,
+    );
+
+    registerDefinitionRoutes(router, {
+      ...routeContext,
+      definitionStoreResolver,
+      httpAuth,
+      catalog,
+      definitionStorage,
+    });
   } else {
     logger.warn(
-      'WSO2 API Platform document storage routes are disabled: database and/or catalog service not provided to createRouter',
+      'WSO2 API Platform document/definition storage routes are disabled: database and/or catalog service not provided to createRouter',
     );
   }
 

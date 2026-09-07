@@ -287,3 +287,113 @@ describe.each(databases.eachSupportedId())('ArtifactDao (%s)', dbId => {
     ).rejects.toThrow(ConflictError);
   });
 });
+
+describe.each(databases.eachSupportedId())(
+  'ArtifactDao upsertSingleton (%s)',
+  dbId => {
+    let knex: Knex;
+    let dao: ArtifactDao;
+
+    beforeEach(async () => {
+      knex = await databases.init(dbId);
+      await applyDatabaseMigrations(knex);
+      dao = new ArtifactDao(knex, 'definition');
+    }, 60_000);
+
+    const metadata = {
+      source_kind: REF.sourceKind,
+      gateway_id: REF.gatewayId,
+      api_id: REF.apiId,
+      api_version: null,
+      entity_ref: REF.entityRef,
+      name: 'definition',
+      doc_type: 'YAML',
+      other_type_name: null,
+      summary: null,
+      source_type: 'FILE',
+      visibility: 'API_LEVEL',
+      source_url: null,
+      created_by: 'user:default/alice',
+      updated_by: 'user:default/alice',
+    };
+
+    const content = {
+      storage_backend: 'database',
+      storage_ref: null,
+      mime_type: 'application/yaml',
+      file_name: 'openapi.yaml',
+      size_bytes: 10,
+      checksum: 'v1',
+      content_text: 'openapi: 3.0.0',
+      content_blob: null,
+    };
+
+    it('creates a new singleton row when none exists yet', async () => {
+      const created = await dao.upsertSingleton(REF, metadata, content);
+      expect(created).toMatchObject({
+        artifact_kind: 'definition',
+        name: 'definition',
+      });
+
+      const fetched = await dao.getSingleton(REF);
+      expect(fetched?.id).toBe(created.id);
+    });
+
+    it('replaces metadata and content on a second upsert, keeping the same row id and original created_by', async () => {
+      const first = await dao.upsertSingleton(REF, metadata, content);
+
+      const second = await dao.upsertSingleton(
+        REF,
+        {
+          ...metadata,
+          doc_type: 'JSON',
+          created_by: 'user:default/bob',
+          updated_by: 'user:default/bob',
+        },
+        {
+          ...content,
+          content_text: '{"openapi":"3.0.0"}',
+          mime_type: 'application/json',
+        },
+      );
+
+      expect(second.id).toBe(first.id);
+      expect(second.doc_type).toBe('JSON');
+      expect(second.created_by).toBe('user:default/alice');
+      expect(second.updated_by).toBe('user:default/bob');
+
+      const replacedContent = await dao.getContent(first.id);
+      expect(replacedContent?.content_text).toBe('{"openapi":"3.0.0"}');
+    });
+
+    it('does not affect document-kind rows for the same API', async () => {
+      const documentDao = new ArtifactDao(knex, 'document');
+      await documentDao.create(
+        {
+          source_kind: REF.sourceKind,
+          gateway_id: REF.gatewayId,
+          api_id: REF.apiId,
+          api_version: null,
+          entity_ref: REF.entityRef,
+          name: 'definition', // same name, different kind — must not collide
+          doc_type: 'HOWTO',
+          other_type_name: null,
+          summary: null,
+          source_type: 'URL',
+          visibility: 'API_LEVEL',
+          source_url: 'https://example.com',
+          created_by: null,
+          updated_by: null,
+        },
+        undefined,
+      );
+
+      await expect(
+        dao.upsertSingleton(REF, metadata, content),
+      ).resolves.toMatchObject({ artifact_kind: 'definition' });
+
+      const documentList = await documentDao.list(REF);
+      expect(documentList).toHaveLength(1);
+    });
+  },
+);

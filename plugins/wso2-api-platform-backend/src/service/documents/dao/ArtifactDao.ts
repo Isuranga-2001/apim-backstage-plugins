@@ -23,7 +23,6 @@ import { ApiRef } from '../types';
 
 const ARTIFACTS_TABLE = 'wso2_artifacts';
 const CONTENT_TABLE = 'wso2_artifact_content';
-const DOCUMENT_KIND = 'document';
 
 export type ArtifactRow = {
   id: string;
@@ -81,12 +80,12 @@ export type NewArtifactContent = Omit<
   'artifact_id' | 'created_at' | 'updated_at'
 >;
 
-function naturalKeyWhere(ref: ApiRef) {
+function naturalKeyWhereFor(ref: ApiRef, artifactKind: string) {
   return {
     source_kind: ref.sourceKind,
     gateway_id: ref.gatewayId,
     api_id: ref.apiId,
-    artifact_kind: DOCUMENT_KIND,
+    artifact_kind: artifactKind,
   };
 }
 
@@ -110,7 +109,14 @@ export type ArtifactRowWithContentMeta = ArtifactRow & {
 };
 
 export class ArtifactDao {
-  constructor(private readonly knex: Knex) {}
+  constructor(
+    private readonly knex: Knex,
+    private readonly artifactKind: string = 'document',
+  ) {}
+
+  private naturalKeyWhere(ref: ApiRef) {
+    return naturalKeyWhereFor(ref, this.artifactKind);
+  }
 
   /**
    * Joins only the non-BLOB content columns (file name/type/size) so list
@@ -124,7 +130,7 @@ export class ArtifactDao {
         `${ARTIFACTS_TABLE}.id`,
         `${CONTENT_TABLE}.artifact_id`,
       )
-      .where(naturalKeyWhere(ref))
+      .where(this.naturalKeyWhere(ref))
       .select(
         `${ARTIFACTS_TABLE}.*`,
         `${CONTENT_TABLE}.file_name`,
@@ -136,12 +142,18 @@ export class ArtifactDao {
 
   async get(ref: ApiRef, documentId: string): Promise<ArtifactRow> {
     const row = await this.knex<ArtifactRow>(ARTIFACTS_TABLE)
-      .where({ id: documentId, ...naturalKeyWhere(ref) })
+      .where({ id: documentId, ...this.naturalKeyWhere(ref) })
       .first();
     if (!row) {
       throw new NotFoundError(`Document '${documentId}' not found`);
     }
     return row;
+  }
+
+  async getSingleton(ref: ApiRef): Promise<ArtifactRow | undefined> {
+    return this.knex<ArtifactRow>(ARTIFACTS_TABLE)
+      .where(this.naturalKeyWhere(ref))
+      .first();
   }
 
   async getContent(
@@ -161,7 +173,7 @@ export class ArtifactDao {
       await this.knex.transaction(async trx => {
         await trx(ARTIFACTS_TABLE).insert({
           id,
-          artifact_kind: DOCUMENT_KIND,
+          artifact_kind: this.artifactKind,
           ...metadata,
           created_at: trx.fn.now(),
           updated_at: trx.fn.now(),
@@ -201,7 +213,7 @@ export class ArtifactDao {
   ): Promise<ArtifactRow> {
     try {
       const updated = await this.knex(ARTIFACTS_TABLE)
-        .where({ id: documentId, ...naturalKeyWhere(ref) })
+        .where({ id: documentId, ...this.naturalKeyWhere(ref) })
         .update({ ...patch, updated_at: this.knex.fn.now() });
       if (!updated) {
         throw new NotFoundError(`Document '${documentId}' not found`);
@@ -220,7 +232,7 @@ export class ArtifactDao {
   async delete(ref: ApiRef, documentId: string): Promise<void> {
     await this.knex.transaction(async trx => {
       const row = await trx<ArtifactRow>(ARTIFACTS_TABLE)
-        .where({ id: documentId, ...naturalKeyWhere(ref) })
+        .where({ id: documentId, ...this.naturalKeyWhere(ref) })
         .first();
       if (!row) {
         throw new NotFoundError(`Document '${documentId}' not found`);
@@ -238,5 +250,37 @@ export class ArtifactDao {
     await this.knex(ARTIFACTS_TABLE)
       .where({ id: documentId })
       .update({ entity_ref: entityRef });
+  }
+
+  async upsertSingleton(
+    ref: ApiRef,
+    metadata: NewArtifactMetadata,
+    content: NewArtifactContent | undefined,
+  ): Promise<ArtifactRow> {
+    const existing = await this.getSingleton(ref);
+    if (!existing) {
+      return this.create(metadata, content);
+    }
+
+    // Preserve the original created_by rather than overwriting it with the
+    // actor performing this replace.
+    const { created_by: _createdBy, ...updatePatch } = metadata;
+
+    await this.knex.transaction(async trx => {
+      await trx(ARTIFACTS_TABLE)
+        .where({ id: existing.id })
+        .update({ ...updatePatch, updated_at: trx.fn.now() });
+      await trx(CONTENT_TABLE).where({ artifact_id: existing.id }).delete();
+      if (content) {
+        await trx(CONTENT_TABLE).insert({
+          artifact_id: existing.id,
+          ...content,
+          created_at: trx.fn.now(),
+          updated_at: trx.fn.now(),
+        });
+      }
+    });
+
+    return this.get(ref, existing.id);
   }
 }

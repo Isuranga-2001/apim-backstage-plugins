@@ -18,7 +18,7 @@
 
 import { InputError } from '@backstage/errors';
 import { z } from 'zod';
-import { DocumentStorageConfig } from './config';
+import { DocumentStorageConfig, DefinitionStorageConfig } from './config';
 
 // SWAGGER_DOC is legacy/APIM-internal and intentionally excluded from the
 // create/edit dropdown — it can still be read back on the on-prem path via
@@ -170,6 +170,47 @@ export function assertFileAllowed(
       `File MIME type '${
         file.mimetype
       }' is not in the allowed list: ${config.allowedMimeTypes.join(', ')}`,
+    );
+  }
+}
+
+// WSO2 only ever accepts an API definition as OpenAPI JSON or YAML text, so
+// this is fixed rather than a configurable allow-list like documents'.
+const DEFINITION_ALLOWED_EXTENSIONS = ['yaml', 'yml', 'json'];
+
+const upsertDefinitionSchema = z.object({
+  fileName: z.string().trim().min(1).max(255),
+  content: z.string().min(1),
+});
+
+export type UpsertDefinitionBody = z.infer<typeof upsertDefinitionSchema>;
+
+export function parseUpsertDefinitionInput(raw: unknown): UpsertDefinitionBody {
+  const result = upsertDefinitionSchema.safeParse(raw);
+  if (!result.success) {
+    throw new InputError(`Invalid definition payload: ${result.error.message}`);
+  }
+  const ext = result.data.fileName.split('.').pop()?.toLowerCase();
+  if (!ext || !DEFINITION_ALLOWED_EXTENSIONS.includes(ext)) {
+    throw new InputError(
+      `File extension '${
+        ext ?? ''
+      }' is not supported for API definitions. Allowed: ${DEFINITION_ALLOWED_EXTENSIONS.join(
+        ', ',
+      )}`,
+    );
+  }
+  return result.data;
+}
+
+export function assertDefinitionSizeWithinLimit(
+  content: string,
+  config: DefinitionStorageConfig,
+) {
+  const bytes = Buffer.byteLength(content, 'utf8');
+  if (bytes > config.maxSizeBytes) {
+    throw new InputError(
+      `Definition content is ${bytes} bytes, exceeding the configured limit of ${config.maxSizeBytes} bytes`,
     );
   }
 }
