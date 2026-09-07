@@ -259,4 +259,187 @@ describe('Wso2ApiPlatformClient', () => {
       );
     });
   });
+
+  describe('document methods', () => {
+    const entityRef = {
+      kind: 'API',
+      namespace: 'wso2-gateways',
+      name: 'orders-api',
+    };
+
+    it('should list documents at the lower-cased, entity-scoped path', async () => {
+      const mockResult = {
+        count: 1,
+        list: [{ id: 'd1', name: 'Doc', documentId: 'd1' }],
+        capabilities: {
+          read: true,
+          create: true,
+          updateMetadata: true,
+          updateContent: false,
+          delete: true,
+        },
+      };
+      mockFetchApi.fetch.mockResolvedValueOnce({
+        ok: true,
+        text: jest.fn().mockResolvedValueOnce(JSON.stringify(mockResult)),
+      } as any);
+
+      const result = await client.listDocuments(entityRef);
+
+      expect(mockFetchApi.fetch).toHaveBeenCalledWith(
+        'https://wso2-api-platform.backend/entities/api/wso2-gateways/orders-api/documents',
+        expect.objectContaining({ method: 'GET' }),
+      );
+      expect(result).toEqual(mockResult);
+    });
+
+    it("should default namespace to 'default' when the entity has none", async () => {
+      mockFetchApi.fetch.mockResolvedValueOnce({
+        ok: true,
+        text: jest
+          .fn()
+          .mockResolvedValueOnce(
+            JSON.stringify({ count: 0, list: [], capabilities: {} }),
+          ),
+      } as any);
+
+      await client.listDocuments({ kind: 'API', namespace: '', name: 'x' });
+
+      expect(mockFetchApi.fetch).toHaveBeenCalledWith(
+        'https://wso2-api-platform.backend/entities/api/default/x/documents',
+        expect.anything(),
+      );
+    });
+
+    it('should fetch a single document', async () => {
+      const mockDoc = { id: 'd1', documentId: 'd1', name: 'Doc' };
+      mockFetchApi.fetch.mockResolvedValueOnce({
+        ok: true,
+        text: jest.fn().mockResolvedValueOnce(JSON.stringify(mockDoc)),
+      } as any);
+
+      const result = await client.getDocument(entityRef, 'd1');
+
+      expect(mockFetchApi.fetch).toHaveBeenCalledWith(
+        'https://wso2-api-platform.backend/entities/api/wso2-gateways/orders-api/documents/d1',
+        expect.objectContaining({ method: 'GET' }),
+      );
+      expect(result).toEqual(mockDoc);
+    });
+
+    it('should create a MARKDOWN document as a JSON POST', async () => {
+      const mockDoc = { id: 'd1', documentId: 'd1', name: 'Getting Started' };
+      mockFetchApi.fetch.mockResolvedValueOnce({
+        ok: true,
+        text: jest.fn().mockResolvedValueOnce(JSON.stringify(mockDoc)),
+      } as any);
+
+      const input = {
+        name: 'Getting Started',
+        type: 'HOWTO' as const,
+        sourceType: 'MARKDOWN' as const,
+        inlineContent: '# Hello',
+      };
+      const result = await client.createDocument(entityRef, input);
+
+      expect(mockFetchApi.fetch).toHaveBeenCalledWith(
+        'https://wso2-api-platform.backend/entities/api/wso2-gateways/orders-api/documents',
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({
+            'Content-Type': 'application/json',
+          }),
+          body: JSON.stringify(input),
+        }),
+      );
+      expect(result).toEqual(mockDoc);
+    });
+
+    it('should create a FILE document as multipart/form-data with metadata + file fields', async () => {
+      const mockDoc = { id: 'd1', documentId: 'd1', name: 'Spec' };
+      mockFetchApi.fetch.mockResolvedValueOnce({
+        ok: true,
+        text: jest.fn().mockResolvedValueOnce(JSON.stringify(mockDoc)),
+      } as any);
+
+      const file = new File(['hello'], 'spec.txt', { type: 'text/plain' });
+      const result = await client.createDocument(entityRef, {
+        name: 'Spec',
+        type: 'SAMPLES',
+        sourceType: 'FILE',
+        file,
+      });
+
+      expect(mockFetchApi.fetch).toHaveBeenCalledWith(
+        'https://wso2-api-platform.backend/entities/api/wso2-gateways/orders-api/documents',
+        expect.objectContaining({
+          method: 'POST',
+          headers: { Accept: 'application/json' },
+        }),
+      );
+      const call = mockFetchApi.fetch.mock.calls[0][1] as RequestInit;
+      const formData = call.body as FormData;
+      expect(formData).toBeInstanceOf(FormData);
+      expect(formData.get('metadata')).toBe(
+        JSON.stringify({ name: 'Spec', type: 'SAMPLES', sourceType: 'FILE' }),
+      );
+      const submittedFile = formData.get('file') as File;
+      expect(submittedFile.name).toBe('spec.txt');
+      expect(submittedFile.type).toBe('text/plain');
+      expect(result).toEqual(mockDoc);
+    });
+
+    it('should reject a FILE create request with no file attached', async () => {
+      await expect(
+        client.createDocument(entityRef, {
+          name: 'Spec',
+          type: 'SAMPLES',
+          sourceType: 'FILE',
+        }),
+      ).rejects.toThrow("A file is required when sourceType is 'FILE'");
+      expect(mockFetchApi.fetch).not.toHaveBeenCalled();
+    });
+
+    it('should update document metadata via PUT', async () => {
+      const mockDoc = { id: 'd1', documentId: 'd1', summary: 'Updated' };
+      mockFetchApi.fetch.mockResolvedValueOnce({
+        ok: true,
+        text: jest.fn().mockResolvedValueOnce(JSON.stringify(mockDoc)),
+      } as any);
+
+      const result = await client.updateDocumentMetadata(entityRef, 'd1', {
+        summary: 'Updated',
+      });
+
+      expect(mockFetchApi.fetch).toHaveBeenCalledWith(
+        'https://wso2-api-platform.backend/entities/api/wso2-gateways/orders-api/documents/d1',
+        expect.objectContaining({
+          method: 'PUT',
+          body: JSON.stringify({ summary: 'Updated' }),
+        }),
+      );
+      expect(result).toEqual(mockDoc);
+    });
+
+    it('should delete a document via DELETE', async () => {
+      mockFetchApi.fetch.mockResolvedValueOnce({
+        ok: true,
+        text: jest.fn().mockResolvedValueOnce(''),
+      } as any);
+
+      await client.deleteDocument(entityRef, 'd1');
+
+      expect(mockFetchApi.fetch).toHaveBeenCalledWith(
+        'https://wso2-api-platform.backend/entities/api/wso2-gateways/orders-api/documents/d1',
+        expect.objectContaining({ method: 'DELETE' }),
+      );
+    });
+
+    it('should build the document content URL', async () => {
+      const url = await client.getDocumentContentUrl(entityRef, 'd1');
+      expect(url).toBe(
+        'https://wso2-api-platform.backend/entities/api/wso2-gateways/orders-api/documents/d1/content',
+      );
+    });
+  });
 });

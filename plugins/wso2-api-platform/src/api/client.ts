@@ -16,8 +16,13 @@
  * under the License.
  */
 
+import { CompoundEntityRef } from '@backstage/catalog-model';
 import { DiscoveryApi, FetchApi } from '@backstage/core-plugin-api';
 import {
+  CreateWso2ApiDocumentRequest,
+  UpdateWso2ApiDocumentMetadataRequest,
+  Wso2ApiDocument,
+  Wso2ApiDocumentListResponse,
   Wso2ApiRevisionsResponse,
   Wso2ApiPlatformApi,
   Wso2ApiPlatformRuntimeConfig,
@@ -78,6 +83,15 @@ export class Wso2ApiPlatformClient implements Wso2ApiPlatformApi {
       body: options?.body ? JSON.stringify(options.body) : undefined,
     });
 
+    return this.parseJsonResponse<T>(response);
+  }
+
+  /**
+   * Same response handling as `request<T>()`, factored out so the
+   * multipart document-create path (which cannot set a JSON Content-Type
+   * header — the browser must set its own multipart boundary) can share it.
+   */
+  private async parseJsonResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
       const errorText = await response.text().catch(() => response.statusText);
       throw new Error(
@@ -95,6 +109,13 @@ export class Wso2ApiPlatformClient implements Wso2ApiPlatformApi {
     } catch (e) {
       throw new Error(`Failed to parse WSO2 API response: ${text}`);
     }
+  }
+
+  private entityDocumentsPath(entityRef: CompoundEntityRef): string {
+    const kind = encodeURIComponent(entityRef.kind.toLowerCase());
+    const namespace = encodeURIComponent(entityRef.namespace || 'default');
+    const name = encodeURIComponent(entityRef.name);
+    return `/entities/${kind}/${namespace}/${name}/documents`;
   }
 
   async generateApiKey(
@@ -152,5 +173,81 @@ export class Wso2ApiPlatformClient implements Wso2ApiPlatformApi {
       );
     }
     return response.blob();
+  }
+
+  async listDocuments(
+    entityRef: CompoundEntityRef,
+  ): Promise<Wso2ApiDocumentListResponse> {
+    return this.request<Wso2ApiDocumentListResponse>(
+      this.entityDocumentsPath(entityRef),
+    );
+  }
+
+  async getDocument(
+    entityRef: CompoundEntityRef,
+    documentId: string,
+  ): Promise<Wso2ApiDocument> {
+    return this.request<Wso2ApiDocument>(
+      `${this.entityDocumentsPath(entityRef)}/${encodeURIComponent(documentId)}`,
+    );
+  }
+
+  async createDocument(
+    entityRef: CompoundEntityRef,
+    input: CreateWso2ApiDocumentRequest,
+  ): Promise<Wso2ApiDocument> {
+    const path = this.entityDocumentsPath(entityRef);
+
+    if (input.sourceType === 'FILE') {
+      if (!input.file) {
+        throw new Error("A file is required when sourceType is 'FILE'");
+      }
+      const { file, ...metadata } = input;
+      const formData = new FormData();
+      formData.append('metadata', JSON.stringify(metadata));
+      formData.append('file', file, file.name);
+
+      const baseUrl = await this.getBaseUrl();
+      const response = await this.fetchApi.fetch(`${baseUrl}${path}`, {
+        method: 'POST',
+        headers: { Accept: 'application/json' },
+        body: formData,
+      });
+      return this.parseJsonResponse<Wso2ApiDocument>(response);
+    }
+
+    return this.request<Wso2ApiDocument>(path, {
+      method: 'POST',
+      body: input,
+    });
+  }
+
+  async updateDocumentMetadata(
+    entityRef: CompoundEntityRef,
+    documentId: string,
+    patch: UpdateWso2ApiDocumentMetadataRequest,
+  ): Promise<Wso2ApiDocument> {
+    return this.request<Wso2ApiDocument>(
+      `${this.entityDocumentsPath(entityRef)}/${encodeURIComponent(documentId)}`,
+      { method: 'PUT', body: patch },
+    );
+  }
+
+  async deleteDocument(
+    entityRef: CompoundEntityRef,
+    documentId: string,
+  ): Promise<void> {
+    await this.request<void>(
+      `${this.entityDocumentsPath(entityRef)}/${encodeURIComponent(documentId)}`,
+      { method: 'DELETE' },
+    );
+  }
+
+  async getDocumentContentUrl(
+    entityRef: CompoundEntityRef,
+    documentId: string,
+  ): Promise<string> {
+    const baseUrl = await this.getBaseUrl();
+    return `${baseUrl}${this.entityDocumentsPath(entityRef)}/${encodeURIComponent(documentId)}/content`;
   }
 }

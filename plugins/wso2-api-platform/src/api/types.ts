@@ -1,3 +1,5 @@
+import { CompoundEntityRef } from '@backstage/catalog-model';
+
 export type Wso2GatewayInfo = {
   name?: string;
   displayName?: string;
@@ -126,24 +128,74 @@ export type Wso2ApiDetail = Wso2ApiSummary & {
   authorizationHeader?: string;
 };
 
-export type Wso2ApiDocument = {
-  id: string;
-  name: string;
-  summary?: string;
-  sourceType?: string;
-  sourceUrl?: string;
-  documentId?: string;
-  type?: string;
-};
-
 export type Wso2ApiDocumentType =
   | 'HOWTO'
   | 'SAMPLES'
   | 'PUBLIC_FORUM'
   | 'SUPPORT_FORUM'
+  | 'API_MESSAGE_FORMAT'
   | 'OTHER'
   | 'SWAGGER_DOC';
 export type Wso2ApiDocumentSourceType = 'INLINE' | 'URL' | 'FILE' | 'MARKDOWN';
+export type Wso2ApiDocumentVisibility = 'OWNER_ONLY' | 'PRIVATE' | 'API_LEVEL';
+
+// Widened for the plugin-owned document store (self-hosted/OpenChoreo
+// gateway APIs): every added field is optional so the on-prem
+// annotation-parsing path (useDocuments.ts) keeps type-checking unchanged.
+export type Wso2ApiDocument = {
+  id: string;
+  name: string;
+  summary?: string;
+  sourceType?: Wso2ApiDocumentSourceType;
+  sourceUrl?: string;
+  documentId?: string;
+  type?: Wso2ApiDocumentType;
+  otherTypeName?: string;
+  visibility?: Wso2ApiDocumentVisibility;
+  fileName?: string;
+  mimeType?: string;
+  sizeBytes?: number;
+  createdBy?: string;
+  createdTime?: string;
+  lastUpdatedBy?: string;
+  lastUpdatedTime?: string;
+};
+
+export type Wso2ApiDocumentCapabilities = {
+  read: boolean;
+  create: boolean;
+  updateMetadata: boolean;
+  updateContent: boolean;
+  delete: boolean;
+};
+
+export type Wso2ApiDocumentListResponse = {
+  count: number;
+  list: Wso2ApiDocument[];
+  capabilities: Wso2ApiDocumentCapabilities;
+};
+
+export type CreateWso2ApiDocumentRequest = {
+  name: string;
+  type: Wso2ApiDocumentType;
+  otherTypeName?: string;
+  summary?: string;
+  visibility?: Wso2ApiDocumentVisibility;
+  sourceType: Wso2ApiDocumentSourceType;
+  sourceUrl?: string;
+  inlineContent?: string;
+  file?: File;
+};
+
+export type UpdateWso2ApiDocumentMetadataRequest = {
+  name?: string;
+  type?: Wso2ApiDocumentType;
+  otherTypeName?: string;
+  summary?: string;
+  visibility?: Wso2ApiDocumentVisibility;
+  /** only honoured when the stored document's sourceType is URL */
+  sourceUrl?: string;
+};
 export type Wso2ApiRevision = {
   id: string;
   displayName: string;
@@ -210,4 +262,23 @@ export interface Wso2ApiPlatformApi {
   getGateways(token?: string): Promise<any[]>;
   getRuntimeConfig(token?: string): Promise<Wso2ApiPlatformRuntimeConfig>;
   getApiWsdl(apiId: string, token?: string): Promise<Blob>;
+  listDocuments(entityRef: CompoundEntityRef): Promise<Wso2ApiDocumentListResponse>;
+  getDocument(
+    entityRef: CompoundEntityRef,
+    documentId: string,
+  ): Promise<Wso2ApiDocument>;
+  createDocument(
+    entityRef: CompoundEntityRef,
+    input: CreateWso2ApiDocumentRequest,
+  ): Promise<Wso2ApiDocument>;
+  updateDocumentMetadata(
+    entityRef: CompoundEntityRef,
+    documentId: string,
+    patch: UpdateWso2ApiDocumentMetadataRequest,
+  ): Promise<Wso2ApiDocument>;
+  deleteDocument(entityRef: CompoundEntityRef, documentId: string): Promise<void>;
+  getDocumentContentUrl(
+    entityRef: CompoundEntityRef,
+    documentId: string,
+  ): Promise<string>;
 }
