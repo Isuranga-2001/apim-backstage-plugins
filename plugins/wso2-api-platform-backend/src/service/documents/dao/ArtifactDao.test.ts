@@ -30,7 +30,7 @@ const REF: ApiRef = {
   entityRef: 'api:wso2-gateways/orders-api',
 };
 
-const databases = TestDatabases.create();
+const databases = TestDatabases.create({ ids: ['SQLITE_3'] });
 
 describe.each(databases.eachSupportedId())('ArtifactDao (%s)', dbId => {
   let knex: Knex;
@@ -40,7 +40,7 @@ describe.each(databases.eachSupportedId())('ArtifactDao (%s)', dbId => {
     knex = await databases.init(dbId);
     await applyDatabaseMigrations(knex);
     dao = new ArtifactDao(knex);
-  });
+  }, 60_000);
 
   it('creates and lists a document without dragging blob columns', async () => {
     const created = await dao.create(

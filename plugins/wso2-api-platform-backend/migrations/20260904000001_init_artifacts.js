@@ -28,11 +28,11 @@ exports.up = async function up(knex) {
     table.string('id', 64).notNullable().primary();
     table.string('artifact_kind', 32).notNullable();
     table.string('source_kind', 32).notNullable();
-    table.string('gateway_id', 255).notNullable();
-    table.string('api_id', 255).notNullable();
+    table.string('gateway_id', 191).notNullable();
+    table.string('api_id', 191).notNullable();
     table.string('api_version', 64).nullable();
     table.string('entity_ref', 512).nullable();
-    table.string('name', 255).notNullable();
+    table.string('name', 191).notNullable();
     table.string('doc_type', 64).notNullable();
     table.string('other_type_name', 255).nullable();
     table.text('summary').nullable();

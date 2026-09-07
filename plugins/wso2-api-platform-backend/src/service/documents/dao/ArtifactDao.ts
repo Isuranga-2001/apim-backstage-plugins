@@ -99,7 +99,9 @@ function isUniqueConstraintViolation(err: unknown): boolean {
     code === '23505' || // PostgreSQL
     code === 'SQLITE_CONSTRAINT' ||
     code === 'SQLITE_CONSTRAINT_UNIQUE' ||
-    message.includes('UNIQUE constraint failed')
+    code === 'ER_DUP_ENTRY' || // MySQL/MariaDB
+    message.includes('UNIQUE constraint failed') ||
+    message.includes('Duplicate entry')
   );
 }
 
