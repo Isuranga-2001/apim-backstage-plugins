@@ -86,9 +86,7 @@ export const DocumentMetadataForm = (options: {
           required
           fullWidth
           value={value.type}
-          onChange={e =>
-            set({ type: e.target.value as Wso2ApiDocumentType })
-          }
+          onChange={e => set({ type: e.target.value as Wso2ApiDocumentType })}
           disabled={disabled}
         >
           {DOCUMENT_TYPE_OPTIONS.map(opt => (

@@ -108,7 +108,11 @@ export class ApimPublisherDocumentStore implements ApiDocumentStore {
 
     const contentType = response.headers.get('content-type') || '';
     if (!response.body) {
-      return { kind: 'text', contentType: contentType || 'text/plain', body: '' };
+      return {
+        kind: 'text',
+        contentType: contentType || 'text/plain',
+        body: '',
+      };
     }
 
     if (contentType.includes('application/json')) {
@@ -150,7 +154,11 @@ export class ApimPublisherDocumentStore implements ApiDocumentStore {
     );
   }
 
-  async delete(_ref: ApiRef, _documentId: string, _actor: Actor): Promise<void> {
+  async delete(
+    _ref: ApiRef,
+    _documentId: string,
+    _actor: Actor,
+  ): Promise<void> {
     throw new NotAllowedError(
       'Deleting documents for on-prem APIM APIs is not supported in this release',
     );

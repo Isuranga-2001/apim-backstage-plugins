@@ -95,9 +95,7 @@ export const EditDocumentMetadataDialog = (options: {
         ...(metadata.type === 'OTHER'
           ? { otherTypeName: metadata.otherTypeName.trim() }
           : {}),
-        ...(doc.sourceType === 'URL'
-          ? { sourceUrl: sourceUrl.trim() }
-          : {}),
+        ...(doc.sourceType === 'URL' ? { sourceUrl: sourceUrl.trim() } : {}),
       });
       onUpdated();
     } catch (e) {

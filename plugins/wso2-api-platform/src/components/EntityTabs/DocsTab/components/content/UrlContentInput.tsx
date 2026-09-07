@@ -43,9 +43,7 @@ export const UrlContentInput = (options: {
       value={value}
       onChange={e => onChange(e.target.value)}
       error={!isValid}
-      helperText={
-        isValid ? ' ' : 'Must be an http:// or https:// URL'
-      }
+      helperText={isValid ? ' ' : 'Must be an http:// or https:// URL'}
       placeholder="https://example.com/docs"
     />
   );

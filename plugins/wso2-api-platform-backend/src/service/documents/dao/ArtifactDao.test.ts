@@ -156,12 +156,26 @@ describe.each(databases.eachSupportedId())('ArtifactDao (%s)', dbId => {
       updated_by: null,
     };
     await dao.create(
-      { ...base, source_kind: 'self-hosted', gateway_id: 'env-1', api_id: 'api-a', entity_ref: null, name: 'README' },
+      {
+        ...base,
+        source_kind: 'self-hosted',
+        gateway_id: 'env-1',
+        api_id: 'api-a',
+        entity_ref: null,
+        name: 'README',
+      },
       undefined,
     );
     await expect(
       dao.create(
-        { ...base, source_kind: 'self-hosted', gateway_id: 'env-1', api_id: 'api-b', entity_ref: null, name: 'README' },
+        {
+          ...base,
+          source_kind: 'self-hosted',
+          gateway_id: 'env-1',
+          api_id: 'api-b',
+          entity_ref: null,
+          name: 'README',
+        },
         undefined,
       ),
     ).resolves.toMatchObject({ name: 'README' });

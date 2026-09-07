@@ -100,7 +100,11 @@ describe('ApiDocumentStoreResolver', () => {
     );
 
     expect(store).toBe(apimStore);
-    expect(apiRef).toMatchObject({ sourceKind: 'apim', apiId: 'apim-api-1', gatewayId: '' });
+    expect(apiRef).toMatchObject({
+      sourceKind: 'apim',
+      apiId: 'apim-api-1',
+      gatewayId: '',
+    });
   });
 
   it('throws NotFoundError for a non-WSO2 entity', async () => {

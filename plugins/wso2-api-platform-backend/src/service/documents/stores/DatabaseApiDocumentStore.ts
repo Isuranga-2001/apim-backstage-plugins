@@ -39,14 +39,20 @@ import {
 } from '../types';
 import { ApiDocumentStore } from './ApiDocumentStore';
 
-type ContentMeta = Pick<ArtifactContentRow, 'file_name' | 'mime_type' | 'size_bytes'>;
+type ContentMeta = Pick<
+  ArtifactContentRow,
+  'file_name' | 'mime_type' | 'size_bytes'
+>;
 
 function toIsoString(value: string | Date): string {
   const date = value instanceof Date ? value : new Date(value);
   return Number.isNaN(date.getTime()) ? String(value) : date.toISOString();
 }
 
-function toApiDocument(row: ArtifactRow, content?: ContentMeta | null): ApiDocument {
+function toApiDocument(
+  row: ArtifactRow,
+  content?: ContentMeta | null,
+): ApiDocument {
   return {
     documentId: row.id,
     name: row.name,
@@ -227,9 +233,7 @@ export class DatabaseApiDocumentStore implements ApiDocumentStore {
     }
   }
 
-  private async buildContentRow(
-    input: CreateDocumentInput,
-  ): Promise<
+  private async buildContentRow(input: CreateDocumentInput): Promise<
     | {
         storage_backend: string;
         storage_ref: string | null;
@@ -251,7 +255,8 @@ export class DatabaseApiDocumentStore implements ApiDocumentStore {
       return {
         storage_backend: this.binaryStorage.backend,
         storage_ref: null,
-        mime_type: input.sourceType === 'MARKDOWN' ? 'text/markdown' : 'text/plain',
+        mime_type:
+          input.sourceType === 'MARKDOWN' ? 'text/markdown' : 'text/plain',
         file_name: null,
         size_bytes: Buffer.byteLength(text, 'utf8'),
         checksum: createHash('sha256').update(text, 'utf8').digest('hex'),

@@ -53,9 +53,7 @@ describe('DeleteDocumentDialog', () => {
       />,
     );
 
-    expect(
-      screen.getByText(/will be permanently deleted/),
-    ).toBeDefined();
+    expect(screen.getByText(/will be permanently deleted/)).toBeDefined();
     expect(screen.getByText(/"Getting Started"/)).toBeDefined();
   });
 

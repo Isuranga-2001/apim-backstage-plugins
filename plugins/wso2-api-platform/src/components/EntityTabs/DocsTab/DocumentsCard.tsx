@@ -106,8 +106,7 @@ export const EntityWso2DocumentsCard = (
     );
   }
 
-  const showBackButton =
-    mode === 'store' ? true : documents.length > 1;
+  const showBackButton = mode === 'store' ? true : documents.length > 1;
 
   const renderPreview = () => (
     <Wso2DocumentPreview

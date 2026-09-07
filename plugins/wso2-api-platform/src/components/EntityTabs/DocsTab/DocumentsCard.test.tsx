@@ -191,7 +191,9 @@ describe('EntityWso2DocumentsCard', () => {
     render(<EntityWso2DocumentsCard />);
 
     expect(await screen.findByText('Toolbar (Add disabled)')).toBeDefined();
-    expect(await screen.findByText('No documents yet — add one above.')).toBeDefined();
+    expect(
+      await screen.findByText('No documents yet — add one above.'),
+    ).toBeDefined();
   });
 
   it('shows a back button when viewing the only document in store mode', async () => {
@@ -206,9 +208,7 @@ describe('EntityWso2DocumentsCard', () => {
     const viewButton = await screen.findByText('View Gateway Guide');
     fireEvent.click(viewButton);
 
-    expect(
-      await screen.findByText(/backButton: yes/),
-    ).toBeDefined();
+    expect(await screen.findByText(/backButton: yes/)).toBeDefined();
   });
 
   it('shows the unavailable empty state for gateway APIs when storage.enabled is false', async () => {

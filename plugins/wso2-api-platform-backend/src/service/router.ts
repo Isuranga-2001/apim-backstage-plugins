@@ -34,7 +34,10 @@ import { registerStreamingRoutes } from './routes/streamingRoutes';
 import { registerGatewayRoutes } from './routes/gatewayRoutes';
 import { registerDocumentRoutes } from './routes/documentRoutes';
 import { RouteContext } from './routes/types';
-import { deriveJsonBodyLimitBytes, readDocumentStorageConfig } from './documents/config';
+import {
+  deriveJsonBodyLimitBytes,
+  readDocumentStorageConfig,
+} from './documents/config';
 import { ArtifactDao } from './documents/dao/ArtifactDao';
 import { applyDatabaseMigrations } from './documents/dao/migrations';
 import { DatabaseBinaryStorage } from './documents/storage/DatabaseBinaryStorage';

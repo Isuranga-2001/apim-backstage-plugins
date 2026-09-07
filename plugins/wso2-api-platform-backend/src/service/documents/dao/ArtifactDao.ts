@@ -144,7 +144,9 @@ export class ArtifactDao {
     return row;
   }
 
-  async getContent(documentId: string): Promise<ArtifactContentRow | undefined> {
+  async getContent(
+    documentId: string,
+  ): Promise<ArtifactContentRow | undefined> {
     return this.knex<ArtifactContentRow>(CONTENT_TABLE)
       .where({ artifact_id: documentId })
       .first();

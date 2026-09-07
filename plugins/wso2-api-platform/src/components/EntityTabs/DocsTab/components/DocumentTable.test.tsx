@@ -135,7 +135,9 @@ describe('Wso2DocumentTable', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Edit metadata of Getting Started')).toBeDefined();
+    expect(
+      screen.getByLabelText('Edit metadata of Getting Started'),
+    ).toBeDefined();
     expect(screen.queryByLabelText('Delete Getting Started')).toBeNull();
   });
 });

@@ -96,7 +96,10 @@ describe('DatabaseApiDocumentStore', () => {
     );
 
     const content = await store.getContent(REF, created.documentId);
-    expect(content).toEqual({ kind: 'redirect', url: 'https://example.com/docs' });
+    expect(content).toEqual({
+      kind: 'redirect',
+      url: 'https://example.com/docs',
+    });
   });
 
   it('creates a FILE document and returns its bytes on getContent', async () => {
@@ -134,12 +137,22 @@ describe('DatabaseApiDocumentStore', () => {
   it('lists documents ordered by name', async () => {
     await store.create(
       REF,
-      { name: 'B', type: 'HOWTO', sourceType: 'URL', sourceUrl: 'https://example.com/b' },
+      {
+        name: 'B',
+        type: 'HOWTO',
+        sourceType: 'URL',
+        sourceUrl: 'https://example.com/b',
+      },
       ACTOR,
     );
     await store.create(
       REF,
-      { name: 'A', type: 'HOWTO', sourceType: 'URL', sourceUrl: 'https://example.com/a' },
+      {
+        name: 'A',
+        type: 'HOWTO',
+        sourceType: 'URL',
+        sourceUrl: 'https://example.com/a',
+      },
       ACTOR,
     );
 
@@ -150,7 +163,12 @@ describe('DatabaseApiDocumentStore', () => {
   it('allows editing sourceUrl only for URL documents', async () => {
     const urlDoc = await store.create(
       REF,
-      { name: 'Link', type: 'HOWTO', sourceType: 'URL', sourceUrl: 'https://example.com/old' },
+      {
+        name: 'Link',
+        type: 'HOWTO',
+        sourceType: 'URL',
+        sourceUrl: 'https://example.com/old',
+      },
       ACTOR,
     );
     const updated = await store.updateMetadata(
@@ -163,7 +181,12 @@ describe('DatabaseApiDocumentStore', () => {
 
     const markdownDoc = await store.create(
       REF,
-      { name: 'Guide', type: 'HOWTO', sourceType: 'MARKDOWN', inlineContent: '# Guide' },
+      {
+        name: 'Guide',
+        type: 'HOWTO',
+        sourceType: 'MARKDOWN',
+        inlineContent: '# Guide',
+      },
       ACTOR,
     );
     await expect(
@@ -179,7 +202,12 @@ describe('DatabaseApiDocumentStore', () => {
   it("requires otherTypeName when renaming type to 'OTHER'", async () => {
     const doc = await store.create(
       REF,
-      { name: 'Doc', type: 'HOWTO', sourceType: 'URL', sourceUrl: 'https://example.com' },
+      {
+        name: 'Doc',
+        type: 'HOWTO',
+        sourceType: 'URL',
+        sourceUrl: 'https://example.com',
+      },
       ACTOR,
     );
     await expect(
@@ -198,7 +226,12 @@ describe('DatabaseApiDocumentStore', () => {
   it('hard-deletes a document', async () => {
     const doc = await store.create(
       REF,
-      { name: 'Temp', type: 'HOWTO', sourceType: 'URL', sourceUrl: 'https://example.com' },
+      {
+        name: 'Temp',
+        type: 'HOWTO',
+        sourceType: 'URL',
+        sourceUrl: 'https://example.com',
+      },
       ACTOR,
     );
     await store.delete(REF, doc.documentId, ACTOR);

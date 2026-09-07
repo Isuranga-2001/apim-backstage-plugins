@@ -43,7 +43,9 @@ describe('ApimPublisherDocumentStore', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    store = new ApimPublisherDocumentStore(client as unknown as Wso2ApiPlatformClient);
+    store = new ApimPublisherDocumentStore(
+      client as unknown as Wso2ApiPlatformClient,
+    );
   });
 
   it('reports read-only capabilities', () => {
@@ -59,13 +61,25 @@ describe('ApimPublisherDocumentStore', () => {
   it('lists documents via the existing client', async () => {
     client.getDocuments.mockResolvedValue({
       count: 1,
-      list: [{ id: 'd1', documentId: 'd1', name: 'Doc', sourceType: 'URL', sourceUrl: 'https://x' }],
+      list: [
+        {
+          id: 'd1',
+          documentId: 'd1',
+          name: 'Doc',
+          sourceType: 'URL',
+          sourceUrl: 'https://x',
+        },
+      ],
     });
 
     const list = await store.list(REF);
     expect(client.getDocuments).toHaveBeenCalledWith('apim-api-1');
     expect(list).toEqual([
-      expect.objectContaining({ documentId: 'd1', name: 'Doc', sourceType: 'URL' }),
+      expect.objectContaining({
+        documentId: 'd1',
+        name: 'Doc',
+        sourceType: 'URL',
+      }),
     ]);
   });
 
@@ -78,16 +92,19 @@ describe('ApimPublisherDocumentStore', () => {
     });
 
     const content = await store.getContent(REF, 'd1');
-    expect(content).toEqual({ kind: 'redirect', url: 'https://example.com/doc' });
+    expect(content).toEqual({
+      kind: 'redirect',
+      url: 'https://example.com/doc',
+    });
     expect(client.getDocumentContentStream).not.toHaveBeenCalled();
   });
 
   it.each(['create', 'updateMetadata', 'delete'] as const)(
     'rejects %s with NotAllowedError',
     async method => {
-      await expect(
-        (store as any)[method](REF, 'd1', {}, {}),
-      ).rejects.toThrow(NotAllowedError);
+      await expect((store as any)[method](REF, 'd1', {}, {})).rejects.toThrow(
+        NotAllowedError,
+      );
     },
   );
 });

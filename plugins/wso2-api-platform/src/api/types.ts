@@ -262,7 +262,9 @@ export interface Wso2ApiPlatformApi {
   getGateways(token?: string): Promise<any[]>;
   getRuntimeConfig(token?: string): Promise<Wso2ApiPlatformRuntimeConfig>;
   getApiWsdl(apiId: string, token?: string): Promise<Blob>;
-  listDocuments(entityRef: CompoundEntityRef): Promise<Wso2ApiDocumentListResponse>;
+  listDocuments(
+    entityRef: CompoundEntityRef,
+  ): Promise<Wso2ApiDocumentListResponse>;
   getDocument(
     entityRef: CompoundEntityRef,
     documentId: string,
@@ -276,7 +278,10 @@ export interface Wso2ApiPlatformApi {
     documentId: string,
     patch: UpdateWso2ApiDocumentMetadataRequest,
   ): Promise<Wso2ApiDocument>;
-  deleteDocument(entityRef: CompoundEntityRef, documentId: string): Promise<void>;
+  deleteDocument(
+    entityRef: CompoundEntityRef,
+    documentId: string,
+  ): Promise<void>;
   getDocumentContentUrl(
     entityRef: CompoundEntityRef,
     documentId: string,

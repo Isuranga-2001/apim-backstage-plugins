@@ -299,12 +299,14 @@ export class Wso2ApiPlatformClient extends BaseWso2Client {
    * for on-prem APIs instead reads the catalog's `wso2.com/api-documents`
    * annotation and does not call this.
    */
-  async getDocuments(apiId: string): Promise<{ count: number; list: Wso2ApiDocument[] }> {
+  async getDocuments(
+    apiId: string,
+  ): Promise<{ count: number; list: Wso2ApiDocument[] }> {
     const encodedApiId = encodeURIComponent(apiId);
-    return await this.requestPublisher<{ count: number; list: Wso2ApiDocument[] }>(
-      `/apis/${encodedApiId}/documents`,
-      {},
-    );
+    return await this.requestPublisher<{
+      count: number;
+      list: Wso2ApiDocument[];
+    }>(`/apis/${encodedApiId}/documents`, {});
   }
 
   /**

@@ -115,7 +115,9 @@ export const AddDocumentDialog = (options: {
         allowedExtensions.length > 0 &&
         (!ext || !allowedExtensions.includes(ext))
       ) {
-        return `File extension '${ext ?? ''}' is not in the allowed list: ${allowedExtensions.join(', ')}.`;
+        return `File extension '${
+          ext ?? ''
+        }' is not in the allowed list: ${allowedExtensions.join(', ')}.`;
       }
     }
     return null;

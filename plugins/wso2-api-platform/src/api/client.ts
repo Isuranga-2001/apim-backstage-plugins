@@ -188,7 +188,9 @@ export class Wso2ApiPlatformClient implements Wso2ApiPlatformApi {
     documentId: string,
   ): Promise<Wso2ApiDocument> {
     return this.request<Wso2ApiDocument>(
-      `${this.entityDocumentsPath(entityRef)}/${encodeURIComponent(documentId)}`,
+      `${this.entityDocumentsPath(entityRef)}/${encodeURIComponent(
+        documentId,
+      )}`,
     );
   }
 
@@ -228,7 +230,9 @@ export class Wso2ApiPlatformClient implements Wso2ApiPlatformApi {
     patch: UpdateWso2ApiDocumentMetadataRequest,
   ): Promise<Wso2ApiDocument> {
     return this.request<Wso2ApiDocument>(
-      `${this.entityDocumentsPath(entityRef)}/${encodeURIComponent(documentId)}`,
+      `${this.entityDocumentsPath(entityRef)}/${encodeURIComponent(
+        documentId,
+      )}`,
       { method: 'PUT', body: patch },
     );
   }
@@ -238,7 +242,9 @@ export class Wso2ApiPlatformClient implements Wso2ApiPlatformApi {
     documentId: string,
   ): Promise<void> {
     await this.request<void>(
-      `${this.entityDocumentsPath(entityRef)}/${encodeURIComponent(documentId)}`,
+      `${this.entityDocumentsPath(entityRef)}/${encodeURIComponent(
+        documentId,
+      )}`,
       { method: 'DELETE' },
     );
   }
@@ -248,6 +254,8 @@ export class Wso2ApiPlatformClient implements Wso2ApiPlatformApi {
     documentId: string,
   ): Promise<string> {
     const baseUrl = await this.getBaseUrl();
-    return `${baseUrl}${this.entityDocumentsPath(entityRef)}/${encodeURIComponent(documentId)}/content`;
+    return `${baseUrl}${this.entityDocumentsPath(
+      entityRef,
+    )}/${encodeURIComponent(documentId)}/content`;
   }
 }

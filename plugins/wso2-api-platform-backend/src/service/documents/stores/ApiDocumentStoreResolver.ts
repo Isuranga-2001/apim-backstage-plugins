@@ -102,7 +102,9 @@ export class ApiDocumentStoreResolver {
       return {
         apiRef: {
           sourceKind,
-          gatewayId: extractGatewayId(annotations[GATEWAY_ENDPOINTS_ANNOTATION]),
+          gatewayId: extractGatewayId(
+            annotations[GATEWAY_ENDPOINTS_ANNOTATION],
+          ),
           apiId,
           entityRef,
         },

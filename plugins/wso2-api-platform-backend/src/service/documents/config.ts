@@ -79,8 +79,10 @@ export function readDocumentStorageConfig(
   const enabled = storageConfig?.getOptionalBoolean('enabled') ?? true;
 
   const maxFileSizeMb =
-    getOptionalNumber(config, 'wso2ApiPlatform.storage.documents.maxFileSizeMb') ??
-    DEFAULT_MAX_FILE_SIZE_MB;
+    getOptionalNumber(
+      config,
+      'wso2ApiPlatform.storage.documents.maxFileSizeMb',
+    ) ?? DEFAULT_MAX_FILE_SIZE_MB;
   const maxInlineSizeKb =
     getOptionalNumber(
       config,
@@ -101,9 +103,12 @@ export function readDocumentStorageConfig(
     ) ?? [];
 
   const binaryBackend =
-    (getOptionalConfig(config, 'wso2ApiPlatform.storage.binary')?.getOptionalString(
-      'backend',
-    ) as DocumentStorageConfig['binaryBackend'] | undefined) ?? 'database';
+    (getOptionalConfig(
+      config,
+      'wso2ApiPlatform.storage.binary',
+    )?.getOptionalString('backend') as
+      | DocumentStorageConfig['binaryBackend']
+      | undefined) ?? 'database';
 
   return {
     enabled: enabled ?? true,

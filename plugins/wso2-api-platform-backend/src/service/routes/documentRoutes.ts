@@ -16,8 +16,15 @@
  * under the License.
  */
 
-import { BackstageCredentials, BackstageUserPrincipal } from '@backstage/backend-plugin-api';
-import { InputError, NotAllowedError, NotImplementedError } from '@backstage/errors';
+import {
+  BackstageCredentials,
+  BackstageUserPrincipal,
+} from '@backstage/backend-plugin-api';
+import {
+  InputError,
+  NotAllowedError,
+  NotImplementedError,
+} from '@backstage/errors';
 import express from 'express';
 import multer, { MulterError } from 'multer';
 import { pipeWebStreamToResponse } from './streamUtils';
@@ -34,7 +41,9 @@ const BASE_PATH = '/entities/:kind/:namespace/:name/documents';
 const DOCUMENT_PATH = `${BASE_PATH}/:documentId`;
 const CONTENT_PATH = `${DOCUMENT_PATH}/content`;
 
-function actorFor(credentials: BackstageCredentials<BackstageUserPrincipal>): Actor {
+function actorFor(
+  credentials: BackstageCredentials<BackstageUserPrincipal>,
+): Actor {
   return { userEntityRef: credentials.principal.userEntityRef };
 }
 
@@ -139,60 +148,56 @@ export function registerDocumentRoutes(
     res.json({ count: list.length, list, capabilities: store.capabilities });
   });
 
-  router.post(
-    BASE_PATH,
-    uploadSingleFile(upload, 'file'),
-    async (req, res) => {
-      assertStorageEnabled();
-      const { apiRef, store, credentials } = await resolve(req);
-      if (!store.capabilities.create) {
-        throw new NotAllowedError(
-          "This API's document store does not support creating documents",
+  router.post(BASE_PATH, uploadSingleFile(upload, 'file'), async (req, res) => {
+    assertStorageEnabled();
+    const { apiRef, store, credentials } = await resolve(req);
+    if (!store.capabilities.create) {
+      throw new NotAllowedError(
+        "This API's document store does not support creating documents",
+      );
+    }
+
+    const isMultipart = Boolean(req.file) || req.is('multipart/form-data');
+    const rawMetadata = isMultipart
+      ? JSON.parse((req.body as { metadata?: string }).metadata ?? '{}')
+      : req.body;
+    const metadata = parseCreateDocumentMetadata(rawMetadata);
+
+    let input: CreateDocumentInput;
+    if (metadata.sourceType === 'FILE') {
+      const file = req.file;
+      if (!file) {
+        throw new InputError(
+          "A 'file' part is required when sourceType is 'FILE'",
         );
       }
-
-      const isMultipart = Boolean(req.file) || req.is('multipart/form-data');
-      const rawMetadata = isMultipart
-        ? JSON.parse((req.body as { metadata?: string }).metadata ?? '{}')
-        : req.body;
-      const metadata = parseCreateDocumentMetadata(rawMetadata);
-
-      let input: CreateDocumentInput;
-      if (metadata.sourceType === 'FILE') {
-        const file = req.file;
-        if (!file) {
-          throw new InputError(
-            "A 'file' part is required when sourceType is 'FILE'",
-          );
-        }
-        assertFileAllowed(
-          {
-            originalname: file.originalname,
-            mimetype: file.mimetype,
-            size: file.size,
-          },
-          documentStorage,
-        );
-        input = {
-          ...metadata,
-          file: {
-            buffer: file.buffer,
-            originalName: file.originalname,
-            mimeType: file.mimetype,
-          },
-        };
-      } else {
-        if (metadata.inlineContent) {
-          assertInlineSizeWithinLimit(metadata.inlineContent, documentStorage);
-        }
-        input = metadata;
+      assertFileAllowed(
+        {
+          originalname: file.originalname,
+          mimetype: file.mimetype,
+          size: file.size,
+        },
+        documentStorage,
+      );
+      input = {
+        ...metadata,
+        file: {
+          buffer: file.buffer,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+        },
+      };
+    } else {
+      if (metadata.inlineContent) {
+        assertInlineSizeWithinLimit(metadata.inlineContent, documentStorage);
       }
+      input = metadata;
+    }
 
-      const created = await store.create(apiRef, input, actorFor(credentials));
-      await refreshCatalogEntityAdvisory(apiRef.entityRef, credentials);
-      res.status(201).json(created);
-    },
-  );
+    const created = await store.create(apiRef, input, actorFor(credentials));
+    await refreshCatalogEntityAdvisory(apiRef.entityRef, credentials);
+    res.status(201).json(created);
+  });
 
   router.get(DOCUMENT_PATH, async (req, res) => {
     const { apiRef, store } = await resolve(req);

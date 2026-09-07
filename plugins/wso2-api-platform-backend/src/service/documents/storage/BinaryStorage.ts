@@ -44,5 +44,8 @@ export interface BinaryStorage {
     contentBlob: Buffer | null;
   }): Promise<Buffer>;
 
-  delete(row: { storageBackend: string; storageRef: string | null }): Promise<void>;
+  delete(row: {
+    storageBackend: string;
+    storageRef: string | null;
+  }): Promise<void>;
 }

@@ -28,7 +28,12 @@ export const DocumentsToolbar = (options: {
   const { canAdd, onAdd } = options;
 
   return (
-    <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+    <Box
+      display="flex"
+      justifyContent="space-between"
+      alignItems="center"
+      mb={2}
+    >
       <Typography variant="h6">Documents</Typography>
       {canAdd && (
         <Button

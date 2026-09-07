@@ -123,12 +123,12 @@ describe('parseUpdateDocumentMetadata', () => {
   });
 
   it('rejects content fields', () => {
-    expect(() =>
-      parseUpdateDocumentMetadata({ sourceType: 'FILE' }),
-    ).toThrow(InputError);
-    expect(() =>
-      parseUpdateDocumentMetadata({ inlineContent: 'x' }),
-    ).toThrow(InputError);
+    expect(() => parseUpdateDocumentMetadata({ sourceType: 'FILE' })).toThrow(
+      InputError,
+    );
+    expect(() => parseUpdateDocumentMetadata({ inlineContent: 'x' })).toThrow(
+      InputError,
+    );
   });
 
   it('rejects a non-http(s) sourceUrl', () => {
@@ -144,9 +144,9 @@ describe('assertInlineSizeWithinLimit', () => {
   });
 
   it('throws for content exceeding the limit', () => {
-    expect(() =>
-      assertInlineSizeWithinLimit('x'.repeat(200), config),
-    ).toThrow(InputError);
+    expect(() => assertInlineSizeWithinLimit('x'.repeat(200), config)).toThrow(
+      InputError,
+    );
   });
 });
 
@@ -163,7 +163,11 @@ describe('assertFileAllowed', () => {
   it('rejects a disallowed extension', () => {
     expect(() =>
       assertFileAllowed(
-        { originalname: 'malware.exe', mimetype: 'application/x-msdownload', size: 10 },
+        {
+          originalname: 'malware.exe',
+          mimetype: 'application/x-msdownload',
+          size: 10,
+        },
         config,
       ),
     ).toThrow(/extension/);

@@ -18,18 +18,18 @@ The backend plugin is responsible for handling sensitive operations that cannot 
 
 The frontend plugin fetches data dynamically from this backend plugin. The following table outlines the key internal routes exposed by this backend:
 
-| HTTP Method | Backend Route                                                      | Frontend JavaScript Trigger   | Purpose                                                                              |
-| ----------- | ------------------------------------------------------------------ | ----------------------------- | ------------------------------------------------------------------------------------ |
-| **POST**    | `/api/wso2-api-platform/apis/:apiId/generate-key`                  | `wso2Api.generateApiKey(...)` | Generates a temporary access token for the Gateway via Basic Auth/OAuth credentials. |
-| **GET**     | `/api/wso2-api-platform/apis/:apiId/revisions`                     | `wso2Api.getRevisions(...)`   | Lists deployment revisions of an API in real-time.                                   |
-| **GET**     | `/api/wso2-api-platform/apis/:apiId/wsdl`                          | `wso2Api.getApiWsdl(...)`     | Downloads the SOAP API WSDL file/archive payload.                                    |
-| **GET**     | `/api/wso2-api-platform/apis/:apiId/documents/:documentId/content` | _Direct Link URL in UI_       | Streams document file downloads (PDF, MD, TXT, etc.) on-demand. On-prem APIM only — unchanged legacy path. |
-| **GET**     | `/api/wso2-api-platform/entities/:kind/:namespace/:name/documents` | `wso2Api.listDocuments(...)`  | Lists documents for an entity. |
-| **POST**    | `/api/wso2-api-platform/entities/:kind/:namespace/:name/documents` | `wso2Api.createDocument(...)` | Creates a document (JSON for INLINE/MARKDOWN/URL, multipart for FILE). |
-| **GET**     | `/api/wso2-api-platform/entities/:kind/:namespace/:name/documents/:documentId` | `wso2Api.getDocument(...)` | Fetches one document's metadata. |
-| **PUT**     | `/api/wso2-api-platform/entities/:kind/:namespace/:name/documents/:documentId` | `wso2Api.updateDocumentMetadata(...)` | Edits document metadata only. |
-| **DELETE**  | `/api/wso2-api-platform/entities/:kind/:namespace/:name/documents/:documentId` | `wso2Api.deleteDocument(...)` | Hard-deletes a document. |
-| **GET**     | `/api/wso2-api-platform/entities/:kind/:namespace/:name/documents/:documentId/content` | `wso2Api.getDocumentContentUrl(...)` | Streams/redirects to document content. |
+| HTTP Method | Backend Route                                                                          | Frontend JavaScript Trigger           | Purpose                                                                                                    |
+| ----------- | -------------------------------------------------------------------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **POST**    | `/api/wso2-api-platform/apis/:apiId/generate-key`                                      | `wso2Api.generateApiKey(...)`         | Generates a temporary access token for the Gateway via Basic Auth/OAuth credentials.                       |
+| **GET**     | `/api/wso2-api-platform/apis/:apiId/revisions`                                         | `wso2Api.getRevisions(...)`           | Lists deployment revisions of an API in real-time.                                                         |
+| **GET**     | `/api/wso2-api-platform/apis/:apiId/wsdl`                                              | `wso2Api.getApiWsdl(...)`             | Downloads the SOAP API WSDL file/archive payload.                                                          |
+| **GET**     | `/api/wso2-api-platform/apis/:apiId/documents/:documentId/content`                     | _Direct Link URL in UI_               | Streams document file downloads (PDF, MD, TXT, etc.) on-demand. On-prem APIM only — unchanged legacy path. |
+| **GET**     | `/api/wso2-api-platform/entities/:kind/:namespace/:name/documents`                     | `wso2Api.listDocuments(...)`          | Lists documents for an entity.                                                                             |
+| **POST**    | `/api/wso2-api-platform/entities/:kind/:namespace/:name/documents`                     | `wso2Api.createDocument(...)`         | Creates a document (JSON for INLINE/MARKDOWN/URL, multipart for FILE).                                     |
+| **GET**     | `/api/wso2-api-platform/entities/:kind/:namespace/:name/documents/:documentId`         | `wso2Api.getDocument(...)`            | Fetches one document's metadata.                                                                           |
+| **PUT**     | `/api/wso2-api-platform/entities/:kind/:namespace/:name/documents/:documentId`         | `wso2Api.updateDocumentMetadata(...)` | Edits document metadata only.                                                                              |
+| **DELETE**  | `/api/wso2-api-platform/entities/:kind/:namespace/:name/documents/:documentId`         | `wso2Api.deleteDocument(...)`         | Hard-deletes a document.                                                                                   |
+| **GET**     | `/api/wso2-api-platform/entities/:kind/:namespace/:name/documents/:documentId/content` | `wso2Api.getDocumentContentUrl(...)`  | Streams/redirects to document content.                                                                     |
 
 ## Document storage
 
@@ -49,7 +49,25 @@ wso2ApiPlatform:
     documents:
       maxFileSizeMb: 10 # FILE uploads
       maxInlineSizeKb: 512 # INLINE / MARKDOWN bodies
-      allowedExtensions: [pdf, txt, doc, docx, xls, xlsx, odt, ods, json, yaml, yml, md, png, jpg, jpeg, svg]
+      allowedExtensions:
+        [
+          pdf,
+          txt,
+          doc,
+          docx,
+          xls,
+          xlsx,
+          odt,
+          ods,
+          json,
+          yaml,
+          yml,
+          md,
+          png,
+          jpg,
+          jpeg,
+          svg,
+        ]
     binary:
       backend: database # only backend implemented in this release
 ```
@@ -62,7 +80,7 @@ Documents live in a Knex-backed store obtained via Backstage's
 it defaults to SQLite with zero extra configuration and automatically follows
 the instance to PostgreSQL if you switch `backend.database.client: pg`.
 
-To put documents on a *different* database than the rest of the instance, use
+To put documents on a _different_ database than the rest of the instance, use
 Backstage's native per-plugin override — no plugin-specific connection config
 exists or is needed:
 

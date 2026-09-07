@@ -65,8 +65,8 @@ export const DeleteDocumentDialog = (options: {
             </Box>
           )}
           <Typography>
-            "{doc.name}" will be permanently deleted from the WSO2 API
-            Platform document store. This cannot be undone.
+            "{doc.name}" will be permanently deleted from the WSO2 API Platform
+            document store. This cannot be undone.
           </Typography>
         </DialogContent>
         <DialogActions>

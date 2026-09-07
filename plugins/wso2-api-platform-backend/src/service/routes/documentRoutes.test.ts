@@ -49,7 +49,9 @@ jest.mock('../client', () => {
   const actual = jest.requireActual('../client');
   return {
     ...actual,
-    Wso2ApiPlatformClient: jest.fn().mockImplementation(() => mockClientInstance),
+    Wso2ApiPlatformClient: jest
+      .fn()
+      .mockImplementation(() => mockClientInstance),
   };
 });
 
@@ -62,7 +64,9 @@ const GATEWAY_ENTITY = {
     annotations: {
       'wso2.com/api-discovery-type': 'self-hosted-gateway',
       'wso2-gateway.com/api-id': 'gw-api-1',
-      'wso2-gateway.com/api-endpoints': JSON.stringify([{ environmentName: 'dev' }]),
+      'wso2-gateway.com/api-endpoints': JSON.stringify([
+        { environmentName: 'dev' },
+      ]),
     },
   },
   spec: {},
@@ -168,14 +172,12 @@ describe('document routes', () => {
   });
 
   it('creates a MARKDOWN document via JSON, lists it, gets it, edits it, and deletes it', async () => {
-    const createRes = await request(app)
-      .post(GATEWAY_PATH)
-      .send({
-        name: 'Getting Started',
-        type: 'HOWTO',
-        sourceType: 'MARKDOWN',
-        inlineContent: '# Hello',
-      });
+    const createRes = await request(app).post(GATEWAY_PATH).send({
+      name: 'Getting Started',
+      type: 'HOWTO',
+      sourceType: 'MARKDOWN',
+      inlineContent: '# Hello',
+    });
     expect(createRes.status).toBe(201);
     expect(createRes.body).toMatchObject({ name: 'Getting Started' });
     const documentId = createRes.body.documentId;
@@ -200,7 +202,9 @@ describe('document routes', () => {
     expect(putRes.status).toBe(200);
     expect(putRes.body.summary).toBe('Updated');
 
-    const deleteRes = await request(app).delete(`${GATEWAY_PATH}/${documentId}`);
+    const deleteRes = await request(app).delete(
+      `${GATEWAY_PATH}/${documentId}`,
+    );
     expect(deleteRes.status).toBe(204);
 
     const afterDelete = await request(app).get(GATEWAY_PATH);
@@ -217,7 +221,10 @@ describe('document routes', () => {
       .attach('file', Buffer.from('binary content'), 'spec.txt');
 
     expect(createRes.status).toBe(201);
-    expect(createRes.body).toMatchObject({ name: 'Spec', fileName: 'spec.txt' });
+    expect(createRes.body).toMatchObject({
+      name: 'Spec',
+      fileName: 'spec.txt',
+    });
 
     const contentRes = await request(app).get(
       `${GATEWAY_PATH}/${createRes.body.documentId}/content`,
@@ -228,14 +235,12 @@ describe('document routes', () => {
   });
 
   it('redirects with 303 for URL documents', async () => {
-    const createRes = await request(app)
-      .post(GATEWAY_PATH)
-      .send({
-        name: 'External',
-        type: 'HOWTO',
-        sourceType: 'URL',
-        sourceUrl: 'https://example.com/docs',
-      });
+    const createRes = await request(app).post(GATEWAY_PATH).send({
+      name: 'External',
+      type: 'HOWTO',
+      sourceType: 'URL',
+      sourceUrl: 'https://example.com/docs',
+    });
 
     const contentRes = await request(app)
       .get(`${GATEWAY_PATH}/${createRes.body.documentId}/content`)
@@ -277,16 +282,22 @@ describe('document routes', () => {
 
   it('returns 501 for all document routes when storage.enabled is false', async () => {
     await buildApp({ enabled: false });
-    const res = await request(app)
-      .post(GATEWAY_PATH)
-      .send({ name: 'X', type: 'HOWTO', sourceType: 'URL', sourceUrl: 'https://x' });
+    const res = await request(app).post(GATEWAY_PATH).send({
+      name: 'X',
+      type: 'HOWTO',
+      sourceType: 'URL',
+      sourceUrl: 'https://x',
+    });
     expect(res.status).toBe(501);
   });
 
   it('returns 403 for create/update/delete against an on-prem APIM entity', async () => {
-    const createRes = await request(app)
-      .post(APIM_PATH)
-      .send({ name: 'X', type: 'HOWTO', sourceType: 'URL', sourceUrl: 'https://x' });
+    const createRes = await request(app).post(APIM_PATH).send({
+      name: 'X',
+      type: 'HOWTO',
+      sourceType: 'URL',
+      sourceUrl: 'https://x',
+    });
     expect(createRes.status).toBe(403);
 
     const putRes = await request(app)
@@ -301,7 +312,15 @@ describe('document routes', () => {
   it('lists on-prem documents read-only via the ApimPublisherDocumentStore', async () => {
     mockClientInstance.getDocuments.mockResolvedValue({
       count: 1,
-      list: [{ id: 'd1', documentId: 'd1', name: 'Legacy doc', sourceType: 'URL', sourceUrl: 'https://x' }],
+      list: [
+        {
+          id: 'd1',
+          documentId: 'd1',
+          name: 'Legacy doc',
+          sourceType: 'URL',
+          sourceUrl: 'https://x',
+        },
+      ],
     });
 
     const res = await request(app).get(APIM_PATH);

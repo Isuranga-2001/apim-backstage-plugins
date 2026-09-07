@@ -83,9 +83,7 @@ function assertBusinessRules(body: {
   inlineContent?: string;
 }) {
   if (body.type === 'OTHER' && !body.otherTypeName) {
-    throw new InputError(
-      "otherTypeName is required when type is 'OTHER'",
-    );
+    throw new InputError("otherTypeName is required when type is 'OTHER'");
   }
   if (body.sourceType === 'URL') {
     if (!body.sourceUrl || !isHttpUrl(body.sourceUrl)) {
@@ -109,9 +107,7 @@ export function parseCreateDocumentMetadata(
 ): CreateDocumentMetadataBody {
   const result = createDocumentMetadataSchema.safeParse(raw);
   if (!result.success) {
-    throw new InputError(
-      `Invalid document metadata: ${result.error.message}`,
-    );
+    throw new InputError(`Invalid document metadata: ${result.error.message}`);
   }
   assertBusinessRules(result.data);
   return result.data;
@@ -164,7 +160,9 @@ export function assertFileAllowed(
     (!ext || !config.allowedExtensions.includes(ext))
   ) {
     throw new InputError(
-      `File extension '${ext ?? ''}' is not in the allowed list: ${config.allowedExtensions.join(', ')}`,
+      `File extension '${
+        ext ?? ''
+      }' is not in the allowed list: ${config.allowedExtensions.join(', ')}`,
     );
   }
   if (
@@ -173,7 +171,9 @@ export function assertFileAllowed(
     !config.allowedMimeTypes.includes(file.mimetype)
   ) {
     throw new InputError(
-      `File MIME type '${file.mimetype}' is not in the allowed list: ${config.allowedMimeTypes.join(', ')}`,
+      `File MIME type '${
+        file.mimetype
+      }' is not in the allowed list: ${config.allowedMimeTypes.join(', ')}`,
     );
   }
 }
