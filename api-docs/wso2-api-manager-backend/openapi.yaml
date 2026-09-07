@@ -23,6 +23,7 @@ tags:
   - name: Gateways
   - name: APIs
   - name: Services
+  - name: Documents
 paths:
   /refresh:
     post:
@@ -436,6 +437,205 @@ paths:
                 type: string
         '500':
           $ref: '#/components/responses/TextError'
+  /entities/{kind}/{namespace}/{name}/documents:
+    get:
+      tags:
+        - Documents
+      summary: List documents for an entity
+      description: >
+        Routes to the plugin-owned document store for self-hosted/OpenChoreo
+        gateway APIs, or to the read-only on-prem APIM store, based on the
+        entity's discovery-type annotations.
+      operationId: listWso2EntityDocuments
+      x-codeSamples:
+        - lang: curl
+          label: List documents
+          source: |
+            curl 'http://localhost:7007/api/wso2-api-platform/entities/api/wso2-gateways/orders-api/documents'
+      parameters:
+        - $ref: '#/components/parameters/EntityKind'
+        - $ref: '#/components/parameters/EntityNamespace'
+        - $ref: '#/components/parameters/EntityName'
+      responses:
+        '200':
+          description: Documents and store capabilities for this API.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiDocumentListResponse'
+        '404':
+          $ref: '#/components/responses/JsonError'
+        '500':
+          $ref: '#/components/responses/JsonError'
+    post:
+      tags:
+        - Documents
+      summary: Create a document
+      description: >
+        Only supported for self-hosted/OpenChoreo gateway APIs (see
+        `capabilities.create` on the list response) — on-prem APIM APIs
+        return 403. Accepts `application/json` for INLINE/MARKDOWN/URL
+        documents, or `multipart/form-data` (fields `metadata`, `file`) for
+        FILE documents.
+      operationId: createWso2EntityDocument
+      x-codeSamples:
+        - lang: curl
+          label: Create a markdown document
+          source: |
+            curl -X POST 'http://localhost:7007/api/wso2-api-platform/entities/api/wso2-gateways/orders-api/documents' \
+              -H 'Content-Type: application/json' \
+              -d '{
+                "name": "Getting Started",
+                "type": "HOWTO",
+                "sourceType": "MARKDOWN",
+                "inlineContent": "# Getting Started"
+              }'
+      parameters:
+        - $ref: '#/components/parameters/EntityKind'
+        - $ref: '#/components/parameters/EntityNamespace'
+        - $ref: '#/components/parameters/EntityName'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateApiDocumentRequest'
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - metadata
+                - file
+              properties:
+                metadata:
+                  description: JSON-encoded CreateApiDocumentRequest with sourceType FILE.
+                  type: string
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Document created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiDocument'
+        '400':
+          $ref: '#/components/responses/JsonError'
+        '403':
+          $ref: '#/components/responses/JsonError'
+        '404':
+          $ref: '#/components/responses/JsonError'
+        '409':
+          $ref: '#/components/responses/JsonError'
+        '413':
+          $ref: '#/components/responses/JsonError'
+        '501':
+          $ref: '#/components/responses/JsonError'
+  /entities/{kind}/{namespace}/{name}/documents/{documentId}:
+    get:
+      tags:
+        - Documents
+      summary: Get one document's metadata
+      operationId: getWso2EntityDocument
+      parameters:
+        - $ref: '#/components/parameters/EntityKind'
+        - $ref: '#/components/parameters/EntityNamespace'
+        - $ref: '#/components/parameters/EntityName'
+        - $ref: '#/components/parameters/DocumentId'
+      responses:
+        '200':
+          description: Document metadata.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiDocument'
+        '404':
+          $ref: '#/components/responses/JsonError'
+    put:
+      tags:
+        - Documents
+      summary: Update document metadata
+      description: >
+        Metadata only — `sourceType`, `inlineContent`, `fileName` and file
+        parts are rejected. `sourceUrl` is only accepted when the stored
+        document's sourceType is URL.
+      operationId: updateWso2EntityDocumentMetadata
+      parameters:
+        - $ref: '#/components/parameters/EntityKind'
+        - $ref: '#/components/parameters/EntityNamespace'
+        - $ref: '#/components/parameters/EntityName'
+        - $ref: '#/components/parameters/DocumentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateApiDocumentMetadataRequest'
+      responses:
+        '200':
+          description: Updated document metadata.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiDocument'
+        '400':
+          $ref: '#/components/responses/JsonError'
+        '403':
+          $ref: '#/components/responses/JsonError'
+        '404':
+          $ref: '#/components/responses/JsonError'
+        '409':
+          $ref: '#/components/responses/JsonError'
+    delete:
+      tags:
+        - Documents
+      summary: Hard-delete a document
+      operationId: deleteWso2EntityDocument
+      parameters:
+        - $ref: '#/components/parameters/EntityKind'
+        - $ref: '#/components/parameters/EntityNamespace'
+        - $ref: '#/components/parameters/EntityName'
+        - $ref: '#/components/parameters/DocumentId'
+      responses:
+        '204':
+          description: Document deleted.
+        '403':
+          $ref: '#/components/responses/JsonError'
+        '404':
+          $ref: '#/components/responses/JsonError'
+  /entities/{kind}/{namespace}/{name}/documents/{documentId}/content:
+    get:
+      tags:
+        - Documents
+      summary: Get document content
+      description: >
+        Streams FILE/INLINE/MARKDOWN content, or responds `303 See Other`
+        with a `Location` header for URL documents.
+      operationId: getWso2EntityDocumentContent
+      parameters:
+        - $ref: '#/components/parameters/EntityKind'
+        - $ref: '#/components/parameters/EntityNamespace'
+        - $ref: '#/components/parameters/EntityName'
+        - $ref: '#/components/parameters/DocumentId'
+      responses:
+        '200':
+          description: Document content.
+          content:
+            text/plain:
+              schema:
+                type: string
+            text/markdown:
+              schema:
+                type: string
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '303':
+          description: Redirect to the document's source URL.
+        '404':
+          $ref: '#/components/responses/JsonError'
 components:
   securitySchemes:
     Wso2AccessTokenAuth:
@@ -452,6 +652,32 @@ components:
         type: string
     ServiceId:
       name: serviceId
+      in: path
+      required: true
+      schema:
+        type: string
+    EntityKind:
+      name: kind
+      in: path
+      required: true
+      schema:
+        type: string
+      example: api
+    EntityNamespace:
+      name: namespace
+      in: path
+      required: true
+      schema:
+        type: string
+      example: wso2-gateways
+    EntityName:
+      name: name
+      in: path
+      required: true
+      schema:
+        type: string
+    DocumentId:
+      name: documentId
       in: path
       required: true
       schema:
@@ -569,3 +795,168 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Wso2ApiRevision'
+    ApiDocumentCapabilities:
+      type: object
+      required:
+        - read
+        - create
+        - updateMetadata
+        - updateContent
+        - delete
+      properties:
+        read:
+          type: boolean
+        create:
+          type: boolean
+        updateMetadata:
+          type: boolean
+        updateContent:
+          type: boolean
+          description: Always false in this release — content updates are not yet supported.
+        delete:
+          type: boolean
+    ApiDocument:
+      type: object
+      required:
+        - documentId
+        - name
+        - type
+        - sourceType
+        - visibility
+      properties:
+        documentId:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          enum:
+            - HOWTO
+            - SAMPLES
+            - PUBLIC_FORUM
+            - SUPPORT_FORUM
+            - API_MESSAGE_FORMAT
+            - OTHER
+        otherTypeName:
+          type: string
+          description: Required when type is OTHER.
+        summary:
+          type: string
+        sourceType:
+          type: string
+          enum:
+            - INLINE
+            - MARKDOWN
+            - URL
+            - FILE
+        sourceUrl:
+          type: string
+          description: Present when sourceType is URL.
+        fileName:
+          type: string
+        mimeType:
+          type: string
+        sizeBytes:
+          type: integer
+        visibility:
+          type: string
+          enum:
+            - OWNER_ONLY
+            - PRIVATE
+            - API_LEVEL
+          default: API_LEVEL
+        createdBy:
+          type: string
+        createdTime:
+          type: string
+        lastUpdatedBy:
+          type: string
+        lastUpdatedTime:
+          type: string
+    ApiDocumentListResponse:
+      type: object
+      required:
+        - count
+        - list
+        - capabilities
+      properties:
+        count:
+          type: integer
+        list:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApiDocument'
+        capabilities:
+          $ref: '#/components/schemas/ApiDocumentCapabilities'
+    CreateApiDocumentRequest:
+      type: object
+      required:
+        - name
+        - type
+        - sourceType
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        type:
+          type: string
+          enum:
+            - HOWTO
+            - SAMPLES
+            - PUBLIC_FORUM
+            - SUPPORT_FORUM
+            - API_MESSAGE_FORMAT
+            - OTHER
+        otherTypeName:
+          type: string
+          description: Required when type is OTHER.
+        summary:
+          type: string
+        visibility:
+          type: string
+          enum:
+            - OWNER_ONLY
+            - PRIVATE
+            - API_LEVEL
+          default: API_LEVEL
+        sourceType:
+          type: string
+          enum:
+            - INLINE
+            - MARKDOWN
+            - URL
+            - FILE
+        sourceUrl:
+          type: string
+          description: Required when sourceType is URL.
+        inlineContent:
+          type: string
+          description: Required when sourceType is INLINE or MARKDOWN.
+    UpdateApiDocumentMetadataRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        type:
+          type: string
+          enum:
+            - HOWTO
+            - SAMPLES
+            - PUBLIC_FORUM
+            - SUPPORT_FORUM
+            - API_MESSAGE_FORMAT
+            - OTHER
+        otherTypeName:
+          type: string
+        summary:
+          type: string
+        visibility:
+          type: string
+          enum:
+            - OWNER_ONLY
+            - PRIVATE
+            - API_LEVEL
+        sourceUrl:
+          type: string
+          description: Only accepted when the stored document's sourceType is URL.
