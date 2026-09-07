@@ -16,21 +16,36 @@
  * under the License.
  */
 
-import { useState, useMemo } from 'react';
-import { Entity } from '@backstage/catalog-model';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Entity, getCompoundEntityRef } from '@backstage/catalog-model';
 import { useApi, configApiRef, fetchApiRef } from '@backstage/core-plugin-api';
-import { Wso2ApiDocument } from '../../../../api';
+import {
+  Wso2ApiDocument,
+  Wso2ApiDocumentCapabilities,
+  wso2ApiPlatformApiRef,
+} from '../../../../api';
+import { ApiDocumentSourceMode } from './useApiDocumentSource';
 
 const WSO2_API_DOCS_ANNOTATION = 'wso2.com/api-documents';
 const WSO2_API_ID_ANNOTATION = 'wso2.com/api-id';
 
+const NO_WRITE_CAPABILITIES: Wso2ApiDocumentCapabilities = {
+  read: true,
+  create: false,
+  updateMetadata: false,
+  updateContent: false,
+  delete: false,
+};
+
 export const useWso2Documents = (options: {
   entity: Entity;
   propDocuments?: Wso2ApiDocument[];
+  mode: ApiDocumentSourceMode;
 }) => {
-  const { entity, propDocuments } = options;
+  const { entity, propDocuments, mode } = options;
   const config = useApi(configApiRef);
   const { fetch } = useApi(fetchApiRef);
+  const wso2Api = useApi(wso2ApiPlatformApiRef);
 
   const [previewDoc, setPreviewDoc] = useState<Wso2ApiDocument | null>(null);
   const [previewContent, setPreviewContent] = useState<string | null>(null);
@@ -38,8 +53,10 @@ export const useWso2Documents = (options: {
 
   const apiId = entity.metadata.annotations?.[WSO2_API_ID_ANNOTATION];
   const backendUrl = config.getString('backend.baseUrl');
+  const entityRef = useMemo(() => getCompoundEntityRef(entity), [entity]);
 
-  const documents = useMemo(() => {
+  // mode: 'annotation' — existing on-prem path, unchanged.
+  const annotationDocuments = useMemo(() => {
     let docs: Wso2ApiDocument[] = [];
     if (propDocuments && propDocuments.length > 0) {
       docs = propDocuments;
@@ -58,6 +75,48 @@ export const useWso2Documents = (options: {
     }));
   }, [entity, propDocuments]);
 
+  // mode: 'store' — plugin-owned document store for self-hosted/OpenChoreo.
+  const [storeDocuments, setStoreDocuments] = useState<Wso2ApiDocument[]>([]);
+  const [storeCapabilities, setStoreCapabilities] =
+    useState<Wso2ApiDocumentCapabilities>(NO_WRITE_CAPABILITIES);
+  const [storeLoading, setStoreLoading] = useState(false);
+  const [storeError, setStoreError] = useState<Error | undefined>(undefined);
+
+  const fetchStoreDocuments = useCallback(async () => {
+    setStoreLoading(true);
+    setStoreError(undefined);
+    try {
+      const response = await wso2Api.listDocuments(entityRef);
+      setStoreDocuments(response.list);
+      setStoreCapabilities(response.capabilities);
+    } catch (e) {
+      setStoreError(e instanceof Error ? e : new Error(String(e)));
+    } finally {
+      setStoreLoading(false);
+    }
+  }, [wso2Api, entityRef]);
+
+  useEffect(() => {
+    if (mode === 'store') {
+      fetchStoreDocuments();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, entityRef.kind, entityRef.namespace, entityRef.name]);
+
+  const documents = mode === 'store' ? storeDocuments : annotationDocuments;
+  const capabilities =
+    mode === 'store' ? storeCapabilities : NO_WRITE_CAPABILITIES;
+
+  const getContentUrl = useCallback(
+    async (docId: string) => {
+      if (mode === 'store') {
+        return wso2Api.getDocumentContentUrl(entityRef, docId);
+      }
+      return `${backendUrl}/api/wso2-api-platform/apis/${apiId}/documents/${docId}/content`;
+    },
+    [mode, wso2Api, entityRef, backendUrl, apiId],
+  );
+
   const handleDownload = async (rowData: Wso2ApiDocument) => {
     const docId = rowData.id || rowData.documentId;
     const { name, sourceType, sourceUrl } = rowData;
@@ -72,7 +131,7 @@ export const useWso2Documents = (options: {
     }
 
     try {
-      const url = `${backendUrl}/api/wso2-api-platform/apis/${apiId}/documents/${docId}/content`;
+      const url = await getContentUrl(docId);
       const response = await fetch(url, { method: 'GET' });
 
       if (!response.ok) {
@@ -128,7 +187,7 @@ export const useWso2Documents = (options: {
     setPreviewContent(null);
 
     try {
-      const url = `${backendUrl}/api/wso2-api-platform/apis/${apiId}/documents/${docId}/content`;
+      const url = await getContentUrl(docId);
       const response = await fetch(url, { method: 'GET' });
       if (!response.ok)
         throw new Error(`Failed to load: ${response.statusText}`);
@@ -143,6 +202,10 @@ export const useWso2Documents = (options: {
 
   return {
     documents,
+    capabilities,
+    loading: mode === 'store' ? storeLoading : false,
+    error: mode === 'store' ? storeError : undefined,
+    refresh: mode === 'store' ? fetchStoreDocuments : () => {},
     previewDoc,
     previewContent,
     loadingPreview,

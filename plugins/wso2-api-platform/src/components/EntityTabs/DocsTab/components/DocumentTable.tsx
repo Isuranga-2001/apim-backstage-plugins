@@ -16,21 +16,37 @@
  * under the License.
  */
 
-import { Table } from '@backstage/core-components';
+import { Table, TableColumn } from '@backstage/core-components';
+import Box from '@material-ui/core/Box';
+import IconButton from '@material-ui/core/IconButton';
 import Link from '@material-ui/core/Link';
+import Tooltip from '@material-ui/core/Tooltip';
 import Typography from '@material-ui/core/Typography';
 import Chip from '@material-ui/core/Chip';
-import { Wso2ApiDocument } from '../../../../api';
+import DeleteOutlineIcon from '@material-ui/icons/DeleteOutline';
+import EditIcon from '@material-ui/icons/Edit';
+import VisibilityIcon from '@material-ui/icons/Visibility';
+import { Wso2ApiDocument, Wso2ApiDocumentCapabilities } from '../../../../api';
 import { getApiTypeChipStyle } from '../../../common/Table/tableRenderers';
 
 export const Wso2DocumentTable = (options: {
   documents: Wso2ApiDocument[];
   onPreview: (doc: Wso2ApiDocument) => void;
   onDownload: (doc: Wso2ApiDocument) => void;
+  capabilities?: Wso2ApiDocumentCapabilities;
+  onEditMetadata?: (doc: Wso2ApiDocument) => void;
+  onDelete?: (doc: Wso2ApiDocument) => void;
 }) => {
-  const { documents, onPreview, onDownload } = options;
+  const {
+    documents,
+    onPreview,
+    onDownload,
+    capabilities,
+    onEditMetadata,
+    onDelete,
+  } = options;
 
-  const columns = [
+  const columns: TableColumn<Wso2ApiDocument>[] = [
     {
       title: 'Name',
       field: 'name',
@@ -81,6 +97,60 @@ export const Wso2DocumentTable = (options: {
     },
     { title: 'Summary', field: 'summary' },
   ];
+
+  if (capabilities?.updateMetadata || capabilities?.delete) {
+    columns.push({
+      title: 'Actions',
+      field: 'actions',
+      sorting: false,
+      width: '140px',
+      align: 'right',
+      render: (rowData: Wso2ApiDocument) => (
+        <Box display="flex" justifyContent="flex-end">
+          <Tooltip title="View">
+            <IconButton
+              size="small"
+              aria-label={`View ${rowData.name}`}
+              onClick={() => {
+                if (
+                  rowData.sourceType === 'MARKDOWN' ||
+                  rowData.sourceType === 'INLINE'
+                ) {
+                  onPreview(rowData);
+                } else {
+                  onDownload(rowData);
+                }
+              }}
+            >
+              <VisibilityIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          {capabilities?.updateMetadata && (
+            <Tooltip title="Edit metadata">
+              <IconButton
+                size="small"
+                aria-label={`Edit metadata of ${rowData.name}`}
+                onClick={() => onEditMetadata?.(rowData)}
+              >
+                <EditIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+          {capabilities?.delete && (
+            <Tooltip title="Delete">
+              <IconButton
+                size="small"
+                aria-label={`Delete ${rowData.name}`}
+                onClick={() => onDelete?.(rowData)}
+              >
+                <DeleteOutlineIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+        </Box>
+      ),
+    });
+  }
 
   return (
     <Table
