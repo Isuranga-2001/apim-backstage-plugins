@@ -23,6 +23,8 @@ import { render, screen } from '@testing-library/react';
 import { EntityWso2DocumentsCard } from './DocumentsCard';
 
 let mockEntity: any;
+let mockStorageEnabled: boolean;
+let mockWso2Api: { listDocuments: jest.Mock };
 
 jest.mock('@backstage/plugin-catalog-react', () => ({
   useEntity: () => ({
@@ -33,16 +35,21 @@ jest.mock('@backstage/plugin-catalog-react', () => ({
 jest.mock('@backstage/core-plugin-api', () => ({
   configApiRef: { id: 'core.config' },
   fetchApiRef: { id: 'core.fetch' },
+  createApiRef: (config: { id: string }) => config,
   useApi: (apiRef: { id: string }) => {
     if (apiRef.id === 'core.config') {
       return {
         getString: () => 'http://localhost:7007',
+        getOptionalBoolean: () => mockStorageEnabled,
       };
     }
     if (apiRef.id === 'core.fetch') {
       return {
         fetch: jest.fn(),
       };
+    }
+    if (apiRef.id === 'plugin.wso2-api-platform.service') {
+      return mockWso2Api;
     }
     throw new Error(`Unexpected apiRef: ${apiRef.id}`);
   },
@@ -77,13 +84,53 @@ jest.mock('./components/SingleDocumentView', () => ({
   Wso2SingleDocumentView: () => <div>Single document</div>,
 }));
 
+jest.mock('./components/DocumentsToolbar', () => ({
+  DocumentsToolbar: ({ canAdd }: any) => (
+    <div>Toolbar {canAdd ? '(Add enabled)' : '(Add disabled)'}</div>
+  ),
+}));
+
+jest.mock('./components/AddDocumentDialog', () => ({
+  AddDocumentDialog: () => <div>Add dialog</div>,
+}));
+
+jest.mock('./components/EditDocumentMetadataDialog', () => ({
+  EditDocumentMetadataDialog: () => <div>Edit dialog</div>,
+}));
+
+jest.mock('./components/DeleteDocumentDialog', () => ({
+  DeleteDocumentDialog: () => <div>Delete dialog</div>,
+}));
+
 describe('EntityWso2DocumentsCard', () => {
   beforeEach(() => {
+    mockStorageEnabled = true;
+    mockWso2Api = {
+      listDocuments: jest.fn().mockResolvedValue({
+        count: 1,
+        list: [
+          {
+            id: 'doc-1',
+            documentId: 'doc-1',
+            name: 'Gateway Guide',
+            sourceType: 'MARKDOWN',
+          },
+        ],
+        capabilities: {
+          read: true,
+          create: true,
+          updateMetadata: true,
+          updateContent: false,
+          delete: true,
+        },
+      }),
+    };
     mockEntity = {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'API',
       metadata: {
         name: 'test-api',
+        namespace: 'default',
         annotations: {
           'wso2.com/api-id': 'api-1',
         },
@@ -91,18 +138,68 @@ describe('EntityWso2DocumentsCard', () => {
     };
   });
 
-  it('explains that documents are unavailable for self-hosted gateway API Platform APIs', async () => {
-    mockEntity.metadata.annotations['wso2.com/platform-gateway-endpoints'] =
-      '[]';
+  it('renders the document store table with Add enabled for self-hosted gateway APIs', async () => {
+    mockEntity.metadata.namespace = 'wso2-gateways';
+    delete mockEntity.metadata.annotations['wso2.com/api-id'];
     mockEntity.metadata.annotations['wso2.com/api-discovery-type'] =
       'self-hosted-gateway';
-    mockEntity.metadata.annotations['wso2.com/api-documents'] = JSON.stringify([
-      {
-        id: 'doc-1',
-        name: 'Gateway Guide',
-        sourceType: 'MARKDOWN',
+    mockEntity.metadata.annotations['wso2-gateway.com/api-id'] = 'gw-api-1';
+    mockEntity.metadata.annotations['wso2-gateway.com/api-endpoints'] =
+      JSON.stringify([{ environmentName: 'dev' }]);
+
+    render(<EntityWso2DocumentsCard />);
+
+    expect(await screen.findByText('Document table')).toBeDefined();
+    expect(screen.getByText('Toolbar (Add enabled)')).toBeDefined();
+    expect(screen.queryByText('Documents unavailable')).toBeNull();
+    expect(mockWso2Api.listDocuments).toHaveBeenCalledWith({
+      kind: 'API',
+      namespace: 'wso2-gateways',
+      name: 'test-api',
+    });
+  });
+
+  it('renders the document store table with Add disabled when the store reports no create capability (e.g. on-prem via the same route)', async () => {
+    mockEntity.metadata.namespace = 'wso2-gateways';
+    delete mockEntity.metadata.annotations['wso2.com/api-id'];
+    mockEntity.metadata.annotations['wso2.com/api-discovery-type'] =
+      'openchoreo-gateway';
+    mockEntity.metadata.annotations['wso2-gateway.com/api-id'] = 'gw-api-2';
+    mockWso2Api.listDocuments.mockResolvedValue({
+      count: 0,
+      list: [],
+      capabilities: {
+        read: true,
+        create: false,
+        updateMetadata: false,
+        updateContent: false,
+        delete: false,
       },
-    ]);
+    });
+
+    render(<EntityWso2DocumentsCard />);
+
+    expect(await screen.findByText('Toolbar (Add disabled)')).toBeDefined();
+    expect(await screen.findByText('No documents yet — add one above.')).toBeDefined();
+  });
+
+  it('shows the unavailable empty state for gateway APIs when storage.enabled is false', async () => {
+    mockStorageEnabled = false;
+    mockEntity.metadata.namespace = 'wso2-gateways';
+    delete mockEntity.metadata.annotations['wso2.com/api-id'];
+    mockEntity.metadata.annotations['wso2.com/api-discovery-type'] =
+      'self-hosted-gateway';
+    mockEntity.metadata.annotations['wso2-gateway.com/api-id'] = 'gw-api-1';
+
+    render(<EntityWso2DocumentsCard />);
+
+    expect(screen.getByText('Documents unavailable')).toBeDefined();
+    expect(mockWso2Api.listDocuments).not.toHaveBeenCalled();
+  });
+
+  it('shows the unavailable empty state for on-prem APIs deployed via an API Platform Gateway', () => {
+    mockEntity.metadata.annotations['wso2.com/platform-gateway-endpoints'] =
+      '[]';
 
     render(<EntityWso2DocumentsCard />);
 

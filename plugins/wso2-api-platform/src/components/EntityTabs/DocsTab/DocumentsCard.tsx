@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 /* eslint-disable no-nested-ternary */
 import { useEntity } from '@backstage/plugin-catalog-react';
 import {
@@ -25,11 +25,17 @@ import {
   Progress,
   WarningPanel,
 } from '@backstage/core-components';
+import Typography from '@material-ui/core/Typography';
 import { Wso2ApiDocument } from '../../../api';
+import { useApiDocumentSource } from './hooks/useApiDocumentSource';
 import { useWso2Documents } from './hooks/useDocuments';
 import { Wso2DocumentPreview } from './components/DocumentPreview';
 import { Wso2DocumentTable } from './components/DocumentTable';
 import { Wso2SingleDocumentView } from './components/SingleDocumentView';
+import { DocumentsToolbar } from './components/DocumentsToolbar';
+import { AddDocumentDialog } from './components/AddDocumentDialog';
+import { EditDocumentMetadataDialog } from './components/EditDocumentMetadataDialog';
+import { DeleteDocumentDialog } from './components/DeleteDocumentDialog';
 
 export interface EntityWso2DocumentsCardProps {
   title?: string;
@@ -47,27 +53,30 @@ export const EntityWso2DocumentsCard = (
     error: propError,
   } = props;
   const { entity } = useEntity();
+  const { mode } = useApiDocumentSource(entity);
 
   const {
     documents,
+    capabilities,
+    refresh,
     previewDoc,
     previewContent,
     loadingPreview,
     setPreviewDoc,
     handleDownload,
     handlePreview,
-  } = useWso2Documents({ entity, propDocuments });
+  } = useWso2Documents({ entity, propDocuments, mode });
 
-  const isApiPlatform =
-    !!entity.metadata.annotations?.['wso2.com/platform-gateway-endpoints'];
-  const isSelfHosted =
-    !!entity.metadata.annotations?.['wso2-gateway.com/api-endpoints'];
-  const documentsUnsupported = isApiPlatform || isSelfHosted;
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editingDoc, setEditingDoc] = useState<Wso2ApiDocument | null>(null);
+  const [deletingDoc, setDeletingDoc] = useState<Wso2ApiDocument | null>(null);
 
-  // Trigger preview automatically if there is only one document
+  // Trigger preview automatically if there is only one document — on-prem
+  // ('annotation' mode) only. Gateway mode always shows the table so
+  // Add/Actions stay reachable (see OQ-2 in the design doc).
   useEffect(() => {
     if (
-      !documentsUnsupported &&
+      mode === 'annotation' &&
       documents.length === 1 &&
       !previewDoc &&
       !loadingPreview
@@ -77,13 +86,7 @@ export const EntityWso2DocumentsCard = (
         handlePreview(doc);
       }
     }
-  }, [
-    documents,
-    documentsUnsupported,
-    previewDoc,
-    loadingPreview,
-    handlePreview,
-  ]);
+  }, [documents, mode, previewDoc, loadingPreview, handlePreview]);
 
   if (propLoading) {
     return (
@@ -114,15 +117,84 @@ export const EntityWso2DocumentsCard = (
     />
   );
 
-  return (
-    <InfoCard variant="gridItem">
-      {documentsUnsupported ? (
+  if (mode === 'unsupported') {
+    return (
+      <InfoCard variant="gridItem">
         <EmptyState
           title="Documents unavailable"
           missing="info"
           description="Documents are not supported for API Platform APIs discovered from self-hosted gateways. Please check the WSO2 API Platform directly for documentation."
         />
-      ) : documents.length === 0 ? (
+      </InfoCard>
+    );
+  }
+
+  if (mode === 'store') {
+    return (
+      <InfoCard variant="gridItem">
+        <DocumentsToolbar
+          canAdd={capabilities.create}
+          onAdd={() => setAddDialogOpen(true)}
+        />
+        {previewDoc ? (
+          renderPreview()
+        ) : documents.length === 0 ? (
+          <Typography color="textSecondary" variant="body2">
+            No documents yet — add one above.
+          </Typography>
+        ) : (
+          <Wso2DocumentTable
+            documents={documents}
+            onPreview={handlePreview}
+            onDownload={handleDownload}
+            capabilities={capabilities}
+            onEditMetadata={setEditingDoc}
+            onDelete={setDeletingDoc}
+          />
+        )}
+        {addDialogOpen && (
+          <AddDocumentDialog
+            entity={entity}
+            open={addDialogOpen}
+            onClose={() => setAddDialogOpen(false)}
+            onCreated={() => {
+              setAddDialogOpen(false);
+              refresh();
+            }}
+          />
+        )}
+        {editingDoc && (
+          <EditDocumentMetadataDialog
+            entity={entity}
+            document={editingDoc}
+            open={!!editingDoc}
+            onClose={() => setEditingDoc(null)}
+            onUpdated={() => {
+              setEditingDoc(null);
+              refresh();
+            }}
+          />
+        )}
+        {deletingDoc && (
+          <DeleteDocumentDialog
+            entity={entity}
+            document={deletingDoc}
+            open={!!deletingDoc}
+            onClose={() => setDeletingDoc(null)}
+            onDeleted={() => {
+              setDeletingDoc(null);
+              refresh();
+            }}
+          />
+        )}
+      </InfoCard>
+    );
+  }
+
+  // mode === 'annotation' — on-prem APIM, unchanged.
+  return (
+    <InfoCard variant="gridItem">
+      {documents.length === 0 ? (
         <EmptyState
           title="No documents"
           missing="info"
