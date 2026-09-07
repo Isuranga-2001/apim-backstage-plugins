@@ -48,14 +48,14 @@ export const MarkdownContentEditor = (options: {
       <Box border={1} borderColor="divider" mt={1}>
         {tab === 'write' ? (
           <Editor
-            height="320px"
+            height="240px"
             defaultLanguage="markdown"
             value={value}
             onChange={v => onChange(v ?? '')}
             options={{ minimap: { enabled: false }, wordWrap: 'on' }}
           />
         ) : (
-          <Box p={2} minHeight={320}>
+          <Box p={2} minHeight={240}>
             <MarkdownContent content={value || '_Nothing to preview yet._'} />
           </Box>
         )}

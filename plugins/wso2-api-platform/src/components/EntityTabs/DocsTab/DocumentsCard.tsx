@@ -106,12 +106,15 @@ export const EntityWso2DocumentsCard = (
     );
   }
 
+  const showBackButton =
+    mode === 'store' ? true : documents.length > 1;
+
   const renderPreview = () => (
     <Wso2DocumentPreview
       previewDoc={previewDoc}
       previewContent={previewContent}
       loadingPreview={loadingPreview}
-      showBackButton={documents.length > 1}
+      showBackButton={showBackButton}
       onBack={() => setPreviewDoc(null)}
       onDownload={handleDownload}
     />

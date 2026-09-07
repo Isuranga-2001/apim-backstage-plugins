@@ -19,7 +19,7 @@
  * under the License.
  */
 
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { EntityWso2DocumentsCard } from './DocumentsCard';
 
 let mockEntity: any;
@@ -73,11 +73,22 @@ jest.mock('@backstage/core-components', () => ({
 }));
 
 jest.mock('./components/DocumentPreview', () => ({
-  Wso2DocumentPreview: () => <div>Document preview</div>,
+  Wso2DocumentPreview: ({ showBackButton }: any) => (
+    <div>Document preview (backButton: {showBackButton ? 'yes' : 'no'})</div>
+  ),
 }));
 
 jest.mock('./components/DocumentTable', () => ({
-  Wso2DocumentTable: () => <div>Document table</div>,
+  Wso2DocumentTable: ({ documents, onPreview }: any) => (
+    <div>
+      Document table
+      {documents.map((doc: any) => (
+        <button key={doc.id} onClick={() => onPreview(doc)}>
+          View {doc.name}
+        </button>
+      ))}
+    </div>
+  ),
 }));
 
 jest.mock('./components/SingleDocumentView', () => ({
@@ -181,6 +192,23 @@ describe('EntityWso2DocumentsCard', () => {
 
     expect(await screen.findByText('Toolbar (Add disabled)')).toBeDefined();
     expect(await screen.findByText('No documents yet — add one above.')).toBeDefined();
+  });
+
+  it('shows a back button when viewing the only document in store mode', async () => {
+    mockEntity.metadata.namespace = 'wso2-gateways';
+    delete mockEntity.metadata.annotations['wso2.com/api-id'];
+    mockEntity.metadata.annotations['wso2.com/api-discovery-type'] =
+      'self-hosted-gateway';
+    mockEntity.metadata.annotations['wso2-gateway.com/api-id'] = 'gw-api-1';
+
+    render(<EntityWso2DocumentsCard />);
+
+    const viewButton = await screen.findByText('View Gateway Guide');
+    fireEvent.click(viewButton);
+
+    expect(
+      await screen.findByText(/backButton: yes/),
+    ).toBeDefined();
   });
 
   it('shows the unavailable empty state for gateway APIs when storage.enabled is false', async () => {
