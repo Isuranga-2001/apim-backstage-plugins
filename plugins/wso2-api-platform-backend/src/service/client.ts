@@ -294,6 +294,20 @@ export class Wso2ApiPlatformClient extends BaseWso2Client {
   }
 
   /**
+   * Lists document metadata for an API. Used by ApimPublisherDocumentStore
+   * (the read-only on-prem document store) — the existing frontend Docs tab
+   * for on-prem APIs instead reads the catalog's `wso2.com/api-documents`
+   * annotation and does not call this.
+   */
+  async getDocuments(apiId: string): Promise<{ count: number; list: Wso2ApiDocument[] }> {
+    const encodedApiId = encodeURIComponent(apiId);
+    return await this.requestPublisher<{ count: number; list: Wso2ApiDocument[] }>(
+      `/apis/${encodedApiId}/documents`,
+      {},
+    );
+  }
+
+  /**
    * Fetches document metadata for an API document.
    */
   async getDocument(
