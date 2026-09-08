@@ -22,6 +22,7 @@ import { EmptyState, InfoCard } from '@backstage/core-components';
 import Box from '@material-ui/core/Box';
 import Button from '@material-ui/core/Button';
 import Typography from '@material-ui/core/Typography';
+import AddIcon from '@material-ui/icons/Add';
 import { ApiDefinitionViewer } from './ApiDefinitionViewer';
 import { DefinitionUploadDialog } from './DefinitionUploadDialog';
 import { useApiDefinition } from './hooks/useApiDefinition';
@@ -39,6 +40,32 @@ const NotAvailableBox = ({ message }: { message: string }) => (
     <Typography variant="body2" color="textSecondary">
       {message}
     </Typography>
+  </Box>
+);
+
+const NoDefinitionBox = ({ onAdd }: { onAdd: () => void }) => (
+  <Box
+    p={4}
+    border={1}
+    borderColor="divider"
+    borderRadius={4}
+    textAlign="center"
+    bgcolor="background.default"
+  >
+    <Typography variant="body2" color="textSecondary" gutterBottom>
+      No definition has been added for this API yet.
+    </Typography>
+    <Box mt={2} display="flex" justifyContent="center">
+      <Button
+        variant="contained"
+        color="primary"
+        size="small"
+        startIcon={<AddIcon />}
+        onClick={onAdd}
+      >
+        Add Definition
+      </Button>
+    </Box>
   </Box>
 );
 
@@ -82,25 +109,27 @@ export const DefinitionPanel = (props: {
     return wrapInCard ? <InfoCard>{viewer}</InfoCard> : viewer;
   }
 
+  let definitionContent;
+  if (definition) {
+    definitionContent = (
+      <ApiDefinitionViewer
+        value={definition.content}
+        onUpdateClick={
+          capabilities.write ? () => setDialogOpen(true) : undefined
+        }
+      />
+    );
+  } else if (capabilities.write) {
+    definitionContent = <NoDefinitionBox onAdd={() => setDialogOpen(true)} />;
+  } else {
+    definitionContent = (
+      <NotAvailableBox message="No definition has been added for this API yet." />
+    );
+  }
+
   const content = (
     <Box>
-      {capabilities.write && (
-        <Box display="flex" justifyContent="flex-end" mb={1}>
-          <Button
-            variant="contained"
-            color="primary"
-            size="small"
-            onClick={() => setDialogOpen(true)}
-          >
-            {definition ? 'Update Definition' : 'Add Definition'}
-          </Button>
-        </Box>
-      )}
-      {definition ? (
-        <ApiDefinitionViewer value={definition.content} />
-      ) : (
-        <NotAvailableBox message="No definition has been added for this API yet." />
-      )}
+      {definitionContent}
       {dialogOpen && (
         <DefinitionUploadDialog
           entity={entity}

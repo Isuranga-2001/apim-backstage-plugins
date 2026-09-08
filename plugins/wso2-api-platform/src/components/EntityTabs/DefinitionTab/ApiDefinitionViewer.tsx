@@ -26,16 +26,25 @@ import Tooltip from '@material-ui/core/Tooltip';
 import Box from '@material-ui/core/Box';
 import GetAppIcon from '@material-ui/icons/GetApp';
 import AutorenewIcon from '@material-ui/icons/Autorenew';
+import EditIcon from '@material-ui/icons/Edit';
 import { useStyles } from './styles';
 
 export interface ApiDefinitionViewerProps {
   value: string;
   language?: string;
+  onUpdateClick?: () => void;
 }
+
+const editorActionButtonStyle = {
+  color: '#d4d4d4',
+  borderColor: '#555',
+  textTransform: 'none' as const,
+};
 
 export const ApiDefinitionViewer = ({
   value,
   language,
+  onUpdateClick,
 }: ApiDefinitionViewerProps) => {
   const classes = useStyles();
 
@@ -107,6 +116,21 @@ export const ApiDefinitionViewer = ({
           </Typography>
         </div>
         <div className={classes.editorActions}>
+          {onUpdateClick && (
+            <Tooltip title="Update definition">
+              <Button
+                id="swagger-update-btn"
+                size="small"
+                variant="outlined"
+                startIcon={<EditIcon />}
+                onClick={onUpdateClick}
+                style={editorActionButtonStyle}
+              >
+                Update Definition
+              </Button>
+            </Tooltip>
+          )}
+
           {/* Format Toggle button (hidden for XML and GraphQL) */}
           {!isXml && !isGraphql && (
             <Tooltip
@@ -118,11 +142,7 @@ export const ApiDefinitionViewer = ({
                 variant="outlined"
                 startIcon={<AutorenewIcon />}
                 onClick={handleFormatToggle}
-                style={{
-                  color: '#d4d4d4',
-                  borderColor: '#555',
-                  textTransform: 'none',
-                }}
+                style={editorActionButtonStyle}
               >
                 Convert to {displayFormat === 'YAML' ? 'JSON' : 'YAML'}
               </Button>
@@ -137,11 +157,7 @@ export const ApiDefinitionViewer = ({
               variant="outlined"
               startIcon={<GetAppIcon />}
               onClick={handleDownload}
-              style={{
-                color: '#d4d4d4',
-                borderColor: '#555',
-                textTransform: 'none',
-              }}
+              style={editorActionButtonStyle}
             >
               Download
             </Button>

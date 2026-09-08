@@ -110,7 +110,6 @@ export class DatabaseApiDefinitionStore implements ApiDefinitionStore {
         other_type_name: null,
         summary: null,
         source_type: 'FILE',
-        visibility: 'API_LEVEL',
         source_url: null,
         created_by: actor.userEntityRef ?? null,
         updated_by: actor.userEntityRef ?? null,
