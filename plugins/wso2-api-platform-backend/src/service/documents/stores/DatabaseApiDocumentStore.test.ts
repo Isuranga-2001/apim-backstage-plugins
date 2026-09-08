@@ -72,7 +72,6 @@ describe('DatabaseApiDocumentStore', () => {
       name: 'Getting Started',
       type: 'HOWTO',
       sourceType: 'MARKDOWN',
-      visibility: 'API_LEVEL',
       createdBy: 'user:default/alice',
     });
 

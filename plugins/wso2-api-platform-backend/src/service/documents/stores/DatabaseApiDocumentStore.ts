@@ -31,7 +31,6 @@ import {
   ApiDocumentCapabilities,
   ApiDocumentSourceType,
   ApiDocumentType,
-  ApiDocumentVisibility,
   ApiRef,
   CreateDocumentInput,
   DocumentContentResult,
@@ -67,7 +66,6 @@ function toApiDocument(
       content?.size_bytes !== undefined && content?.size_bytes !== null
         ? Number(content.size_bytes)
         : undefined,
-    visibility: row.visibility as ApiDocumentVisibility,
     createdBy: row.created_by ?? undefined,
     createdTime: toIsoString(row.created_at),
     lastUpdatedBy: row.updated_by ?? undefined,
@@ -172,7 +170,6 @@ export class DatabaseApiDocumentStore implements ApiDocumentStore {
         other_type_name: input.otherTypeName ?? null,
         summary: input.summary ?? null,
         source_type: input.sourceType,
-        visibility: input.visibility ?? 'API_LEVEL',
         source_url: input.sourceType === 'URL' ? input.sourceUrl ?? null : null,
         created_by: actor.userEntityRef ?? null,
         updated_by: actor.userEntityRef ?? null,
@@ -214,7 +211,6 @@ export class DatabaseApiDocumentStore implements ApiDocumentStore {
     if (patch.otherTypeName !== undefined)
       daoPatch.other_type_name = patch.otherTypeName;
     if (patch.summary !== undefined) daoPatch.summary = patch.summary;
-    if (patch.visibility !== undefined) daoPatch.visibility = patch.visibility;
     if (patch.sourceUrl !== undefined) daoPatch.source_url = patch.sourceUrl;
 
     const updated = await this.dao.updateMetadata(ref, documentId, daoPatch);

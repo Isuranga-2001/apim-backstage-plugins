@@ -25,7 +25,6 @@ import {
   ApiDocumentCapabilities,
   ApiDocumentSourceType,
   ApiDocumentType,
-  ApiDocumentVisibility,
   ApiRef,
   CreateDocumentInput,
   DocumentContentResult,
@@ -41,7 +40,6 @@ function toApiDocument(doc: Wso2ApiDocument): ApiDocument {
     summary: doc.summary,
     sourceType: (doc.sourceType as ApiDocumentSourceType) ?? 'INLINE',
     sourceUrl: doc.sourceUrl,
-    visibility: 'API_LEVEL' as ApiDocumentVisibility,
   };
 }
 

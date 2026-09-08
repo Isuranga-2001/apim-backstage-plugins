@@ -46,7 +46,6 @@ describe('parseCreateDocumentMetadata', () => {
       name: 'Getting Started',
       type: 'HOWTO',
       sourceType: 'MARKDOWN',
-      visibility: 'API_LEVEL',
     });
   });
 

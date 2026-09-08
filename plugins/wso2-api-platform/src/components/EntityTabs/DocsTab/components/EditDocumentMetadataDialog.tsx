@@ -62,7 +62,6 @@ export const EditDocumentMetadataDialog = (options: {
     type: doc.type ?? 'OTHER',
     otherTypeName: doc.otherTypeName ?? '',
     summary: doc.summary ?? '',
-    visibility: doc.visibility ?? 'API_LEVEL',
   });
   // sourceUrl is editable only for URL documents (OQ-1) — a metadata
   // column, unlike blob/text content, which stays frozen this release.
@@ -91,7 +90,6 @@ export const EditDocumentMetadataDialog = (options: {
         name: metadata.name.trim(),
         type: metadata.type,
         summary: metadata.summary.trim() || undefined,
-        visibility: metadata.visibility,
         ...(metadata.type === 'OTHER'
           ? { otherTypeName: metadata.otherTypeName.trim() }
           : {}),

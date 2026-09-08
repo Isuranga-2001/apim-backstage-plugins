@@ -822,7 +822,6 @@ components:
         - name
         - type
         - sourceType
-        - visibility
       properties:
         documentId:
           type: string
@@ -858,13 +857,6 @@ components:
           type: string
         sizeBytes:
           type: integer
-        visibility:
-          type: string
-          enum:
-            - OWNER_ONLY
-            - PRIVATE
-            - API_LEVEL
-          default: API_LEVEL
         createdBy:
           type: string
         createdTime:
@@ -912,13 +904,6 @@ components:
           description: Required when type is OTHER.
         summary:
           type: string
-        visibility:
-          type: string
-          enum:
-            - OWNER_ONLY
-            - PRIVATE
-            - API_LEVEL
-          default: API_LEVEL
         sourceType:
           type: string
           enum:
@@ -951,12 +936,6 @@ components:
           type: string
         summary:
           type: string
-        visibility:
-          type: string
-          enum:
-            - OWNER_ONLY
-            - PRIVATE
-            - API_LEVEL
         sourceUrl:
           type: string
           description: Only accepted when the stored document's sourceType is URL.

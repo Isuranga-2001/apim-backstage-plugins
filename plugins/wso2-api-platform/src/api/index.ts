@@ -37,7 +37,6 @@ export type {
   Wso2ApiDocument,
   Wso2ApiDocumentType,
   Wso2ApiDocumentSourceType,
-  Wso2ApiDocumentVisibility,
   Wso2ApiDocumentCapabilities,
   Wso2ApiDocumentListResponse,
   CreateWso2ApiDocumentRequest,

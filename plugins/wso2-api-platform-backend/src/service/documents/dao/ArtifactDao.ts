@@ -38,7 +38,6 @@ export type ArtifactRow = {
   other_type_name: string | null;
   summary: string | null;
   source_type: string;
-  visibility: string;
   source_url: string | null;
   created_by: string | null;
   created_at: string | Date;
@@ -72,7 +71,6 @@ export type ArtifactMetadataPatch = Partial<
     | 'doc_type'
     | 'other_type_name'
     | 'summary'
-    | 'visibility'
     | 'source_url'
     | 'updated_by'
   >

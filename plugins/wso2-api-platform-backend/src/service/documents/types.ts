@@ -35,8 +35,6 @@ export type ApiDocumentType =
 
 export type ApiDocumentSourceType = 'INLINE' | 'MARKDOWN' | 'URL' | 'FILE';
 
-export type ApiDocumentVisibility = 'OWNER_ONLY' | 'PRIVATE' | 'API_LEVEL';
-
 /**
  * Logical identity of an API, independent of its catalog entity name (which
  * can change on a gateway API rename).
@@ -67,7 +65,6 @@ export type ApiDocument = {
   fileName?: string;
   mimeType?: string;
   sizeBytes?: number;
-  visibility: ApiDocumentVisibility;
   createdBy?: string;
   createdTime?: string;
   lastUpdatedBy?: string;
@@ -97,7 +94,6 @@ export type CreateDocumentInput = {
   type: ApiDocumentType;
   otherTypeName?: string;
   summary?: string;
-  visibility?: ApiDocumentVisibility;
   sourceType: ApiDocumentSourceType;
   sourceUrl?: string;
   inlineContent?: string;
@@ -113,7 +109,6 @@ export type UpdateDocumentMetadataInput = {
   type?: ApiDocumentType;
   otherTypeName?: string;
   summary?: string;
-  visibility?: ApiDocumentVisibility;
   /** only honoured when the stored document's sourceType is URL */
   sourceUrl?: string;
 };

@@ -19,17 +19,13 @@
 import Grid from '@material-ui/core/Grid';
 import MenuItem from '@material-ui/core/MenuItem';
 import TextField from '@material-ui/core/TextField';
-import {
-  Wso2ApiDocumentType,
-  Wso2ApiDocumentVisibility,
-} from '../../../../api';
+import { Wso2ApiDocumentType } from '../../../../api';
 
 export type DocumentMetadataFormValue = {
   name: string;
   type: Wso2ApiDocumentType;
   otherTypeName: string;
   summary: string;
-  visibility: Wso2ApiDocumentVisibility;
 };
 
 // SWAGGER_DOC is legacy/APIM-internal and intentionally excluded (OQ-4) —
@@ -44,15 +40,6 @@ const DOCUMENT_TYPE_OPTIONS: Array<{
   { value: 'SUPPORT_FORUM', label: 'Support Forum' },
   { value: 'API_MESSAGE_FORMAT', label: 'API Message Formats' },
   { value: 'OTHER', label: 'Other' },
-];
-
-const VISIBILITY_OPTIONS: Array<{
-  value: Wso2ApiDocumentVisibility;
-  label: string;
-}> = [
-  { value: 'API_LEVEL', label: 'API level' },
-  { value: 'OWNER_ONLY', label: 'Owner only' },
-  { value: 'PRIVATE', label: 'Private' },
 ];
 
 export const DocumentMetadataForm = (options: {
@@ -78,7 +65,7 @@ export const DocumentMetadataForm = (options: {
           disabled={disabled}
         />
       </Grid>
-      <Grid item xs={12} sm={6}>
+      <Grid item xs={12}>
         <TextField
           id="document-metadata-type"
           select
@@ -90,25 +77,6 @@ export const DocumentMetadataForm = (options: {
           disabled={disabled}
         >
           {DOCUMENT_TYPE_OPTIONS.map(opt => (
-            <MenuItem key={opt.value} value={opt.value}>
-              {opt.label}
-            </MenuItem>
-          ))}
-        </TextField>
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          id="document-metadata-visibility"
-          select
-          label="Visibility"
-          fullWidth
-          value={value.visibility}
-          onChange={e =>
-            set({ visibility: e.target.value as Wso2ApiDocumentVisibility })
-          }
-          disabled={disabled}
-        >
-          {VISIBILITY_OPTIONS.map(opt => (
             <MenuItem key={opt.value} value={opt.value}>
               {opt.label}
             </MenuItem>

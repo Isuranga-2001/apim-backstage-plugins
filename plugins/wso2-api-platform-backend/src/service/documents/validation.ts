@@ -34,14 +34,11 @@ const DOCUMENT_TYPE = z.enum([
 
 const SOURCE_TYPE = z.enum(['INLINE', 'MARKDOWN', 'URL', 'FILE']);
 
-const VISIBILITY = z.enum(['OWNER_ONLY', 'PRIVATE', 'API_LEVEL']);
-
 const createDocumentMetadataSchema = z.object({
   name: z.string().trim().min(1).max(191),
   type: DOCUMENT_TYPE,
   otherTypeName: z.string().trim().max(255).optional(),
   summary: z.string().max(4000).optional(),
-  visibility: VISIBILITY.optional().default('API_LEVEL'),
   sourceType: SOURCE_TYPE,
   sourceUrl: z.string().trim().optional(),
   inlineContent: z.string().optional(),
@@ -57,7 +54,6 @@ const updateDocumentMetadataSchema = z
     type: DOCUMENT_TYPE.optional(),
     otherTypeName: z.string().trim().max(255).optional(),
     summary: z.string().max(4000).optional(),
-    visibility: VISIBILITY.optional(),
     sourceUrl: z.string().trim().optional(),
   })
   .strict();

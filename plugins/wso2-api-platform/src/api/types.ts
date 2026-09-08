@@ -137,7 +137,6 @@ export type Wso2ApiDocumentType =
   | 'OTHER'
   | 'SWAGGER_DOC';
 export type Wso2ApiDocumentSourceType = 'INLINE' | 'URL' | 'FILE' | 'MARKDOWN';
-export type Wso2ApiDocumentVisibility = 'OWNER_ONLY' | 'PRIVATE' | 'API_LEVEL';
 
 // Widened for the plugin-owned document store (self-hosted/OpenChoreo
 // gateway APIs): every added field is optional so the on-prem
@@ -151,7 +150,6 @@ export type Wso2ApiDocument = {
   documentId?: string;
   type?: Wso2ApiDocumentType;
   otherTypeName?: string;
-  visibility?: Wso2ApiDocumentVisibility;
   fileName?: string;
   mimeType?: string;
   sizeBytes?: number;
@@ -180,7 +178,6 @@ export type CreateWso2ApiDocumentRequest = {
   type: Wso2ApiDocumentType;
   otherTypeName?: string;
   summary?: string;
-  visibility?: Wso2ApiDocumentVisibility;
   sourceType: Wso2ApiDocumentSourceType;
   sourceUrl?: string;
   inlineContent?: string;
@@ -192,7 +189,6 @@ export type UpdateWso2ApiDocumentMetadataRequest = {
   type?: Wso2ApiDocumentType;
   otherTypeName?: string;
   summary?: string;
-  visibility?: Wso2ApiDocumentVisibility;
   /** only honoured when the stored document's sourceType is URL */
   sourceUrl?: string;
 };

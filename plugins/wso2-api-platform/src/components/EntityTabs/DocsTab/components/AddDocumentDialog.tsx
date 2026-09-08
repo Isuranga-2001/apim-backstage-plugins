@@ -79,7 +79,6 @@ export const AddDocumentDialog = (options: {
     type: 'HOWTO',
     otherTypeName: '',
     summary: '',
-    visibility: 'API_LEVEL',
   });
   const [content, setContent] = useState<DocumentContentValue>({
     sourceType: 'MARKDOWN',
@@ -135,7 +134,6 @@ export const AddDocumentDialog = (options: {
       name: metadata.name.trim(),
       type: metadata.type,
       summary: metadata.summary.trim() || undefined,
-      visibility: metadata.visibility,
       sourceType: content.sourceType,
       ...(metadata.type === 'OTHER'
         ? { otherTypeName: metadata.otherTypeName.trim() }
