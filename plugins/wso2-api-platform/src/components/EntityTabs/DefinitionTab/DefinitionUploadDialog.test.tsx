@@ -57,7 +57,7 @@ describe('DefinitionUploadDialog', () => {
     expect(screen.getByText('Add Definition')).toBeDefined();
   });
 
-  it('shows "Update Definition" as the title when a definition already exists', () => {
+  it('shows "Upload Definition" as the title when a definition already exists', () => {
     render(
       <DefinitionUploadDialog
         entity={entity}
@@ -67,7 +67,7 @@ describe('DefinitionUploadDialog', () => {
         onSaved={jest.fn()}
       />,
     );
-    expect(screen.getByText('Update Definition')).toBeDefined();
+    expect(screen.getByText('Upload Definition')).toBeDefined();
   });
 
   it('requires a file before saving', () => {

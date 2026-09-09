@@ -105,7 +105,7 @@ describe('EntityWso2ApiDefinitionTab', () => {
     expect(screen.queryByTestId('definition-viewer')).toBeNull();
   });
 
-  it('shows the viewer and an "Update Definition" button once a gateway API has a definition', async () => {
+  it('shows the viewer and an "Upload" button once a gateway API has a definition', async () => {
     mockEntity = GATEWAY_ENTITY;
     mockWso2Api.getDefinition.mockResolvedValue({
       definition: { content: 'openapi: 3.0.0', format: 'YAML' },
@@ -115,7 +115,7 @@ describe('EntityWso2ApiDefinitionTab', () => {
     render(<EntityWso2ApiDefinitionTab />);
 
     expect(
-      await screen.findByRole('button', { name: 'Update Definition' }),
+      await screen.findByRole('button', { name: 'Upload' }),
     ).toBeDefined();
     expect(screen.getByTestId('definition-viewer').textContent).toContain(
       'openapi: 3.0.0',
@@ -133,9 +133,7 @@ describe('EntityWso2ApiDefinitionTab', () => {
       ),
     );
     expect(screen.queryByRole('button', { name: 'Add Definition' })).toBeNull();
-    expect(
-      screen.queryByRole('button', { name: 'Update Definition' }),
-    ).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Upload' })).toBeNull();
     expect(mockWso2Api.getDefinition).not.toHaveBeenCalled();
   });
 });

@@ -24,15 +24,25 @@ import Button from '@material-ui/core/Button';
 import Typography from '@material-ui/core/Typography';
 import Tooltip from '@material-ui/core/Tooltip';
 import Box from '@material-ui/core/Box';
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogContentText from '@material-ui/core/DialogContentText';
+import DialogTitle from '@material-ui/core/DialogTitle';
+import CircularProgress from '@material-ui/core/CircularProgress';
 import GetAppIcon from '@material-ui/icons/GetApp';
 import AutorenewIcon from '@material-ui/icons/Autorenew';
 import EditIcon from '@material-ui/icons/Edit';
+import SaveIcon from '@material-ui/icons/Save';
+import CloudUploadIcon from '@material-ui/icons/CloudUpload';
+import CloseIcon from '@material-ui/icons/Close';
 import { useStyles } from './styles';
 
 export interface ApiDefinitionViewerProps {
   value: string;
   language?: string;
   onUpdateClick?: () => void;
+  onSaveClick?: (content: string) => Promise<void> | void;
 }
 
 const editorActionButtonStyle = {
@@ -45,11 +55,16 @@ export const ApiDefinitionViewer = ({
   value,
   language,
   onUpdateClick,
+  onSaveClick,
 }: ApiDefinitionViewerProps) => {
   const classes = useStyles();
 
   const [displayFormat, setDisplayFormat] = useState<'YAML' | 'JSON'>('YAML');
   const [localValue, setLocalValue] = useState<string>(value);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedValue, setEditedValue] = useState<string>('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // Detect if the original value looks like XML
   const isXml = language === 'xml' || value?.trimStart().startsWith('<');
@@ -106,6 +121,32 @@ export const ApiDefinitionViewer = ({
     URL.revokeObjectURL(url);
   };
 
+  const handleEditToggle = () => {
+    if (!isEditing) {
+      setEditedValue(localValue);
+      setIsEditing(true);
+      return;
+    }
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmSave = async () => {
+    setSaving(true);
+    try {
+      await onSaveClick?.(editedValue);
+      setLocalValue(editedValue);
+      setIsEditing(false);
+      setConfirmOpen(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditedValue(localValue);
+    setIsEditing(false);
+  };
+
   return (
     <div className={classes.editorContainer}>
       {/* VS Code-style title bar */}
@@ -116,23 +157,8 @@ export const ApiDefinitionViewer = ({
           </Typography>
         </div>
         <div className={classes.editorActions}>
-          {onUpdateClick && (
-            <Tooltip title="Update definition">
-              <Button
-                id="swagger-update-btn"
-                size="small"
-                variant="outlined"
-                startIcon={<EditIcon />}
-                onClick={onUpdateClick}
-                style={editorActionButtonStyle}
-              >
-                Update Definition
-              </Button>
-            </Tooltip>
-          )}
-
           {/* Format Toggle button (hidden for XML and GraphQL) */}
-          {!isXml && !isGraphql && (
+          {!isEditing && !isXml && !isGraphql && (
             <Tooltip
               title={`Convert to ${displayFormat === 'YAML' ? 'JSON' : 'YAML'}`}
             >
@@ -150,18 +176,66 @@ export const ApiDefinitionViewer = ({
           )}
 
           {/* Download button */}
-          <Tooltip title="Download definition">
-            <Button
-              id="swagger-download-btn"
-              size="small"
-              variant="outlined"
-              startIcon={<GetAppIcon />}
-              onClick={handleDownload}
-              style={editorActionButtonStyle}
-            >
-              Download
-            </Button>
-          </Tooltip>
+          {!isEditing && (
+            <Tooltip title="Download definition">
+              <Button
+                id="swagger-download-btn"
+                size="small"
+                variant="outlined"
+                startIcon={<GetAppIcon />}
+                onClick={handleDownload}
+                style={editorActionButtonStyle}
+              >
+                Download
+              </Button>
+            </Tooltip>
+          )}
+
+          {!isEditing && onUpdateClick && (
+            <Tooltip title="Upload definition">
+              <Button
+                id="swagger-update-btn"
+                size="small"
+                variant="outlined"
+                startIcon={<CloudUploadIcon />}
+                onClick={onUpdateClick}
+                style={editorActionButtonStyle}
+              >
+                Upload
+              </Button>
+            </Tooltip>
+          )}
+
+          {isEditing && (
+            <Tooltip title="Cancel editing">
+              <Button
+                id="swagger-cancel-edit-btn"
+                size="small"
+                variant="outlined"
+                startIcon={<CloseIcon />}
+                onClick={handleCancelEdit}
+                disabled={saving}
+                style={editorActionButtonStyle}
+              >
+                Cancel
+              </Button>
+            </Tooltip>
+          )}
+
+          {onSaveClick && (
+            <Tooltip title={isEditing ? 'Save definition' : 'Edit definition'}>
+              <Button
+                id="swagger-edit-toggle-btn"
+                size="small"
+                variant="outlined"
+                startIcon={isEditing ? <SaveIcon /> : <EditIcon />}
+                onClick={handleEditToggle}
+                style={editorActionButtonStyle}
+              >
+                {isEditing ? 'Save' : 'Edit'}
+              </Button>
+            </Tooltip>
+          )}
         </div>
       </div>
 
@@ -177,9 +251,14 @@ export const ApiDefinitionViewer = ({
         <Editor
           language={lang.toLowerCase()}
           theme="vs-dark"
-          value={localValue}
+          value={isEditing ? editedValue : localValue}
+          onChange={val => {
+            if (isEditing) {
+              setEditedValue(val ?? '');
+            }
+          }}
           options={{
-            readOnly: true,
+            readOnly: !isEditing,
             minimap: { enabled: false },
             scrollBeyondLastLine: false,
             fontSize: 13,
@@ -188,6 +267,29 @@ export const ApiDefinitionViewer = ({
           }}
         />
       </div>
+
+      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+        <DialogTitle>Save Definition</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to save the changes made to this
+            definition?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmOpen(false)} disabled={saving}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleConfirmSave}
+            disabled={saving}
+          >
+            {saving ? <CircularProgress size={20} /> : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Bottom status bar like VS Code */}
       <Box

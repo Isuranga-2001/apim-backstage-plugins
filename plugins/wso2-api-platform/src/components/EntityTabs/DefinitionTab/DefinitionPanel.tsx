@@ -27,6 +27,7 @@ import { ApiDefinitionViewer } from './ApiDefinitionViewer';
 import { DefinitionUploadDialog } from './DefinitionUploadDialog';
 import { useApiDefinition } from './hooks/useApiDefinition';
 import { useApiDefinitionSource } from './hooks/useApiDefinitionSource';
+import { useDefinitionMutations } from './hooks/useDefinitionMutations';
 
 const NotAvailableBox = ({ message }: { message: string }) => (
   <Box
@@ -77,6 +78,7 @@ export const DefinitionPanel = (props: {
   const { entity, language, wrapInCard } = props;
   const { mode } = useApiDefinitionSource(entity);
   const { definition, capabilities, refresh } = useApiDefinition(entity, mode);
+  const { upsertDefinition } = useDefinitionMutations(entity);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   if (mode === 'unsupported') {
@@ -116,6 +118,17 @@ export const DefinitionPanel = (props: {
         value={definition.content}
         onUpdateClick={
           capabilities.write ? () => setDialogOpen(true) : undefined
+        }
+        onSaveClick={
+          capabilities.write
+            ? async content => {
+                await upsertDefinition(
+                  definition.fileName ?? 'definition.yaml',
+                  content,
+                );
+                refresh();
+              }
+            : undefined
         }
       />
     );

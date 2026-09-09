@@ -107,7 +107,7 @@ export const DefinitionUploadDialog = (options: {
     <>
       <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
         <DialogTitle>
-          {hasExistingDefinition ? 'Update Definition' : 'Add Definition'}
+          {hasExistingDefinition ? 'Upload Definition' : 'Add Definition'}
         </DialogTitle>
         <DialogContent>
           {error && (
