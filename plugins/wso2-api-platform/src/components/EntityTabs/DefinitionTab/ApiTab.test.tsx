@@ -114,9 +114,7 @@ describe('EntityWso2ApiDefinitionTab', () => {
 
     render(<EntityWso2ApiDefinitionTab />);
 
-    expect(
-      await screen.findByRole('button', { name: 'Upload' }),
-    ).toBeDefined();
+    expect(await screen.findByRole('button', { name: 'Upload' })).toBeDefined();
     expect(screen.getByTestId('definition-viewer').textContent).toContain(
       'openapi: 3.0.0',
     );

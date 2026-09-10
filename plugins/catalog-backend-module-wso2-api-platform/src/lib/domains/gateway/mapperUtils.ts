@@ -40,9 +40,7 @@ export function mapDiscoveredApiToEntity(api: any): ApiEntity {
       name: normalizedName,
       namespace: discoveryNamespace,
       title: displayName,
-      description:
-        api.description ||
-        `Discovered API from Gateway: ${api.environmentName}`,
+      ...(api.description ? { description: api.description } : {}),
       annotations: {
         'backstage.io/managed-by-location': `wso2-gateway:${api.environmentName}`,
         'backstage.io/managed-by-origin-location': `wso2-gateway:${api.environmentName}`,

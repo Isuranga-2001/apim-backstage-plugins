@@ -28,6 +28,7 @@ import {
   assertDefinitionSizeWithinLimit,
   parseUpsertDefinitionInput,
 } from '../documents/validation';
+import { assertMatchesDiscoveredOpenChoreoApi } from '../documents/openchoreoDefinitionVerifier';
 
 const DEFINITION_PATH = '/entities/:kind/:namespace/:name/definition';
 
@@ -49,6 +50,7 @@ export function registerDefinitionRoutes(
     catalog,
     definitionStorage,
     logger,
+    client,
   } = context as Required<RouteContext>;
 
   async function resolve(req: express.Request) {
@@ -85,6 +87,12 @@ export function registerDefinitionRoutes(
 
     const input = parseUpsertDefinitionInput(req.body);
     assertDefinitionSizeWithinLimit(input.content, definitionStorage);
+    await assertMatchesDiscoveredOpenChoreoApi(
+      client,
+      apiRef,
+      input.content,
+      logger,
+    );
 
     const definition = await store.upsert(apiRef, input, actorFor(credentials));
     await refreshCatalogEntityAdvisory(

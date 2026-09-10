@@ -96,9 +96,7 @@ export class Wso2ApiPlatformClient implements Wso2ApiPlatformApi {
   private async parseJsonResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
       const errorText = await response.text().catch(() => response.statusText);
-      throw new Error(
-        `WSO2 API request failed [${response.status}]: ${errorText}`,
-      );
+      throw new Error(this.extractErrorMessage(response.status, errorText));
     }
 
     const text = await response.text();
@@ -111,6 +109,25 @@ export class Wso2ApiPlatformClient implements Wso2ApiPlatformApi {
     } catch (e) {
       throw new Error(`Failed to parse WSO2 API response: ${text}`);
     }
+  }
+
+  /**
+   * Backstage's standard error middleware responds with a JSON envelope of
+   * the shape `{ error: { name, message, stack? } }`. Prefer that message
+   * over the raw response body so callers (dialogs, snackbars) don't show
+   * the user a wall of JSON and a stack trace.
+   */
+  private extractErrorMessage(status: number, errorText: string): string {
+    try {
+      const parsed = JSON.parse(errorText);
+      const message = parsed?.error?.message;
+      if (typeof message === 'string' && message.trim()) {
+        return message;
+      }
+    } catch {
+      // Not a JSON error envelope (e.g. an HTML error page); fall through.
+    }
+    return `WSO2 API request failed [${status}]: ${errorText}`;
   }
 
   private entityDocumentsPath(entityRef: CompoundEntityRef): string {
@@ -177,9 +194,7 @@ export class Wso2ApiPlatformClient implements Wso2ApiPlatformApi {
     const response = await this.fetchApi.fetch(url.toString(), { headers });
     if (!response.ok) {
       const errorText = await response.text().catch(() => response.statusText);
-      throw new Error(
-        `WSO2 API request failed [${response.status}]: ${errorText}`,
-      );
+      throw new Error(this.extractErrorMessage(response.status, errorText));
     }
     return response.blob();
   }

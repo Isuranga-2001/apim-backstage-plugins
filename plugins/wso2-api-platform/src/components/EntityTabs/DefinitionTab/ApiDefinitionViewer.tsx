@@ -272,8 +272,7 @@ export const ApiDefinitionViewer = ({
         <DialogTitle>Save Definition</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to save the changes made to this
-            definition?
+            Are you sure you want to save the changes made to this definition?
           </DialogContentText>
         </DialogContent>
         <DialogActions>

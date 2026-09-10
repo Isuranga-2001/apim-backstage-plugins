@@ -36,6 +36,7 @@ const mockClientInstance = {
   generateApiKey: jest.fn(),
   getRevisions: jest.fn(),
   getGateways: jest.fn(),
+  getGatewayApiDetail: jest.fn(),
   getSettings: jest.fn(),
   getConfig: jest.fn(),
   getDocuments: jest.fn(),
@@ -72,6 +73,99 @@ const GATEWAY_ENTITY = {
   },
   spec: {},
 };
+
+const OPENCHOREO_ENTITY = {
+  apiVersion: 'backstage.io/v1alpha1',
+  kind: 'API',
+  metadata: {
+    name: 'payment-api',
+    namespace: 'wso2-gateways',
+    annotations: {
+      'wso2.com/api-discovery-type': 'openchoreo-gateway',
+      'wso2-gateway.com/api-id': 'payment-api-service-v1.0',
+      'wso2-gateway.com/api-endpoints': JSON.stringify([
+        { environmentName: 'oc-dev' },
+      ]),
+    },
+  },
+  spec: {},
+};
+
+const OPENCHOREO_GATEWAY_CONFIG = {
+  apiManager: { enabled: false },
+  platformGateway: { enabled: true },
+  selfHostedGateways: [
+    {
+      name: 'oc-dev',
+      urls: [],
+      discoveryUrl: 'http://localhost:9095/rest-apis',
+      discoveryAuth: undefined,
+      environmentType: 'PRODUCTION',
+      integration: 'openchoreo',
+    },
+  ],
+};
+
+const DISCOVERED_RESTAPI_CR = {
+  kind: 'RestApi',
+  metadata: { name: 'payment-api-service-v1.0' },
+  status: { id: 'payment-api-service-v1.0', state: 'Active' },
+  spec: {
+    displayName: 'Payment API',
+    version: '1.0.0',
+    context: '/payments',
+  },
+};
+
+const MATCHING_OPENCHOREO_DEFINITION =
+  'openapi: 3.0.0\ninfo:\n  title: Payment API\n  version: 1.0.0\npaths: {}\n';
+
+const DISCOVERED_RESTAPI_CR_WITH_OPERATIONS = {
+  ...DISCOVERED_RESTAPI_CR,
+  spec: {
+    ...DISCOVERED_RESTAPI_CR.spec,
+    operations: [
+      { method: 'GET', path: '/books' },
+      { method: 'POST', path: '/books' },
+      { method: 'GET', path: '/books/{id}' },
+    ],
+  },
+};
+
+const MATCHING_OPERATIONS_DEFINITION = `openapi: 3.0.0
+info:
+  title: Payment API
+  version: 1.0.0
+paths:
+  /books:
+    get: {}
+    post: {}
+  /books/{bookId}:
+    get: {}
+`;
+
+const MISSING_OPERATION_DEFINITION = `openapi: 3.0.0
+info:
+  title: Payment API
+  version: 1.0.0
+paths:
+  /books:
+    get: {}
+    post: {}
+`;
+
+const EXTRA_OPERATION_DEFINITION = `openapi: 3.0.0
+info:
+  title: Payment API
+  version: 1.0.0
+paths:
+  /books:
+    get: {}
+    post: {}
+  /books/{id}:
+    get: {}
+    delete: {}
+`;
 
 const APIM_ENTITY = {
   apiVersion: 'backstage.io/v1alpha1',
@@ -120,7 +214,8 @@ describe('definition routes', () => {
     };
     mockCatalog = {
       getEntityByRef: jest.fn().mockImplementation((ref: string) => {
-        if (ref.includes('wso2-gateways')) return GATEWAY_ENTITY;
+        if (ref === 'api:wso2-gateways/orders-api') return GATEWAY_ENTITY;
+        if (ref === 'api:wso2-gateways/payment-api') return OPENCHOREO_ENTITY;
         if (ref === 'api:default/orders-api') return APIM_ENTITY;
         if (ref === 'api:default/plain-api') return NON_WSO2_ENTITY;
         return undefined;
@@ -146,6 +241,7 @@ describe('definition routes', () => {
   }
 
   const GATEWAY_PATH = '/entities/api/wso2-gateways/orders-api/definition';
+  const OPENCHOREO_PATH = '/entities/api/wso2-gateways/payment-api/definition';
   const APIM_PATH = '/entities/api/default/orders-api/definition';
 
   beforeEach(async () => {
@@ -247,5 +343,126 @@ describe('definition routes', () => {
     );
     const res = await request(app).get(GATEWAY_PATH);
     expect(res.status).toBe(401);
+  });
+
+  describe('OpenChoreo definition verification', () => {
+    it('allows an upload whose info.title/version match the discovered API', async () => {
+      mockClientInstance.getConfig.mockReturnValue(OPENCHOREO_GATEWAY_CONFIG);
+      mockClientInstance.getGatewayApiDetail.mockResolvedValue(
+        DISCOVERED_RESTAPI_CR,
+      );
+
+      const res = await request(app).put(OPENCHOREO_PATH).send({
+        fileName: 'openapi.yaml',
+        content: MATCHING_OPENCHOREO_DEFINITION,
+      });
+
+      expect(res.status).toBe(200);
+      expect(mockClientInstance.getGatewayApiDetail).toHaveBeenCalledWith(
+        'http://localhost:9095/rest-apis',
+        'payment-api-service-v1.0',
+        undefined,
+      );
+    });
+
+    it('returns 409 when the uploaded definition does not match the discovered API', async () => {
+      mockClientInstance.getConfig.mockReturnValue(OPENCHOREO_GATEWAY_CONFIG);
+      mockClientInstance.getGatewayApiDetail.mockResolvedValue(
+        DISCOVERED_RESTAPI_CR,
+      );
+
+      const res = await request(app).put(OPENCHOREO_PATH).send({
+        fileName: 'openapi.yaml',
+        content:
+          'openapi: 3.0.0\ninfo:\n  title: Unrelated Service\n  version: 9.9.9\npaths: {}\n',
+      });
+
+      expect(res.status).toBe(409);
+    });
+
+    it('returns 409 when the OpenChoreo gateway cannot be reached for verification', async () => {
+      mockClientInstance.getConfig.mockReturnValue(OPENCHOREO_GATEWAY_CONFIG);
+      mockClientInstance.getGatewayApiDetail.mockRejectedValue(
+        new Error('ECONNREFUSED'),
+      );
+
+      const res = await request(app).put(OPENCHOREO_PATH).send({
+        fileName: 'openapi.yaml',
+        content: MATCHING_OPENCHOREO_DEFINITION,
+      });
+
+      expect(res.status).toBe(409);
+    });
+
+    it('skips verification (fails open) when the gateway has no discovery URL configured', async () => {
+      mockClientInstance.getConfig.mockReturnValue({
+        ...OPENCHOREO_GATEWAY_CONFIG,
+        selfHostedGateways: [
+          {
+            ...OPENCHOREO_GATEWAY_CONFIG.selfHostedGateways[0],
+            discoveryUrl: undefined,
+          },
+        ],
+      });
+
+      const res = await request(app).put(OPENCHOREO_PATH).send({
+        fileName: 'openapi.yaml',
+        content: MATCHING_OPENCHOREO_DEFINITION,
+      });
+
+      expect(res.status).toBe(200);
+      expect(mockClientInstance.getGatewayApiDetail).not.toHaveBeenCalled();
+    });
+
+    it('does not verify self-hosted (non-OpenChoreo) gateway uploads', async () => {
+      const res = await request(app)
+        .put(GATEWAY_PATH)
+        .send({ fileName: 'openapi.yaml', content: 'openapi: 3.0.0' });
+
+      expect(res.status).toBe(200);
+      expect(mockClientInstance.getGatewayApiDetail).not.toHaveBeenCalled();
+    });
+
+    it('allows an upload whose operations match the discovered API, ignoring path param names', async () => {
+      mockClientInstance.getConfig.mockReturnValue(OPENCHOREO_GATEWAY_CONFIG);
+      mockClientInstance.getGatewayApiDetail.mockResolvedValue(
+        DISCOVERED_RESTAPI_CR_WITH_OPERATIONS,
+      );
+
+      const res = await request(app).put(OPENCHOREO_PATH).send({
+        fileName: 'openapi.yaml',
+        content: MATCHING_OPERATIONS_DEFINITION,
+      });
+
+      expect(res.status).toBe(200);
+    });
+
+    it('returns 409 when the uploaded definition is missing an operation the gateway exposes', async () => {
+      mockClientInstance.getConfig.mockReturnValue(OPENCHOREO_GATEWAY_CONFIG);
+      mockClientInstance.getGatewayApiDetail.mockResolvedValue(
+        DISCOVERED_RESTAPI_CR_WITH_OPERATIONS,
+      );
+
+      const res = await request(app).put(OPENCHOREO_PATH).send({
+        fileName: 'openapi.yaml',
+        content: MISSING_OPERATION_DEFINITION,
+      });
+
+      expect(res.status).toBe(409);
+    });
+
+    it('returns 409 when the uploaded definition has an operation the gateway does not expose', async () => {
+      mockClientInstance.getConfig.mockReturnValue(OPENCHOREO_GATEWAY_CONFIG);
+      mockClientInstance.getGatewayApiDetail.mockResolvedValue(
+        DISCOVERED_RESTAPI_CR_WITH_OPERATIONS,
+      );
+
+      const res = await request(app).put(OPENCHOREO_PATH).send({
+        fileName: 'openapi.yaml',
+        content: EXTRA_OPERATION_DEFINITION,
+      });
+
+      expect(res.status).toBe(409);
+    });
   });
 });
