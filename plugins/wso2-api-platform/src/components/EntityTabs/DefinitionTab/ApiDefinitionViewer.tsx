@@ -48,6 +48,9 @@ export interface ApiDefinitionViewerProps {
   onPreviewDiff?: (
     content: string,
   ) => Promise<Wso2RestApiArtifactDiff | null | undefined>;
+  /** Disables definition editing actions. */
+  disabled?: boolean;
+  disabledReason?: string;
 }
 
 const editorActionButtonStyle = {
@@ -62,6 +65,8 @@ export const ApiDefinitionViewer = ({
   onUpdateClick,
   onSaveClick,
   onPreviewDiff,
+  disabled,
+  disabledReason,
 }: ApiDefinitionViewerProps) => {
   const classes = useStyles();
 
@@ -216,17 +221,22 @@ export const ApiDefinitionViewer = ({
           )}
 
           {!isEditing && onUpdateClick && (
-            <Tooltip title="Upload definition">
-              <Button
-                id="swagger-update-btn"
-                size="small"
-                variant="outlined"
-                startIcon={<CloudUploadIcon />}
-                onClick={onUpdateClick}
-                style={editorActionButtonStyle}
-              >
-                Upload
-              </Button>
+            <Tooltip
+              title={disabled ? disabledReason ?? '' : 'Upload definition'}
+            >
+              <span>
+                <Button
+                  id="swagger-update-btn"
+                  size="small"
+                  variant="outlined"
+                  startIcon={<CloudUploadIcon />}
+                  onClick={onUpdateClick}
+                  disabled={disabled}
+                  style={editorActionButtonStyle}
+                >
+                  Upload
+                </Button>
+              </span>
             </Tooltip>
           )}
 
@@ -247,26 +257,36 @@ export const ApiDefinitionViewer = ({
           )}
 
           {onSaveClick && (
-            <Tooltip title={isEditing ? 'Save definition' : 'Edit definition'}>
-              <Button
-                id="swagger-edit-toggle-btn"
-                size="small"
-                variant="outlined"
-                startIcon={
-                  previewLoading ? (
-                    <CircularProgress size={14} />
-                  ) : isEditing ? (
-                    <SaveIcon />
-                  ) : (
-                    <EditIcon />
-                  )
-                }
-                onClick={handleEditToggle}
-                disabled={previewLoading}
-                style={editorActionButtonStyle}
-              >
-                {isEditing ? 'Save' : 'Edit'}
-              </Button>
+            <Tooltip
+              title={
+                disabled
+                  ? disabledReason ?? ''
+                  : isEditing
+                  ? 'Save definition'
+                  : 'Edit definition'
+              }
+            >
+              <span>
+                <Button
+                  id="swagger-edit-toggle-btn"
+                  size="small"
+                  variant="outlined"
+                  startIcon={
+                    previewLoading ? (
+                      <CircularProgress size={14} />
+                    ) : isEditing ? (
+                      <SaveIcon />
+                    ) : (
+                      <EditIcon />
+                    )
+                  }
+                  onClick={handleEditToggle}
+                  disabled={previewLoading || disabled}
+                  style={editorActionButtonStyle}
+                >
+                  {isEditing ? 'Save' : 'Edit'}
+                </Button>
+              </span>
             </Tooltip>
           )}
         </div>

@@ -115,9 +115,6 @@ describe('EntityWso2AboutCard', () => {
   it('should render all standard about card fields successfully', () => {
     render(<EntityWso2OverviewTab />);
 
-    // Name & Title
-    expect(screen.getByText('Name')).toBeDefined();
-    expect(screen.getByText('test-api')).toBeDefined();
     expect(screen.getByText('Display Name')).toBeDefined();
     expect(screen.getByText('Test API Title')).toBeDefined();
 
@@ -214,7 +211,7 @@ describe('EntityWso2AboutCard', () => {
     delete mockEntity.metadata.title;
     render(<EntityWso2OverviewTab />);
 
-    expect(screen.getAllByText('test-api').length).toBe(2);
+    expect(screen.getAllByText('test-api').length).toBe(1);
   });
 
   it('should render safely if optional annotations and description are absent', () => {
@@ -222,8 +219,8 @@ describe('EntityWso2AboutCard', () => {
     delete mockEntity.metadata.description;
     render(<EntityWso2OverviewTab />);
 
-    expect(screen.getByText('Name')).toBeDefined();
-    expect(screen.getByText('test-api')).toBeDefined();
+    expect(screen.getByText('Display Name')).toBeDefined();
+    expect(screen.getByText('Test API Title')).toBeDefined();
 
     // Check that optional fields are not rendered
     expect(screen.queryByText('Lifecycle')).toBeNull();

@@ -6,6 +6,18 @@ export type Wso2GatewayInfo = {
   gatewayType: string;
 };
 
+/** Gateway status returned by `GET /gateways`. */
+export type Wso2GatewaySummary = {
+  name: string;
+  type: string;
+  gatewayType: string;
+  description?: string;
+  source: string;
+  urls: string[];
+  status: 'Online' | 'Offline';
+  active?: boolean;
+};
+
 export type Wso2ApiSummary = {
   id: string;
   name: string;
@@ -295,7 +307,7 @@ export interface Wso2ApiPlatformApi {
     apiId: string,
     options?: { query?: string; token?: string },
   ): Promise<Wso2ApiRevisionsResponse>;
-  getGateways(token?: string): Promise<any[]>;
+  getGateways(token?: string): Promise<Wso2GatewaySummary[]>;
   getRuntimeConfig(token?: string): Promise<Wso2ApiPlatformRuntimeConfig>;
   getApiWsdl(apiId: string, token?: string): Promise<Blob>;
   listDocuments(

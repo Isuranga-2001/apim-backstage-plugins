@@ -24,10 +24,12 @@ import {
   HttpAuthService,
   LoggerService,
   RootConfigService,
+  SchedulerService,
 } from '@backstage/backend-plugin-api';
 import type { CatalogService } from '@backstage/plugin-catalog-node';
 
 import { Wso2ApiPlatformClient, readWso2ApiPlatformConfig } from './client';
+import { startGatewayStatusWatchdog } from './gatewayStatusWatchdog';
 import { registerApiRoutes } from './routes/apiRoutes';
 import { registerConfigRoutes } from './routes/configRoutes';
 import { registerStreamingRoutes } from './routes/streamingRoutes';
@@ -56,12 +58,13 @@ export interface RouterOptions {
   logger: LoggerService;
   httpAuth: HttpAuthService;
   config: RootConfigService;
+  scheduler?: SchedulerService;
 }
 
 export async function createRouter(
   options: RouterOptions,
 ): Promise<express.Router> {
-  const { logger, httpAuth, catalog, database, config } = options;
+  const { logger, httpAuth, catalog, database, config, scheduler } = options;
   const wso2Config = readWso2ApiPlatformConfig(config);
   const client = new Wso2ApiPlatformClient({
     config: wso2Config,
@@ -70,6 +73,10 @@ export async function createRouter(
   });
   const documentStorage = readDocumentStorageConfig(config);
   const definitionStorage = readDefinitionStorageConfig(config);
+
+  if (scheduler) {
+    startGatewayStatusWatchdog({ scheduler, config, client, logger });
+  }
 
   async function ensureAuthenticated(
     req: express.Request,

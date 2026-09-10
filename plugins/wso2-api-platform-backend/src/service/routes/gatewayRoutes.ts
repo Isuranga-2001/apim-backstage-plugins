@@ -17,6 +17,7 @@
  */
 
 import express from 'express';
+import { gatewayStatusTracker } from '@wso2/backstage-plugin-catalog-backend-module-wso2-api-platform';
 import { RouteContext } from './types';
 
 export function registerGatewayRoutes(
@@ -74,6 +75,7 @@ export function registerGatewayRoutes(
             source: 'Config',
             urls: gw.discoveryUrl ? [gw.discoveryUrl] : [],
             status,
+            active: gatewayStatusTracker.getStatus(gw.name).active,
           };
         });
 

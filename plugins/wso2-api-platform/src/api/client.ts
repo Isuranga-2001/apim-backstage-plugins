@@ -29,6 +29,7 @@ import {
   Wso2ApiPlatformApi,
   Wso2ApiPlatformRuntimeConfig,
   Wso2DefinitionDiffResponse,
+  Wso2GatewaySummary,
   Wso2GenerateApiKeyOptions,
 } from './types';
 
@@ -169,8 +170,10 @@ export class Wso2ApiPlatformClient implements Wso2ApiPlatformApi {
     );
   }
 
-  async getGateways(token?: string): Promise<any[]> {
-    const result = await this.request<any[]>('/gateways', { token });
+  async getGateways(token?: string): Promise<Wso2GatewaySummary[]> {
+    const result = await this.request<Wso2GatewaySummary[]>('/gateways', {
+      token,
+    });
     return Array.isArray(result) ? result : [];
   }
 

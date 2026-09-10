@@ -18,6 +18,7 @@
 
 import { fetch as undiciFetch, Agent } from 'undici';
 import { PlatformGateway } from './types';
+import { gatewayStatusTracker } from '../../gatewayStatusTracker';
 
 /**
  * The subset of Wso2Client used for gateway discovery. Gateway discovery
@@ -72,6 +73,7 @@ export async function discoverWSO2PlatformGatewayApis(
           gw.discoveryUrl,
           gw.discoveryAuth,
         );
+        gatewayStatusTracker.recordSuccess(gw.environmentName);
         const wso2ApiPlatformGatewayApis =
           data.apis ||
           data.list ||
@@ -140,6 +142,7 @@ export async function discoverWSO2PlatformGatewayApis(
           }
         }
       } catch (error: any) {
+        gatewayStatusTracker.recordFailure(gw.environmentName, error?.message);
         // Client already logs errors, continue to the next gateway
       }
     }

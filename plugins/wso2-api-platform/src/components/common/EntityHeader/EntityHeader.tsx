@@ -18,6 +18,7 @@
 
 import Box from '@material-ui/core/Box';
 import Breadcrumbs from '@material-ui/core/Breadcrumbs';
+import Chip from '@material-ui/core/Chip';
 import Typography from '@material-ui/core/Typography';
 import HomeIcon from '@material-ui/icons/Home';
 import { useStyles } from './styles';
@@ -32,6 +33,7 @@ import {
 import { useRouteRef, useRouteRefParams } from '@backstage/core-plugin-api';
 import { getWso2EntityHeaderType } from '../../../utils';
 import { rootRouteRef } from '../../../routes';
+import { useGatewayStatus } from '../useGatewayStatus';
 
 const getFallbackTitle = (
   namespace?: string,
@@ -61,6 +63,19 @@ const Wso2EntityTypeText = ({ label }: { label?: string }) => {
   );
 };
 
+const GatewayStatusBadge = ({ active }: { active: boolean }) => (
+  <Chip
+    label={active ? 'Active' : 'Inactive'}
+    size="small"
+    style={{
+      height: 22,
+      color: '#ffffff',
+      backgroundColor: active ? '#28a745' : '#e74c3c',
+      fontSize: '0.5rem',
+    }}
+  />
+);
+
 export const EntityHeader = (): JSX.Element => {
   useStyles();
   const theme = useTheme();
@@ -70,6 +85,7 @@ export const EntityHeader = (): JSX.Element => {
   const fallbackTitle = getFallbackTitle(namespace, name, entity);
   const headerType = entity ? getWso2EntityHeaderType(entity) : kind;
   const platformRoute = useRouteRef(rootRouteRef);
+  const gatewayStatus = useGatewayStatus(entity);
 
   const version =
     entity?.metadata.annotations?.['wso2.com/api-version'] ||
@@ -109,6 +125,9 @@ export const EntityHeader = (): JSX.Element => {
               {entity ? `${displayName} : ${version}` : fallbackTitle}
             </Box>
             {entity && <FavoriteEntity entity={entity} />}
+            {gatewayStatus.applicable && (
+              <GatewayStatusBadge active={gatewayStatus.active} />
+            )}
           </Box>
         }
         type={(<Wso2EntityTypeText label={headerType} />) as unknown as string}

@@ -35,6 +35,7 @@ export const wso2ApiPlatformPlugin = createBackendPlugin({
         httpRouter: coreServices.httpRouter,
         logger: coreServices.logger,
         config: coreServices.rootConfig,
+        scheduler: coreServices.scheduler,
       },
       async init({
         auth,
@@ -44,6 +45,7 @@ export const wso2ApiPlatformPlugin = createBackendPlugin({
         httpRouter,
         logger,
         config,
+        scheduler,
       }) {
         httpRouter.use(
           await createRouter({
@@ -53,6 +55,7 @@ export const wso2ApiPlatformPlugin = createBackendPlugin({
             httpAuth,
             logger,
             config,
+            scheduler,
           }),
         );
       },

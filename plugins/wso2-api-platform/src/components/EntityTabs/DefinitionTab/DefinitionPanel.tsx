@@ -28,6 +28,7 @@ import { DefinitionUploadDialog } from './DefinitionUploadDialog';
 import { useApiDefinition } from './hooks/useApiDefinition';
 import { useApiDefinitionSource } from './hooks/useApiDefinitionSource';
 import { useDefinitionMutations } from './hooks/useDefinitionMutations';
+import { useGatewayStatus } from '../../common/useGatewayStatus';
 
 const NotAvailableBox = ({ message }: { message: string }) => (
   <Box
@@ -79,6 +80,7 @@ export const DefinitionPanel = (props: {
   const { mode } = useApiDefinitionSource(entity);
   const { definition, capabilities, refresh } = useApiDefinition(entity, mode);
   const { upsertDefinition, previewDiff } = useDefinitionMutations(entity);
+  const gatewayStatus = useGatewayStatus(entity);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   if (mode === 'unsupported') {
@@ -133,6 +135,8 @@ export const DefinitionPanel = (props: {
         onPreviewDiff={
           capabilities.write ? content => previewDiff(content) : undefined
         }
+        disabled={gatewayStatus.applicable && !gatewayStatus.active}
+        disabledReason="Gateway is currently inactive"
       />
     );
   } else if (capabilities.write) {

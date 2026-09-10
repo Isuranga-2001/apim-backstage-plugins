@@ -19,6 +19,7 @@
 import { discoverWSO2PlatformGatewayApis } from './gatewayUtils';
 import { Wso2Client } from '../../client';
 import { PlatformGateway } from './types';
+import { gatewayStatusTracker } from '../../gatewayStatusTracker';
 
 jest.mock('../../client');
 
@@ -29,6 +30,7 @@ describe('gateway/gatewayUtils', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    gatewayStatusTracker.reset();
     mockGetGatewayApis = jest.fn();
     mockGetGatewayApiDetail = jest.fn();
 
@@ -121,6 +123,9 @@ describe('gateway/gatewayUtils', () => {
       'https://discovery-service.com/apis',
       'Basic abc-auth',
     );
+    expect(gatewayStatusTracker.getStatus('MySelfHostedGate').active).toBe(
+      true,
+    );
   });
 
   it('should discover APIs from gateway-controller 1.2.x raw RestApi responses', async () => {
@@ -134,7 +139,6 @@ describe('gateway/gatewayUtils', () => {
       },
     ];
 
-    // 1.2.x list items are raw RestApi resources without a top-level id
     const rawRestApi = {
       apiVersion: 'gateway.api-platform.wso2.com/v1alpha1',
       kind: 'RestApi',
@@ -150,8 +154,6 @@ describe('gateway/gatewayUtils', () => {
     };
 
     mockGetGatewayApis.mockResolvedValueOnce({ items: [rawRestApi] });
-    // 1.2.x detail responses are also raw resources, without the
-    // {status: 'success', api} wrapper
     mockGetGatewayApiDetail.mockResolvedValueOnce(rawRestApi);
 
     const result = await discoverWSO2PlatformGatewayApis(gateways, mockClient);
@@ -213,5 +215,8 @@ describe('gateway/gatewayUtils', () => {
 
     const result = await discoverWSO2PlatformGatewayApis(gateways, mockClient);
     expect(result).toEqual([]);
+    const status = gatewayStatusTracker.getStatus('MySelfHostedGate');
+    expect(status.active).toBe(false);
+    expect(status.lastError).toBe('Discovery service offline');
   });
 });

@@ -28,12 +28,14 @@ import Grid from '@material-ui/core/Grid';
 import DescriptionIcon from '@material-ui/icons/Description';
 import { formatLifecycleStatus, isServiceEntity } from '../../../utils';
 import { EntityWso2ServiceOverviewCard } from './components/ServiceOverviewCard';
+import { useGatewayStatus } from '../../common/useGatewayStatus';
 
 /**
  * A custom About card for WSO2 APIs that shows WSO2 specific metadata.
  */
 const EntityWso2OverviewTabContent = () => {
   const { entity } = useEntity();
+  const gatewayStatus = useGatewayStatus(entity);
 
   const entityRoute = useRouteRef(entityRouteRef);
   const wso2TabUrl = `${entityRoute({
@@ -101,9 +103,6 @@ const EntityWso2OverviewTabContent = () => {
     >
       <Grid container spacing={3}>
         <Grid item xs={12} sm={6} md={4}>
-          <AboutField label="Name" value={entity.metadata.name} />
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
           <AboutField
             label="Display Name"
             value={entity.metadata.title || entity.metadata.name}
@@ -132,6 +131,14 @@ const EntityWso2OverviewTabContent = () => {
         {gatewayValue && (
           <Grid item xs={12} sm={6} md={4}>
             <AboutField label="Gateway" value={gatewayValue} />
+          </Grid>
+        )}
+        {gatewayStatus.applicable && (
+          <Grid item xs={12} sm={6} md={4}>
+            <AboutField
+              label="Gateway Status"
+              value={gatewayStatus.active ? 'Active' : 'Inactive'}
+            />
           </Grid>
         )}
         {throttlingPolicy && (
