@@ -28,6 +28,7 @@ import {
   Wso2ApiRevisionsResponse,
   Wso2ApiPlatformApi,
   Wso2ApiPlatformRuntimeConfig,
+  Wso2DefinitionDiffResponse,
   Wso2GenerateApiKeyOptions,
 } from './types';
 
@@ -111,12 +112,7 @@ export class Wso2ApiPlatformClient implements Wso2ApiPlatformApi {
     }
   }
 
-  /**
-   * Backstage's standard error middleware responds with a JSON envelope of
-   * the shape `{ error: { name, message, stack? } }`. Prefer that message
-   * over the raw response body so callers (dialogs, snackbars) don't show
-   * the user a wall of JSON and a stack trace.
-   */
+  /** Prefers Backstage's `{error:{message}}` envelope over the raw response body. */
   private extractErrorMessage(status: number, errorText: string): string {
     try {
       const parsed = JSON.parse(errorText);
@@ -298,6 +294,16 @@ export class Wso2ApiPlatformClient implements Wso2ApiPlatformApi {
     return this.request<Wso2ApiDefinitionResponse>(
       this.entityDefinitionPath(entityRef),
       { method: 'PUT', body: input },
+    );
+  }
+
+  async previewDefinitionDiff(
+    entityRef: CompoundEntityRef,
+    content: string,
+  ): Promise<Wso2DefinitionDiffResponse> {
+    return this.request<Wso2DefinitionDiffResponse>(
+      `${this.entityDefinitionPath(entityRef)}/diff`,
+      { method: 'POST', body: { content } },
     );
   }
 }

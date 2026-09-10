@@ -37,6 +37,7 @@ const mockClientInstance = {
   getRevisions: jest.fn(),
   getGateways: jest.fn(),
   getGatewayApiDetail: jest.fn(),
+  updateGatewayRestApi: jest.fn(),
   getSettings: jest.fn(),
   getConfig: jest.fn(),
   getDocuments: jest.fn(),
@@ -423,21 +424,7 @@ describe('definition routes', () => {
       expect(mockClientInstance.getGatewayApiDetail).not.toHaveBeenCalled();
     });
 
-    it('allows an upload whose operations match the discovered API, ignoring path param names', async () => {
-      mockClientInstance.getConfig.mockReturnValue(OPENCHOREO_GATEWAY_CONFIG);
-      mockClientInstance.getGatewayApiDetail.mockResolvedValue(
-        DISCOVERED_RESTAPI_CR_WITH_OPERATIONS,
-      );
-
-      const res = await request(app).put(OPENCHOREO_PATH).send({
-        fileName: 'openapi.yaml',
-        content: MATCHING_OPERATIONS_DEFINITION,
-      });
-
-      expect(res.status).toBe(200);
-    });
-
-    it('returns 409 when the uploaded definition is missing an operation the gateway exposes', async () => {
+    it('returns 409 when the uploaded definition operations do not match the discovered API', async () => {
       mockClientInstance.getConfig.mockReturnValue(OPENCHOREO_GATEWAY_CONFIG);
       mockClientInstance.getGatewayApiDetail.mockResolvedValue(
         DISCOVERED_RESTAPI_CR_WITH_OPERATIONS,
@@ -450,11 +437,61 @@ describe('definition routes', () => {
 
       expect(res.status).toBe(409);
     });
+  });
 
-    it('returns 409 when the uploaded definition has an operation the gateway does not expose', async () => {
+  describe('OpenChoreo definition update (map -> diff -> push to gateway)', () => {
+    it('on a subsequent update, pushes the merged artifact to the gateway instead of rejecting a mismatch', async () => {
       mockClientInstance.getConfig.mockReturnValue(OPENCHOREO_GATEWAY_CONFIG);
       mockClientInstance.getGatewayApiDetail.mockResolvedValue(
         DISCOVERED_RESTAPI_CR_WITH_OPERATIONS,
+      );
+      mockClientInstance.updateGatewayRestApi.mockResolvedValue({ ok: true });
+
+      const firstPut = await request(app).put(OPENCHOREO_PATH).send({
+        fileName: 'openapi.yaml',
+        content: MATCHING_OPERATIONS_DEFINITION,
+      });
+      expect(firstPut.status).toBe(200);
+      expect(mockClientInstance.updateGatewayRestApi).not.toHaveBeenCalled();
+
+      const secondPut = await request(app).put(OPENCHOREO_PATH).send({
+        fileName: 'openapi.yaml',
+        content: EXTRA_OPERATION_DEFINITION,
+      });
+
+      expect(secondPut.status).toBe(200);
+      expect(mockClientInstance.updateGatewayRestApi).toHaveBeenCalledWith(
+        'http://localhost:9095/rest-apis',
+        'payment-api-service-v1.0',
+        expect.objectContaining({
+          metadata: { name: 'payment-api-service-v1.0' },
+          spec: expect.objectContaining({
+            context: '/payments',
+            operations: expect.arrayContaining([
+              { method: 'DELETE', path: '/books/{id}' },
+            ]),
+          }),
+        }),
+        undefined,
+      );
+    });
+
+    it('returns 409 when the gateway rejects a subsequent update', async () => {
+      mockClientInstance.getConfig.mockReturnValue(OPENCHOREO_GATEWAY_CONFIG);
+      mockClientInstance.getGatewayApiDetail.mockResolvedValue(
+        DISCOVERED_RESTAPI_CR_WITH_OPERATIONS,
+      );
+
+      await request(app).put(OPENCHOREO_PATH).send({
+        fileName: 'openapi.yaml',
+        content: MATCHING_OPERATIONS_DEFINITION,
+      });
+
+      mockClientInstance.updateGatewayRestApi.mockRejectedValue(
+        new Error(
+          "Gateway rejected the update for 'payment-api-service-v1.0' " +
+            '(status 400): spec.version: must match pattern',
+        ),
       );
 
       const res = await request(app).put(OPENCHOREO_PATH).send({
@@ -463,6 +500,54 @@ describe('definition routes', () => {
       });
 
       expect(res.status).toBe(409);
+    });
+  });
+
+  describe('definition diff preview', () => {
+    const DIFF_PATH = '/entities/api/wso2-gateways/payment-api/definition/diff';
+
+    it('returns the diff for a changed definition', async () => {
+      mockClientInstance.getConfig.mockReturnValue(OPENCHOREO_GATEWAY_CONFIG);
+      mockClientInstance.getGatewayApiDetail.mockResolvedValue(
+        DISCOVERED_RESTAPI_CR_WITH_OPERATIONS,
+      );
+
+      const res = await request(app)
+        .post(DIFF_PATH)
+        .send({ content: EXTRA_OPERATION_DEFINITION });
+
+      expect(res.status).toBe(200);
+      expect(res.body.diff.hasChanges).toBe(true);
+      expect(res.body.diff.addedOperations).toEqual(
+        expect.arrayContaining([{ method: 'DELETE', path: '/books/{id}' }]),
+      );
+      expect(mockClientInstance.updateGatewayRestApi).not.toHaveBeenCalled();
+    });
+
+    it('reports no changes for an identical definition', async () => {
+      mockClientInstance.getConfig.mockReturnValue(OPENCHOREO_GATEWAY_CONFIG);
+      mockClientInstance.getGatewayApiDetail.mockResolvedValue(
+        DISCOVERED_RESTAPI_CR_WITH_OPERATIONS,
+      );
+
+      const res = await request(app)
+        .post(DIFF_PATH)
+        .send({ content: MATCHING_OPERATIONS_DEFINITION });
+
+      expect(res.status).toBe(200);
+      expect(res.body.diff.hasChanges).toBe(false);
+    });
+
+    it('returns diff: null for a non-OpenChoreo (self-hosted) entity', async () => {
+      const res = await request(app)
+        .post('/entities/api/wso2-gateways/orders-api/definition/diff')
+        .send({
+          content:
+            'openapi: 3.0.0\ninfo:\n  title: X\n  version: "1.0"\npaths: {}\n',
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.diff).toBeNull();
     });
   });
 });

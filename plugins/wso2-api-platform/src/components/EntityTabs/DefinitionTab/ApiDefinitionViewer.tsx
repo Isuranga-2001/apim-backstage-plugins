@@ -37,12 +37,17 @@ import SaveIcon from '@material-ui/icons/Save';
 import CloudUploadIcon from '@material-ui/icons/CloudUpload';
 import CloseIcon from '@material-ui/icons/Close';
 import { useStyles } from './styles';
+import { DefinitionDiffSummary } from './DefinitionDiffSummary';
+import { Wso2RestApiArtifactDiff } from '../../../api/types';
 
 export interface ApiDefinitionViewerProps {
   value: string;
   language?: string;
   onUpdateClick?: () => void;
   onSaveClick?: (content: string) => Promise<void> | void;
+  onPreviewDiff?: (
+    content: string,
+  ) => Promise<Wso2RestApiArtifactDiff | null | undefined>;
 }
 
 const editorActionButtonStyle = {
@@ -56,6 +61,7 @@ export const ApiDefinitionViewer = ({
   language,
   onUpdateClick,
   onSaveClick,
+  onPreviewDiff,
 }: ApiDefinitionViewerProps) => {
   const classes = useStyles();
 
@@ -65,6 +71,10 @@ export const ApiDefinitionViewer = ({
   const [editedValue, setEditedValue] = useState<string>('');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [diffResult, setDiffResult] = useState<
+    Wso2RestApiArtifactDiff | null | undefined
+  >(undefined);
 
   // Detect if the original value looks like XML
   const isXml = language === 'xml' || value?.trimStart().startsWith('<');
@@ -121,11 +131,23 @@ export const ApiDefinitionViewer = ({
     URL.revokeObjectURL(url);
   };
 
-  const handleEditToggle = () => {
+  const handleEditToggle = async () => {
     if (!isEditing) {
       setEditedValue(localValue);
       setIsEditing(true);
       return;
+    }
+
+    if (onPreviewDiff) {
+      setPreviewLoading(true);
+      try {
+        setDiffResult(await onPreviewDiff(editedValue));
+      } catch (e) {
+        // Save re-runs the same check and will surface any real error.
+        setDiffResult(undefined);
+      } finally {
+        setPreviewLoading(false);
+      }
     }
     setConfirmOpen(true);
   };
@@ -137,6 +159,7 @@ export const ApiDefinitionViewer = ({
       setLocalValue(editedValue);
       setIsEditing(false);
       setConfirmOpen(false);
+      setDiffResult(undefined);
     } finally {
       setSaving(false);
     }
@@ -145,6 +168,7 @@ export const ApiDefinitionViewer = ({
   const handleCancelEdit = () => {
     setEditedValue(localValue);
     setIsEditing(false);
+    setDiffResult(undefined);
   };
 
   return (
@@ -228,8 +252,17 @@ export const ApiDefinitionViewer = ({
                 id="swagger-edit-toggle-btn"
                 size="small"
                 variant="outlined"
-                startIcon={isEditing ? <SaveIcon /> : <EditIcon />}
+                startIcon={
+                  previewLoading ? (
+                    <CircularProgress size={14} />
+                  ) : isEditing ? (
+                    <SaveIcon />
+                  ) : (
+                    <EditIcon />
+                  )
+                }
                 onClick={handleEditToggle}
+                disabled={previewLoading}
                 style={editorActionButtonStyle}
               >
                 {isEditing ? 'Save' : 'Edit'}
@@ -268,12 +301,26 @@ export const ApiDefinitionViewer = ({
         />
       </div>
 
-      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+      <Dialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>Save Definition</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            Are you sure you want to save the changes made to this definition?
-          </DialogContentText>
+          {onPreviewDiff ? (
+            <>
+              <DefinitionDiffSummary diff={diffResult} />
+              <DialogContentText>
+                Are you sure you want to save these changes?
+              </DialogContentText>
+            </>
+          ) : (
+            <DialogContentText>
+              Are you sure you want to save the changes made to this definition?
+            </DialogContentText>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmOpen(false)} disabled={saving}>
@@ -283,7 +330,7 @@ export const ApiDefinitionViewer = ({
             variant="contained"
             color="primary"
             onClick={handleConfirmSave}
-            disabled={saving}
+            disabled={saving || diffResult?.hasChanges === false}
           >
             {saving ? <CircularProgress size={20} /> : 'Save'}
           </Button>

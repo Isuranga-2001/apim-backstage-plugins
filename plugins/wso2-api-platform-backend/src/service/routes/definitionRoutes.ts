@@ -26,11 +26,17 @@ import {
 } from './artifactRouteHelpers';
 import {
   assertDefinitionSizeWithinLimit,
+  parsePreviewDefinitionInput,
   parseUpsertDefinitionInput,
 } from '../documents/validation';
-import { assertMatchesDiscoveredOpenChoreoApi } from '../documents/openchoreoDefinitionVerifier';
+import {
+  applyOpenChoreoDefinitionUpdate,
+  assertMatchesDiscoveredOpenChoreoApi,
+  previewOpenChoreoDefinitionUpdate,
+} from '../documents/openchoreoDefinitionVerifier';
 
 const DEFINITION_PATH = '/entities/:kind/:namespace/:name/definition';
+const DEFINITION_DIFF_PATH = '/entities/:kind/:namespace/:name/definition/diff';
 
 export function registerDefinitionRoutes(
   router: express.Router,
@@ -87,12 +93,23 @@ export function registerDefinitionRoutes(
 
     const input = parseUpsertDefinitionInput(req.body);
     assertDefinitionSizeWithinLimit(input.content, definitionStorage);
-    await assertMatchesDiscoveredOpenChoreoApi(
-      client,
-      apiRef,
-      input.content,
-      logger,
-    );
+
+    const existing = await store.get(apiRef);
+    if (existing) {
+      await applyOpenChoreoDefinitionUpdate(
+        client,
+        apiRef,
+        input.content,
+        logger,
+      );
+    } else {
+      await assertMatchesDiscoveredOpenChoreoApi(
+        client,
+        apiRef,
+        input.content,
+        logger,
+      );
+    }
 
     const definition = await store.upsert(apiRef, input, actorFor(credentials));
     await refreshCatalogEntityAdvisory(
@@ -102,5 +119,24 @@ export function registerDefinitionRoutes(
       logger,
     );
     res.json({ definition, capabilities: store.capabilities });
+  });
+
+  router.post(DEFINITION_DIFF_PATH, async (req, res) => {
+    assertStorageEnabled();
+    const { apiRef, store } = await resolve(req);
+    if (!store.capabilities.write) {
+      throw new NotAllowedError(
+        "This API's definition store does not support add/update",
+      );
+    }
+
+    const input = parsePreviewDefinitionInput(req.body);
+    const diff = await previewOpenChoreoDefinitionUpdate(
+      client,
+      apiRef,
+      input.content,
+      logger,
+    );
+    res.json({ diff: diff ?? null });
   });
 }

@@ -33,6 +33,8 @@ import Typography from '@material-ui/core/Typography';
 import Alert from '@material-ui/lab/Alert';
 import { useDefinitionMutations } from './hooks/useDefinitionMutations';
 import { humanizeBytes } from '../DocsTab/utils/humanizeBytes';
+import { DefinitionDiffSummary } from './DefinitionDiffSummary';
+import { Wso2RestApiArtifactDiff } from '../../../api/types';
 
 const ALLOWED_EXTENSIONS = ['yaml', 'yml', 'json'];
 
@@ -54,8 +56,14 @@ export const DefinitionUploadDialog = (options: {
 }) => {
   const { entity, open, hasExistingDefinition, onClose, onSaved } = options;
   const configApi = useApi(configApiRef);
-  const { submitting, upsertDefinition, snackbar, closeSnackbar } =
-    useDefinitionMutations(entity);
+  const {
+    submitting,
+    upsertDefinition,
+    previewing,
+    previewDiff,
+    snackbar,
+    closeSnackbar,
+  } = useDefinitionMutations(entity);
 
   const maxSizeKb =
     configApi.getOptionalNumber(
@@ -67,10 +75,15 @@ export const DefinitionUploadDialog = (options: {
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async () => {
+  const [pendingContent, setPendingContent] = useState<string | null>(null);
+  const [diffResult, setDiffResult] = useState<
+    Wso2RestApiArtifactDiff | null | undefined
+  >(undefined);
+
+  const validateAndReadFile = async (): Promise<string | undefined> => {
     if (!file) {
       setError('Choose a YAML or JSON file to upload.');
-      return;
+      return undefined;
     }
     const ext = file.name.split('.').pop()?.toLowerCase();
     if (!ext || !ALLOWED_EXTENSIONS.includes(ext)) {
@@ -79,11 +92,11 @@ export const DefinitionUploadDialog = (options: {
           ext ?? ''
         }' is not supported. Allowed: ${ALLOWED_EXTENSIONS.join(', ')}.`,
       );
-      return;
+      return undefined;
     }
     if (file.size > maxSizeBytes) {
       setError(`File exceeds the ${humanizeBytes(maxSizeBytes)} limit.`);
-      return;
+      return undefined;
     }
 
     const content = await readFileAsText(file);
@@ -91,10 +104,17 @@ export const DefinitionUploadDialog = (options: {
       yaml.load(content);
     } catch (e) {
       setError('The file does not contain valid YAML or JSON.');
-      return;
+      return undefined;
     }
 
     setError(null);
+    return content;
+  };
+
+  const handleSave = async (content: string) => {
+    if (!file) {
+      return;
+    }
     try {
       await upsertDefinition(file.name, content);
       onSaved();
@@ -103,58 +123,129 @@ export const DefinitionUploadDialog = (options: {
     }
   };
 
+  const handleSubmit = async () => {
+    const content = await validateAndReadFile();
+    if (content === undefined) {
+      return;
+    }
+
+    if (!hasExistingDefinition) {
+      await handleSave(content);
+      return;
+    }
+
+    try {
+      const diff = await previewDiff(content);
+      setDiffResult(diff);
+      setPendingContent(content);
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : 'Failed to preview the changes.',
+      );
+    }
+  };
+
+  const handleBackToFilePicker = () => {
+    setPendingContent(null);
+    setDiffResult(undefined);
+  };
+
+  const handleConfirmReplace = async () => {
+    if (pendingContent) {
+      await handleSave(pendingContent);
+    }
+  };
+
+  const isReviewing = pendingContent !== null;
+
+  let dialogTitle = 'Add Definition';
+  if (isReviewing) {
+    dialogTitle = 'Review Changes';
+  } else if (hasExistingDefinition) {
+    dialogTitle = 'Upload Definition';
+  }
+
   return (
     <>
       <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {hasExistingDefinition ? 'Upload Definition' : 'Add Definition'}
-        </DialogTitle>
+        <DialogTitle>{dialogTitle}</DialogTitle>
         <DialogContent>
           {error && (
             <Box mb={2}>
               <Alert severity="error">{error}</Alert>
             </Box>
           )}
-          <input
-            ref={inputRef}
-            type="file"
-            accept=".yaml,.yml,.json"
-            style={{ display: 'none' }}
-            data-testid="definition-file-input"
-            onChange={e => setFile(e.target.files?.[0] ?? null)}
-          />
-          <Button variant="outlined" onClick={() => inputRef.current?.click()}>
-            Choose file
-          </Button>
-          {file && (
-            <Chip
-              style={{ marginLeft: 8 }}
-              label={`${file.name} (${humanizeBytes(file.size)})`}
-              onDelete={() => setFile(null)}
-            />
+          {isReviewing ? (
+            <DefinitionDiffSummary diff={diffResult} />
+          ) : (
+            <>
+              <input
+                ref={inputRef}
+                type="file"
+                accept=".yaml,.yml,.json"
+                style={{ display: 'none' }}
+                data-testid="definition-file-input"
+                onChange={e => setFile(e.target.files?.[0] ?? null)}
+              />
+              <Button
+                variant="outlined"
+                onClick={() => inputRef.current?.click()}
+              >
+                Choose file
+              </Button>
+              {file && (
+                <Chip
+                  style={{ marginLeft: 8 }}
+                  label={`${file.name} (${humanizeBytes(file.size)})`}
+                  onDelete={() => setFile(null)}
+                />
+              )}
+              <Typography
+                variant="caption"
+                color="textSecondary"
+                display="block"
+                style={{ marginTop: 8 }}
+              >
+                Allowed types: {ALLOWED_EXTENSIONS.join(', ')}. Max size:{' '}
+                {humanizeBytes(maxSizeBytes)}.
+              </Typography>
+            </>
           )}
-          <Typography
-            variant="caption"
-            color="textSecondary"
-            display="block"
-            style={{ marginTop: 8 }}
-          >
-            Allowed types: {ALLOWED_EXTENSIONS.join(', ')}. Max size:{' '}
-            {humanizeBytes(maxSizeBytes)}.
-          </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={onClose} disabled={submitting}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleSubmit}
-            disabled={submitting}
-          >
-            {submitting ? <CircularProgress size={20} /> : 'Save'}
-          </Button>
+          {isReviewing ? (
+            <>
+              <Button onClick={handleBackToFilePicker} disabled={submitting}>
+                Back
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleConfirmReplace}
+                disabled={submitting || diffResult?.hasChanges === false}
+              >
+                {submitting ? <CircularProgress size={20} /> : 'Confirm & Save'}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button onClick={onClose} disabled={submitting || previewing}>
+                Cancel
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleSubmit}
+                disabled={submitting || previewing}
+              >
+                {submitting || previewing ? (
+                  <CircularProgress size={20} />
+                ) : (
+                  'Save'
+                )}
+              </Button>
+            </>
+          )}
         </DialogActions>
       </Dialog>
       <Snackbar

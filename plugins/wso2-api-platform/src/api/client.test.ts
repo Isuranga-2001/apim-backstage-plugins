@@ -122,15 +122,15 @@ describe('Wso2ApiPlatformClient', () => {
           JSON.stringify({
             error: {
               name: 'ConflictError',
-              message: 'Uploaded definition does not match the discovered API.',
-              stack: 'ConflictError: Uploaded definition does not match...',
+              message: 'Something went wrong on the backend.',
+              stack: 'ConflictError: Something went wrong on the backend...',
             },
           }),
         ),
       } as any);
 
       await expect(client.generateApiKey('api-123')).rejects.toThrow(
-        'Uploaded definition does not match the discovered API.',
+        'Something went wrong on the backend.',
       );
     });
 

@@ -78,7 +78,7 @@ export const DefinitionPanel = (props: {
   const { entity, language, wrapInCard } = props;
   const { mode } = useApiDefinitionSource(entity);
   const { definition, capabilities, refresh } = useApiDefinition(entity, mode);
-  const { upsertDefinition } = useDefinitionMutations(entity);
+  const { upsertDefinition, previewDiff } = useDefinitionMutations(entity);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   if (mode === 'unsupported') {
@@ -129,6 +129,9 @@ export const DefinitionPanel = (props: {
                 refresh();
               }
             : undefined
+        }
+        onPreviewDiff={
+          capabilities.write ? content => previewDiff(content) : undefined
         }
       />
     );

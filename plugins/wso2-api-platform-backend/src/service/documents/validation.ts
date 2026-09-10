@@ -203,6 +203,22 @@ export function parseUpsertDefinitionInput(raw: unknown): UpsertDefinitionBody {
   return result.data;
 }
 
+const previewDefinitionSchema = z.object({
+  content: z.string().min(1),
+});
+
+export type PreviewDefinitionBody = z.infer<typeof previewDefinitionSchema>;
+
+export function parsePreviewDefinitionInput(
+  raw: unknown,
+): PreviewDefinitionBody {
+  const result = previewDefinitionSchema.safeParse(raw);
+  if (!result.success) {
+    throw new InputError(`Invalid definition payload: ${result.error.message}`);
+  }
+  return result.data;
+}
+
 export function assertDefinitionSizeWithinLimit(
   content: string,
   config: DefinitionStorageConfig,

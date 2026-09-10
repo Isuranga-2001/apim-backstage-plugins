@@ -480,6 +480,58 @@ export class Wso2ApiPlatformClient extends BaseWso2Client {
   }
 
   /**
+   * Updates a gateway-managed API artifact.
+   */
+  async updateGatewayRestApi(
+    discoveryUrl: string,
+    apiId: string,
+    body: unknown,
+    auth?: string,
+  ): Promise<any> {
+    const url = `${discoveryUrl}/${encodeURIComponent(apiId)}`;
+    const headers: Record<string, string> = {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    };
+    if (auth) {
+      headers.Authorization = auth;
+    }
+
+    this.logger.info(
+      `[WSO2-GATEWAY-UPDATE] Updating gateway API '${apiId}' at ${url}`,
+    );
+
+    const response = await undiciFetch(url, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(body),
+      dispatcher: this.dispatcher,
+    });
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => response.statusText);
+      let message = errText;
+      try {
+        const parsed = JSON.parse(errText);
+        const fieldErrors = Array.isArray(parsed?.errors)
+          ? parsed.errors.map((e: any) => `${e.field}: ${e.message}`).join('; ')
+          : '';
+        message = [parsed?.message, fieldErrors].filter(Boolean).join(' — ');
+      } catch {
+        // errText wasn't the gateway's JSON error envelope; use it verbatim.
+      }
+      this.logger.error(
+        `[WSO2-GATEWAY-UPDATE] Failed to update gateway API '${apiId}' at ${url}. Status: ${response.status}. ${message}`,
+      );
+      throw new Error(
+        `Gateway rejected the update for '${apiId}' (status ${response.status}): ${message}`,
+      );
+    }
+
+    return response.json();
+  }
+
+  /**
    * Returns the resolved publisher API base URL.
    */
   getPublisherBaseUrl(): string {

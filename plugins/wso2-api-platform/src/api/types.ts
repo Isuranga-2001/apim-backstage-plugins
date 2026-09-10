@@ -220,6 +220,18 @@ export type UpsertWso2ApiDefinitionRequest = {
   content: string;
 };
 
+export type Wso2RestApiArtifactDiff = {
+  displayNameChange?: { from: string; to: string };
+  versionChange?: { from: string; to: string };
+  addedOperations: Array<{ method: string; path: string }>;
+  removedOperations: Array<{ method: string; path: string }>;
+  hasChanges: boolean;
+};
+
+export type Wso2DefinitionDiffResponse = {
+  diff: Wso2RestApiArtifactDiff | null;
+};
+
 export type Wso2ApiRevision = {
   id: string;
   displayName: string;
@@ -317,4 +329,8 @@ export interface Wso2ApiPlatformApi {
     entityRef: CompoundEntityRef,
     input: UpsertWso2ApiDefinitionRequest,
   ): Promise<Wso2ApiDefinitionResponse>;
+  previewDefinitionDiff(
+    entityRef: CompoundEntityRef,
+    content: string,
+  ): Promise<Wso2DefinitionDiffResponse>;
 }

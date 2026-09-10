@@ -43,6 +43,8 @@ export const useDefinitionMutations = (entity: Entity) => {
 
   const closeSnackbar = () => setSnackbar(s => ({ ...s, open: false }));
 
+  const [previewing, setPreviewing] = useState(false);
+
   const upsertDefinition = async (fileName: string, content: string) => {
     setSubmitting(true);
     try {
@@ -64,5 +66,22 @@ export const useDefinitionMutations = (entity: Entity) => {
     }
   };
 
-  return { submitting, snackbar, closeSnackbar, upsertDefinition };
+  const previewDiff = async (content: string) => {
+    setPreviewing(true);
+    try {
+      const { diff } = await wso2Api.previewDefinitionDiff(entityRef, content);
+      return diff;
+    } finally {
+      setPreviewing(false);
+    }
+  };
+
+  return {
+    submitting,
+    snackbar,
+    closeSnackbar,
+    upsertDefinition,
+    previewing,
+    previewDiff,
+  };
 };

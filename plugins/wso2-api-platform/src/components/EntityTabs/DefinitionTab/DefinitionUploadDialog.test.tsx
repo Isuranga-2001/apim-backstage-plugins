@@ -23,7 +23,10 @@ import { DefinitionUploadDialog } from './DefinitionUploadDialog';
 const mockConfigApi = {
   getOptionalNumber: jest.fn().mockReturnValue(1024),
 };
-const mockWso2Api = { upsertDefinition: jest.fn() };
+const mockWso2Api = {
+  upsertDefinition: jest.fn(),
+  previewDefinitionDiff: jest.fn(),
+};
 
 jest.mock('@backstage/core-plugin-api', () => ({
   configApiRef: { id: 'core.config' },
@@ -192,5 +195,174 @@ describe('DefinitionUploadDialog', () => {
 
     expect(await screen.findByText(/exceeds the .* limit/)).toBeDefined();
     expect(mockWso2Api.upsertDefinition).not.toHaveBeenCalled();
+  });
+
+  describe('replacing an existing definition', () => {
+    it('previews the diff before saving instead of saving immediately', async () => {
+      mockWso2Api.previewDefinitionDiff.mockResolvedValue({
+        diff: {
+          displayNameChange: undefined,
+          versionChange: undefined,
+          addedOperations: [{ method: 'GET', path: '/books' }],
+          removedOperations: [],
+          hasChanges: true,
+        },
+      });
+
+      render(
+        <DefinitionUploadDialog
+          entity={entity}
+          open
+          hasExistingDefinition
+          onClose={jest.fn()}
+          onSaved={jest.fn()}
+        />,
+      );
+
+      const file = new File(['openapi: 3.0.0'], 'openapi.yaml', {
+        type: 'application/yaml',
+      });
+      fireEvent.change(screen.getByTestId('definition-file-input'), {
+        target: { files: [file] },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+      expect(await screen.findByText('Review Changes')).toBeDefined();
+      expect(screen.getByText('+ GET /books')).toBeDefined();
+      expect(mockWso2Api.upsertDefinition).not.toHaveBeenCalled();
+    });
+
+    it('saves after the user confirms the reviewed changes', async () => {
+      mockWso2Api.previewDefinitionDiff.mockResolvedValue({
+        diff: {
+          addedOperations: [{ method: 'GET', path: '/books' }],
+          removedOperations: [],
+          hasChanges: true,
+        },
+      });
+      mockWso2Api.upsertDefinition.mockResolvedValue({
+        definition: { content: 'openapi: 3.0.0', format: 'YAML' },
+        capabilities: { read: true, write: true },
+      });
+      const onSaved = jest.fn();
+
+      render(
+        <DefinitionUploadDialog
+          entity={entity}
+          open
+          hasExistingDefinition
+          onClose={jest.fn()}
+          onSaved={onSaved}
+        />,
+      );
+
+      const file = new File(['openapi: 3.0.0'], 'openapi.yaml', {
+        type: 'application/yaml',
+      });
+      fireEvent.change(screen.getByTestId('definition-file-input'), {
+        target: { files: [file] },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+      await screen.findByText('Review Changes');
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm & Save' }));
+
+      await waitFor(() => expect(onSaved).toHaveBeenCalled());
+      expect(mockWso2Api.upsertDefinition).toHaveBeenCalledWith(
+        { kind: 'API', namespace: 'wso2-gateways', name: 'orders-api' },
+        { fileName: 'openapi.yaml', content: 'openapi: 3.0.0' },
+      );
+    });
+
+    it('returns to the file picker without saving when the user clicks Back', async () => {
+      mockWso2Api.previewDefinitionDiff.mockResolvedValue({
+        diff: { addedOperations: [], removedOperations: [], hasChanges: false },
+      });
+
+      render(
+        <DefinitionUploadDialog
+          entity={entity}
+          open
+          hasExistingDefinition
+          onClose={jest.fn()}
+          onSaved={jest.fn()}
+        />,
+      );
+
+      const file = new File(['openapi: 3.0.0'], 'openapi.yaml', {
+        type: 'application/yaml',
+      });
+      fireEvent.change(screen.getByTestId('definition-file-input'), {
+        target: { files: [file] },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+      await screen.findByText('Review Changes');
+      fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+
+      expect(await screen.findByText('Upload Definition')).toBeDefined();
+      expect(mockWso2Api.upsertDefinition).not.toHaveBeenCalled();
+    });
+
+    it('disables Confirm & Save when the diff reports no changes', async () => {
+      mockWso2Api.previewDefinitionDiff.mockResolvedValue({
+        diff: { addedOperations: [], removedOperations: [], hasChanges: false },
+      });
+
+      render(
+        <DefinitionUploadDialog
+          entity={entity}
+          open
+          hasExistingDefinition
+          onClose={jest.fn()}
+          onSaved={jest.fn()}
+        />,
+      );
+
+      const file = new File(['openapi: 3.0.0'], 'openapi.yaml', {
+        type: 'application/yaml',
+      });
+      fireEvent.change(screen.getByTestId('definition-file-input'), {
+        target: { files: [file] },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+      await screen.findByText('Review Changes');
+      const confirmButton = screen.getByRole('button', {
+        name: 'Confirm & Save',
+      }) as HTMLButtonElement;
+      expect(confirmButton.disabled).toBe(true);
+      expect(mockWso2Api.upsertDefinition).not.toHaveBeenCalled();
+    });
+
+    it('shows an error and stays on the file picker if the diff preview fails', async () => {
+      mockWso2Api.previewDefinitionDiff.mockRejectedValue(
+        new Error('Could not reach the OpenChoreo gateway'),
+      );
+
+      render(
+        <DefinitionUploadDialog
+          entity={entity}
+          open
+          hasExistingDefinition
+          onClose={jest.fn()}
+          onSaved={jest.fn()}
+        />,
+      );
+
+      const file = new File(['openapi: 3.0.0'], 'openapi.yaml', {
+        type: 'application/yaml',
+      });
+      fireEvent.change(screen.getByTestId('definition-file-input'), {
+        target: { files: [file] },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+      expect(
+        await screen.findByText('Could not reach the OpenChoreo gateway'),
+      ).toBeDefined();
+      expect(screen.getByText('Upload Definition')).toBeDefined();
+      expect(mockWso2Api.upsertDefinition).not.toHaveBeenCalled();
+    });
   });
 });
