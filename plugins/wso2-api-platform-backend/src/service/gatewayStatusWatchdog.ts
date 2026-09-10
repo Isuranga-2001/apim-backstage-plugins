@@ -49,10 +49,10 @@ function isHumanDuration(value: unknown): value is HumanDurationLike {
   );
 }
 
-/** Converts a human duration to milliseconds. */
-function frequencyToMs(frequency: unknown): number {
-  if (!isHumanDuration(frequency)) {
-    return DEFAULT_MAX_AGE_MS;
+/** Converts a human duration to milliseconds; returns `undefined` for a cron/manual schedule (no fixed duration to convert). */
+function humanDurationToMs(value: unknown): number | undefined {
+  if (!isHumanDuration(value)) {
+    return undefined;
   }
   const {
     years = 0,
@@ -63,13 +63,28 @@ function frequencyToMs(frequency: unknown): number {
     minutes = 0,
     seconds = 0,
     milliseconds = 0,
-  } = frequency;
+  } = value;
   const daysTotal = years * 365 + months * 30 + weeks * 7 + days;
   return (
     ((daysTotal * 24 + hours) * 60 + minutes) * 60 * 1000 +
     seconds * 1000 +
     milliseconds
   );
+}
+
+/**
+ * A gateway is considered stale once it's gone longer than `frequency + timeout` without a successful sync
+ */
+function maxAgeMsFromSchedule(scheduleDefinition: {
+  frequency: unknown;
+  timeout: unknown;
+}): number {
+  const frequencyMs = humanDurationToMs(scheduleDefinition.frequency);
+  const timeoutMs = humanDurationToMs(scheduleDefinition.timeout);
+  if (frequencyMs === undefined) {
+    return DEFAULT_MAX_AGE_MS;
+  }
+  return frequencyMs + (timeoutMs ?? 0);
 }
 
 /** Starts the gateway status watchdog. */
@@ -92,7 +107,7 @@ export function startGatewayStatusWatchdog(options: {
     readSchedulerServiceTaskScheduleDefinitionFromConfig(
       config.getConfig(SCHEDULE_CONFIG_KEY),
     );
-  const maxAgeMs = frequencyToMs(scheduleDefinition.frequency);
+  const maxAgeMs = maxAgeMsFromSchedule(scheduleDefinition);
 
   const schedule = scheduler.createScheduledTaskRunner(scheduleDefinition);
   schedule.run({

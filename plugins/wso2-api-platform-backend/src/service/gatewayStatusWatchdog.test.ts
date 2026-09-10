@@ -41,7 +41,7 @@ describe('startGatewayStatusWatchdog', () => {
     expect(scheduler.createScheduledTaskRunner).not.toHaveBeenCalled();
   });
 
-  it('marks a gateway stale once its last success is older than the configured frequency', async () => {
+  it('marks a gateway stale once its last success is older than frequency + timeout', async () => {
     const config = new ConfigReader({
       catalog: {
         providers: {
@@ -78,11 +78,56 @@ describe('startGatewayStatusWatchdog', () => {
     });
     expect(scheduledFn).toBeDefined();
 
-    (Date.now as jest.Mock).mockReturnValue(1_000 + 30_000);
+    (Date.now as jest.Mock).mockReturnValue(1_000 + 61_000);
     await scheduledFn!();
     expect(gatewayStatusTracker.getStatus('gw-1').active).toBe(true);
 
-    (Date.now as jest.Mock).mockReturnValue(1_000 + 61_000);
+    (Date.now as jest.Mock).mockReturnValue(1_000 + 6 * 60_000 + 1_000);
+    await scheduledFn!();
+    expect(gatewayStatusTracker.getStatus('gw-1').active).toBe(false);
+  });
+
+  it('falls back to the default max age when the schedule uses a cron expression', async () => {
+    const config = new ConfigReader({
+      catalog: {
+        providers: {
+          wso2ApiPlatform: {
+            schedule: {
+              frequency: { cron: '*/2 * * * *' },
+              timeout: { minutes: 5 },
+            },
+          },
+        },
+      },
+    });
+
+    let scheduledFn: (() => Promise<void>) | undefined;
+    const scheduler = {
+      createScheduledTaskRunner: jest.fn().mockReturnValue({
+        run: (task: { fn: () => Promise<void> }) => {
+          scheduledFn = task.fn;
+        },
+      }),
+    } as any;
+    const client = {
+      getConfig: () => ({ selfHostedGateways: [{ name: 'gw-1' }] }),
+    } as any;
+
+    jest.spyOn(Date, 'now').mockReturnValue(1_000);
+    gatewayStatusTracker.recordSuccess('gw-1');
+
+    startGatewayStatusWatchdog({
+      scheduler,
+      config,
+      client,
+      logger: mockServices.logger.mock(),
+    });
+
+    (Date.now as jest.Mock).mockReturnValue(1_000 + 119_000);
+    await scheduledFn!();
+    expect(gatewayStatusTracker.getStatus('gw-1').active).toBe(true);
+
+    (Date.now as jest.Mock).mockReturnValue(1_000 + 121_000);
     await scheduledFn!();
     expect(gatewayStatusTracker.getStatus('gw-1').active).toBe(false);
   });
