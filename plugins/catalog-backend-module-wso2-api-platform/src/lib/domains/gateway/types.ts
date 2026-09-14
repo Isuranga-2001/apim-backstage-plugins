@@ -21,9 +21,9 @@ export type GatewayIntegration = 'self-hosted' | 'openchoreo';
 export interface PlatformGateway {
   environmentName: string;
   environmentType: string;
-  urls: string[];
-  discoveryUrl?: string;
-  discoveryAuth?: string;
+  runtimeUrls: string[];
+  managementApiUrl?: string;
+  managementApiAuth?: string;
   organizationId?: string;
   integration?: GatewayIntegration;
 }

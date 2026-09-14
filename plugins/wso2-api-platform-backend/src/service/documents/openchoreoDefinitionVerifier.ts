@@ -31,8 +31,8 @@ import {
 } from './restApiArtifactMapper';
 
 export type OpenChoreoGateway = {
-  discoveryUrl: string;
-  discoveryAuth?: string;
+  managementApiUrl: string;
+  managementApiAuth?: string;
 };
 
 /** Resolves the configured OpenChoreo gateway, or undefined (fail open) if none has a discovery URL. */
@@ -47,7 +47,7 @@ export function resolveOpenChoreoGateway(
       gw => gw.name === apiRef.gatewayId && gw.integration === 'openchoreo',
     );
 
-  if (!gateway?.discoveryUrl) {
+  if (!gateway?.managementApiUrl) {
     logger.warn(
       `[OpenChoreo-Verify] No discovery URL configured for gateway ` +
         `'${apiRef.gatewayId}'; skipping definition verification for API ` +
@@ -56,8 +56,8 @@ export function resolveOpenChoreoGateway(
     return undefined;
   }
   return {
-    discoveryUrl: gateway.discoveryUrl,
-    discoveryAuth: gateway.discoveryAuth,
+    managementApiUrl: gateway.managementApiUrl,
+    managementApiAuth: gateway.managementApiAuth,
   };
 }
 
@@ -70,14 +70,14 @@ export async function fetchDiscoveredArtifact(
   let raw: unknown;
   try {
     raw = await client.getGatewayApiDetail(
-      gateway.discoveryUrl,
+      gateway.managementApiUrl,
       apiId,
-      gateway.discoveryAuth,
+      gateway.managementApiAuth,
     );
   } catch (e: any) {
     throw new ConflictError(
       `Could not reach the OpenChoreo gateway to verify API '${apiId}' at ` +
-        `${gateway.discoveryUrl}/${apiId}: ${e.message}`,
+        `${gateway.managementApiUrl}/${apiId}: ${e.message}`,
     );
   }
 
@@ -218,7 +218,7 @@ export async function previewOpenChoreoDefinitionUpdate(
   return diffRestApiArtifacts(previous, next);
 }
 
-/** UPDATE commit: re-fetches fresh and pushes the mapped artifact via `PUT {discoveryUrl}/{apiId}`. */
+/** UPDATE commit: re-fetches fresh and pushes the mapped artifact via `PUT {managementApiUrl}/{apiId}`. */
 export async function applyOpenChoreoDefinitionUpdate(
   client: Wso2ApiPlatformClient,
   apiRef: Pick<ApiRef, 'sourceKind' | 'gatewayId' | 'apiId'>,
@@ -239,10 +239,10 @@ export async function applyOpenChoreoDefinitionUpdate(
 
   try {
     await client.updateGatewayRestApi(
-      gateway.discoveryUrl,
+      gateway.managementApiUrl,
       apiRef.apiId,
       next,
-      gateway.discoveryAuth,
+      gateway.managementApiAuth,
     );
   } catch (e: any) {
     throw new ConflictError(

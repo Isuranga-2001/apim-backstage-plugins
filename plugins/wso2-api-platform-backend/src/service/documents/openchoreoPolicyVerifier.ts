@@ -52,7 +52,7 @@ export async function previewOpenChoreoPolicyUpdate(
   return diffPolicyArtifacts(previous, next);
 }
 
-/** UPDATE commit: re-fetches fresh and pushes the merged artifact via `PUT {discoveryUrl}/{apiId}`, returning it so the route can respond without a second gateway round-trip. */
+/** UPDATE commit: re-fetches fresh and pushes the merged artifact via `PUT {managementApiUrl}/{apiId}`, returning it so the route can respond without a second gateway round-trip. */
 export async function applyOpenChoreoPolicyUpdate(
   client: Wso2ApiPlatformClient,
   apiRef: Pick<ApiRef, 'sourceKind' | 'gatewayId' | 'apiId'>,
@@ -72,10 +72,10 @@ export async function applyOpenChoreoPolicyUpdate(
 
   try {
     await client.updateGatewayRestApi(
-      gateway.discoveryUrl,
+      gateway.managementApiUrl,
       apiRef.apiId,
       next,
-      gateway.discoveryAuth,
+      gateway.managementApiAuth,
     );
   } catch (e: any) {
     throw new ConflictError(

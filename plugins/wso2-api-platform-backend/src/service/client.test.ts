@@ -67,10 +67,10 @@ describe('client and Wso2ApiPlatformClient', () => {
           gateways: [
             {
               name: 'Production Gateway',
-              urls: ['https://gw1.wso2.com'],
-              discoveryUrl: 'https://gw1.wso2.com/discovery',
-              discoveryUsername: 'admin',
-              discoveryPassword: 'password123',
+              runtimeUrls: ['https://gw1.wso2.com'],
+              managementApiUrl: 'https://gw1.wso2.com/discovery',
+              managementApiUsername: 'admin',
+              managementApiPassword: 'password123',
               environmentType: 'PRODUCTION',
               description: 'My Gateway',
             },
@@ -93,7 +93,7 @@ describe('client and Wso2ApiPlatformClient', () => {
       expect(result.platformGateway.enabled).toBe(true);
       expect(result.selfHostedGateways.length).toBe(1);
       expect(result.selfHostedGateways[0].name).toBe('Production Gateway');
-      expect(result.selfHostedGateways[0].discoveryAuth).toBe(
+      expect(result.selfHostedGateways[0].managementApiAuth).toBe(
         `Basic ${Buffer.from('admin:password123').toString('base64')}`,
       );
     });
@@ -151,9 +151,9 @@ describe('client and Wso2ApiPlatformClient', () => {
           gateways: [
             {
               name: 'Production Gateway',
-              urls: ['https://gw1.wso2.com'],
-              discoveryUsername: 'admin',
-              discoveryPassword: 'password123',
+              runtimeUrls: ['https://gw1.wso2.com'],
+              managementApiUsername: 'admin',
+              managementApiPassword: 'password123',
             },
           ],
         },
@@ -163,7 +163,7 @@ describe('client and Wso2ApiPlatformClient', () => {
 
       expect(result.tls.rejectUnauthorized).toBe(true);
       expect(result.selfHostedGateways.length).toBe(1);
-      expect(result.selfHostedGateways[0].discoveryAuth).toBe(
+      expect(result.selfHostedGateways[0].managementApiAuth).toBe(
         `Basic ${Buffer.from('admin:password123').toString('base64')}`,
       );
       expect(result.selfHostedGateways[0].environmentType).toBe('PRODUCTION');

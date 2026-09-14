@@ -39,12 +39,12 @@ _Note: `{publisherBasePath}` typically resolves to `/api/am/publisher/v4`, and `
 | **Service Catalog**   | GET         | `{serviceCatalogBasePath}/services?limit=1000&offset={offset}` | Retrieves the paginated list of backend Services.              |
 | **Service Catalog**   | GET         | `{serviceCatalogBasePath}/services/{serviceId}/usage`          | Determines which APIs use a specific Service.                  |
 | **Service Catalog**   | GET         | `{serviceCatalogBasePath}/services/{serviceId}/definition`     | Retrieves the OpenAPI definition of the backend service.       |
-| **Platform Gateways** | GET         | `{discoveryUrl}`                                               | Discovers gateway-level APIs deployed on self-hosted gateways. |
-| **Platform Gateways** | GET         | `{discoveryUrl}/{gatewayApiId}`                                | Fetches details for a discovered gateway API.                  |
+| **Platform Gateways** | GET         | `{managementApiUrl}`                                           | Discovers gateway-level APIs deployed on self-hosted gateways. |
+| **Platform Gateways** | GET         | `{managementApiUrl}/{gatewayApiId}`                            | Fetches details for a discovered gateway API.                  |
 
 ## Gateway-only Discovery
 
-Self-hosted gateway discovery (`wso2ApiPlatformGateway`) can run on its own, without the API Manager integration. When `wso2ApiPlatform.enabled` is `false` (or the `wso2ApiPlatform` block is omitted entirely), the provider still sweeps every configured gateway `discoveryUrl` and ingests the discovered APIs; only the API Manager publisher/service-catalog ingestion is skipped. The `catalog.providers.wso2ApiPlatform.schedule` block is still required, as it drives the discovery schedule for both sources.
+Self-hosted gateway discovery (`wso2ApiPlatformGateway`) can run on its own, without the API Manager integration. When `wso2ApiPlatform.enabled` is `false` (or the `wso2ApiPlatform` block is omitted entirely), the provider still sweeps every configured gateway `managementApiUrl` and ingests the discovered APIs; only the API Manager publisher/service-catalog ingestion is skipped. The `catalog.providers.wso2ApiPlatform.schedule` block is still required, as it drives the discovery schedule for both sources.
 
 In gateway-only mode, discovery requests verify TLS with the default system trust store (`wso2ApiPlatform.tls.rejectUnauthorized` only applies to the API Manager client).
 

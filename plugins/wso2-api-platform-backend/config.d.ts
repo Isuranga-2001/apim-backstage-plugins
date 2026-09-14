@@ -111,20 +111,20 @@ export interface Config {
    */
   wso2ApiPlatformGateway?: {
     /**
-     * Enables WSO2 API Platform Gateway discovery.
+     * Enables WSO2 API Platform Gateway integration.
      * Defaults to false.
      * @visibility frontend
      */
     enabled?: boolean;
     gateways?: Array<{
       name: string;
-      urls: string[];
+      runtimeUrls: string[];
       /** @visibility frontend */
-      discoveryUrl?: string;
+      managementApiUrl?: string;
       /** @visibility secret */
-      discoveryUsername?: string;
+      managementApiUsername?: string;
       /** @visibility secret */
-      discoveryPassword?: string;
+      managementApiPassword?: string;
       environmentType?: string;
       description?: string;
       organizationId?: string;

@@ -101,8 +101,8 @@ const OPENCHOREO_GATEWAY_CONFIG = {
     {
       name: 'oc-dev',
       urls: [],
-      discoveryUrl: 'http://localhost:9095/rest-apis',
-      discoveryAuth: undefined,
+      managementApiUrl: 'http://localhost:9095/rest-apis',
+      managementApiAuth: undefined,
       environmentType: 'PRODUCTION',
       integration: 'openchoreo',
     },
@@ -226,7 +226,7 @@ describe('policy routes', () => {
         selfHostedGateways: [
           {
             ...OPENCHOREO_GATEWAY_CONFIG.selfHostedGateways[0],
-            discoveryUrl: undefined,
+            managementApiUrl: undefined,
           },
         ],
       });

@@ -185,10 +185,10 @@ Expected Exception:
             {
               name: 'gate-one',
               environmentType: 'SANDBOX',
-              urls: ['https://gw1.com'],
-              discoveryUrl: 'https://discovery1.com',
-              discoveryUsername: 'gw-user',
-              discoveryPassword: 'gw-password',
+              runtimeUrls: ['https://gw1.com'],
+              managementApiUrl: 'https://discovery1.com',
+              managementApiUsername: 'gw-user',
+              managementApiPassword: 'gw-password',
               organizationId: 'tenant-1',
             },
           ],
@@ -223,11 +223,11 @@ Expected Exception:
           {
             environmentName: 'gate-one',
             environmentType: 'SANDBOX',
-            urls: ['https://gw1.com'],
-            discoveryUrl: 'https://discovery1.com',
-            discoveryAuth: `Basic ${Buffer.from('gw-user:gw-password').toString(
-              'base64',
-            )}`,
+            runtimeUrls: ['https://gw1.com'],
+            managementApiUrl: 'https://discovery1.com',
+            managementApiAuth: `Basic ${Buffer.from(
+              'gw-user:gw-password',
+            ).toString('base64')}`,
             organizationId: 'tenant-1',
             integration: 'self-hosted',
           },

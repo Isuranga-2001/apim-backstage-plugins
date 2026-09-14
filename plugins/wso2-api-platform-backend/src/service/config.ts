@@ -88,17 +88,21 @@ export function readWso2ApiPlatformConfig(
 
   const selfHostedGateways = platformGatewayEnabled
     ? platformGatewayConfigs.map(gw => {
-        const discoveryUsername = gw.getOptionalString('discoveryUsername');
-        const discoveryPassword = gw.getOptionalString('discoveryPassword');
+        const managementApiUsername = gw.getOptionalString(
+          'managementApiUsername',
+        );
+        const managementApiPassword = gw.getOptionalString(
+          'managementApiPassword',
+        );
 
         return {
           name: gw.getString('name'),
-          urls: gw.getStringArray('urls'),
-          discoveryUrl: gw.getOptionalString('discoveryUrl'),
-          discoveryAuth:
-            discoveryUsername && discoveryPassword
+          runtimeUrls: gw.getStringArray('runtimeUrls'),
+          managementApiUrl: gw.getOptionalString('managementApiUrl'),
+          managementApiAuth:
+            managementApiUsername && managementApiPassword
               ? `Basic ${Buffer.from(
-                  `${discoveryUsername}:${discoveryPassword}`,
+                  `${managementApiUsername}:${managementApiPassword}`,
                 ).toString('base64')}`
               : undefined,
           environmentType:

@@ -89,7 +89,7 @@ describe('Wso2DiscoveryService', () => {
     const namespace = 'default';
     const providerId = 'wso2-provider';
     const platformGateways = [
-      { environmentName: 'gw-1', urls: ['https://gw1.com'] },
+      { environmentName: 'gw-1', runtimeUrls: ['https://gw1.com'] },
     ] as any;
 
     const mockSettings = { environment: [] };
@@ -222,7 +222,7 @@ Total Backstage entities registered: ${result.length}
       logger,
     });
     const platformGateways = [
-      { environmentName: 'gw-1', urls: ['https://gw1.com'] },
+      { environmentName: 'gw-1', runtimeUrls: ['https://gw1.com'] },
     ] as any;
 
     const discoveredEntity = {

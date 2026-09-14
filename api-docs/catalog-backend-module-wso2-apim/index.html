@@ -44683,7 +44683,7 @@ Postman collection: &lt;a href="../postman/catalog-backend-module-wso2-apim.post
                   <div class="sc-jTPGds cVAkzL">
                     <span class="sc-dtnsVa dVYuXz"
                       ><span class="sc-hPfayn hzxDQO"
-                        ><i>GatewayDiscoveryAuth</i></span
+                        ><i>GatewayManagementApiAuth</i></span
                       ></span
                     ><span class="sc-dtnsVa dVYuXz">None</span>
                   </div>
@@ -44788,13 +44788,13 @@ Postman collection: &lt;a href="../postman/catalog-backend-module-wso2-apim.post
                   <div aria-hidden="true" class="sc-fmtEmb tUxhh">
                     <div class="sc-ljIcGq bAnPPh">
                       <div
-                        html="&lt;p&gt;Configured wso2ApiPlatformGateway.discoveryUrl host for APIPlatform.&lt;/p&gt;
+                        html="&lt;p&gt;Configured wso2ApiPlatformGateway.managementApiUrl host for APIPlatform.&lt;/p&gt;
 "
                         class="sc-iJSMbW sc-cBEgGa fiNpIH bAoMjv"
                       >
                         <p>
-                          Configured wso2ApiPlatformGateway.discoveryUrl host
-                          for APIPlatform.
+                          Configured wso2ApiPlatformGateway.managementApiUrl
+                          host for APIPlatform.
                         </p>
                       </div>
                       <div tabindex="0" role="button">
@@ -45007,7 +45007,7 @@ Postman collection: &lt;a href="../postman/catalog-backend-module-wso2-apim.post
                   <div class="sc-jTPGds cVAkzL">
                     <span class="sc-dtnsVa dVYuXz"
                       ><span class="sc-hPfayn hzxDQO"
-                        ><i>GatewayDiscoveryAuth</i></span
+                        ><i>GatewayManagementApiAuth</i></span
                       ></span
                     ><span class="sc-dtnsVa dVYuXz">None</span>
                   </div>
@@ -45129,13 +45129,13 @@ Postman collection: &lt;a href="../postman/catalog-backend-module-wso2-apim.post
                   <div aria-hidden="true" class="sc-fmtEmb tUxhh">
                     <div class="sc-ljIcGq bAnPPh">
                       <div
-                        html="&lt;p&gt;Configured wso2ApiPlatformGateway.discoveryUrl host for APIPlatform.&lt;/p&gt;
+                        html="&lt;p&gt;Configured wso2ApiPlatformGateway.managementApiUrl host for APIPlatform.&lt;/p&gt;
 "
                         class="sc-iJSMbW sc-cBEgGa fiNpIH bAoMjv"
                       >
                         <p>
-                          Configured wso2ApiPlatformGateway.discoveryUrl host
-                          for APIPlatform.
+                          Configured wso2ApiPlatformGateway.managementApiUrl
+                          host for APIPlatform.
                         </p>
                       </div>
                       <div tabindex="0" role="button">
@@ -48409,10 +48409,10 @@ Postman collection: &lt;a href="../postman/catalog-backend-module-wso2-apim.post
                     {
                       url: 'https://fab4-14-1-78-245.ngrok-free.app',
                       description:
-                        'Configured wso2PlatformGateway.discoveryUrl host for APIPlatform.',
+                        'Configured wso2PlatformGateway.managementApiUrl host for APIPlatform.',
                     },
                   ],
-                  security: [{ GatewayDiscoveryAuth: [] }, {}],
+                  security: [{ GatewayManagementApiAuth: [] }, {}],
                   responses: {
                     200: {
                       description: 'Gateway discovery API list.',
@@ -48455,10 +48455,10 @@ Postman collection: &lt;a href="../postman/catalog-backend-module-wso2-apim.post
                     {
                       url: 'https://fab4-14-1-78-245.ngrok-free.app',
                       description:
-                        'Configured wso2PlatformGateway.discoveryUrl host for APIPlatform.',
+                        'Configured wso2PlatformGateway.managementApiUrl host for APIPlatform.',
                     },
                   ],
-                  security: [{ GatewayDiscoveryAuth: [] }, {}],
+                  security: [{ GatewayManagementApiAuth: [] }, {}],
                   parameters: [{ $ref: '#/components/parameters/ApiId' }],
                   responses: {
                     200: {
@@ -48492,7 +48492,7 @@ Postman collection: &lt;a href="../postman/catalog-backend-module-wso2-apim.post
                   bearerFormat: 'JWT',
                 },
                 BasicAuth: { type: 'http', scheme: 'basic' },
-                GatewayDiscoveryAuth: {
+                GatewayManagementApiAuth: {
                   type: 'apiKey',
                   in: 'header',
                   name: 'Authorization',

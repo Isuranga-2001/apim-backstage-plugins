@@ -86,9 +86,9 @@ export type Wso2ApiPlatformConfig = {
   };
   selfHostedGateways: Array<{
     name: string;
-    urls: string[];
-    discoveryUrl?: string;
-    discoveryAuth?: string;
+    runtimeUrls: string[];
+    managementApiUrl?: string;
+    managementApiAuth?: string;
     environmentType: string;
     description?: string;
     organizationId?: string;

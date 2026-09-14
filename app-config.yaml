@@ -217,11 +217,11 @@ wso2ApiPlatformGateway:
   gateways:
     - name: Self-Hosted-1
       environmentType: Development
-      urls:
+      runtimeUrls:
         - ${WSO2_GATEWAY_SELF_HOSTED_URL}
-      discoveryUrl: ${WSO2_GATEWAY_SELF_HOSTED_DISCOVERY_URL}
-      discoveryUsername: ${WSO2_GATEWAY_DISCOVERY_USERNAME}
-      discoveryPassword: ${WSO2_GATEWAY_DISCOVERY_PASSWORD}
+      managementApiUrl: ${WSO2_GATEWAY_MANAGEMENT_API_URL}
+      managementApiUsername: ${WSO2_GATEWAY_MANAGEMENT_API_USERNAME}
+      managementApiPassword: ${WSO2_GATEWAY_MANAGEMENT_API_PASSWORD}
       description: 'Gateways in wso2 API platform environment (config_dump discovery)'
 devTools:
   scheduledTasks:

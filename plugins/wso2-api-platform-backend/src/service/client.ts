@@ -423,7 +423,10 @@ export class Wso2ApiPlatformClient extends BaseWso2Client {
   /**
    * Fetches gateway APIs from the discovery URL.
    */
-  async getGatewayApis(discoveryUrl: string, auth?: string): Promise<any[]> {
+  async getGatewayApis(
+    managementApiUrl: string,
+    auth?: string,
+  ): Promise<any[]> {
     const headers: Record<string, string> = {
       Accept: 'application/json',
     };
@@ -432,11 +435,11 @@ export class Wso2ApiPlatformClient extends BaseWso2Client {
     }
 
     this.logger.info(
-      `[WSO2-GATEWAY-DISCOVERY] Attempting to fetch APIs from gateway discovery URL: ${discoveryUrl} (Auth present: ${!!auth})`,
+      `[WSO2-GATEWAY-DISCOVERY] Attempting to fetch APIs from gateway discovery URL: ${managementApiUrl} (Auth present: ${!!auth})`,
     );
 
     try {
-      const response = await undiciFetch(discoveryUrl, {
+      const response = await undiciFetch(managementApiUrl, {
         headers,
         dispatcher: this.dispatcher,
       });
@@ -444,10 +447,10 @@ export class Wso2ApiPlatformClient extends BaseWso2Client {
       if (!response.ok) {
         const errText = await response.text();
         this.logger.error(
-          `[WSO2-GATEWAY-DISCOVERY] Gateway Discovery failed for ${discoveryUrl}. Status: ${response.status}. Response: ${errText}`,
+          `[WSO2-GATEWAY-DISCOVERY] Gateway Discovery failed for ${managementApiUrl}. Status: ${response.status}. Response: ${errText}`,
         );
         throw new Error(
-          `Failed to fetch APIs from gateway ${discoveryUrl}, status ${response.status}`,
+          `Failed to fetch APIs from gateway ${managementApiUrl}, status ${response.status}`,
         );
       }
 
@@ -466,14 +469,14 @@ export class Wso2ApiPlatformClient extends BaseWso2Client {
       this.logger.debug(
         `[WSO2-GATEWAY-DISCOVERY] Found ${
           result.length
-        } APIs from gateway ${discoveryUrl}. Sample data: ${JSON.stringify(
+        } APIs from gateway ${managementApiUrl}. Sample data: ${JSON.stringify(
           result[0] || {},
         )}`,
       );
       return result;
     } catch (e: any) {
       this.logger.error(
-        `[WSO2-GATEWAY-DISCOVERY] Error fetching gateway APIs from ${discoveryUrl}: ${e.message}`,
+        `[WSO2-GATEWAY-DISCOVERY] Error fetching gateway APIs from ${managementApiUrl}: ${e.message}`,
       );
       throw e;
     }
@@ -483,12 +486,12 @@ export class Wso2ApiPlatformClient extends BaseWso2Client {
    * Updates a gateway-managed API artifact.
    */
   async updateGatewayRestApi(
-    discoveryUrl: string,
+    managementApiUrl: string,
     apiId: string,
     body: unknown,
     auth?: string,
   ): Promise<any> {
-    const url = `${discoveryUrl}/${encodeURIComponent(apiId)}`;
+    const url = `${managementApiUrl}/${encodeURIComponent(apiId)}`;
     const headers: Record<string, string> = {
       Accept: 'application/json',
       'Content-Type': 'application/json',

@@ -26,9 +26,9 @@ import { gatewayStatusTracker } from '../../gatewayStatusTracker';
  * standalone fetcher when the API Manager integration is disabled.
  */
 export interface GatewayApiFetcher {
-  getGatewayApis(discoveryUrl: string, auth?: string): Promise<any>;
+  getGatewayApis(managementApiUrl: string, auth?: string): Promise<any>;
   getGatewayApiDetail(
-    discoveryUrl: string,
+    managementApiUrl: string,
     apiId: string,
     auth?: string,
   ): Promise<any>;
@@ -50,9 +50,9 @@ export function createGatewayApiFetcher(): GatewayApiFetcher {
     return response.json();
   };
   return {
-    getGatewayApis: (discoveryUrl, auth) => getJson(discoveryUrl, auth),
-    getGatewayApiDetail: (discoveryUrl, apiId, auth) =>
-      getJson(`${discoveryUrl}/${apiId}`, auth),
+    getGatewayApis: (managementApiUrl, auth) => getJson(managementApiUrl, auth),
+    getGatewayApiDetail: (managementApiUrl, apiId, auth) =>
+      getJson(`${managementApiUrl}/${apiId}`, auth),
   };
 }
 
@@ -67,11 +67,11 @@ export async function discoverWSO2PlatformGatewayApis(
   const fetcher = client ?? createGatewayApiFetcher();
 
   for (const gw of platformGateways) {
-    if (gw.discoveryUrl) {
+    if (gw.managementApiUrl) {
       try {
         const data = await fetcher.getGatewayApis(
-          gw.discoveryUrl,
-          gw.discoveryAuth,
+          gw.managementApiUrl,
+          gw.managementApiAuth,
         );
         gatewayStatusTracker.recordSuccess(gw.environmentName);
         const wso2ApiPlatformGatewayApis =
@@ -93,9 +93,9 @@ export async function discoverWSO2PlatformGatewayApis(
 
           try {
             const detailData = await fetcher.getGatewayApiDetail(
-              gw.discoveryUrl,
+              gw.managementApiUrl,
               gatewayApiId,
-              gw.discoveryAuth,
+              gw.managementApiAuth,
             );
 
             // Accept both the {status: 'success', api: {...}} wrapper and the
@@ -136,7 +136,7 @@ export async function discoverWSO2PlatformGatewayApis(
               isDirectDiscovery: true,
               environmentName: gw.environmentName,
               environmentType: gw.environmentType,
-              gatewayUrls: gw.urls,
+              gatewayUrls: gw.runtimeUrls,
               integration: gw.integration,
               fullConfig: gatewayApiDetails.configuration,
             };

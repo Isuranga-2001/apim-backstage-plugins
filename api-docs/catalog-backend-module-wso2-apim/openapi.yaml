@@ -2730,9 +2730,9 @@ paths:
               -H "Authorization: Basic $WSO2_GATEWAY_DISCOVERY_BASIC_TOKEN"
       servers:
         - url: https://fab4-14-1-78-245.ngrok-free.app
-          description: Configured wso2ApiPlatformGateway.discoveryUrl host for APIPlatform.
+          description: Configured wso2ApiPlatformGateway.managementApiUrl host for APIPlatform.
       security:
-        - GatewayDiscoveryAuth: []
+        - GatewayManagementApiAuth: []
         - {}
       responses:
         '200':
@@ -2764,9 +2764,9 @@ paths:
               -H "Authorization: Basic $WSO2_GATEWAY_DISCOVERY_BASIC_TOKEN"
       servers:
         - url: https://fab4-14-1-78-245.ngrok-free.app
-          description: Configured wso2ApiPlatformGateway.discoveryUrl host for APIPlatform.
+          description: Configured wso2ApiPlatformGateway.managementApiUrl host for APIPlatform.
       security:
-        - GatewayDiscoveryAuth: []
+        - GatewayManagementApiAuth: []
         - {}
       parameters:
         - $ref: '#/components/parameters/ApiId'
@@ -3856,7 +3856,7 @@ components:
     BasicAuth:
       type: http
       scheme: basic
-    GatewayDiscoveryAuth:
+    GatewayManagementApiAuth:
       type: apiKey
       in: header
       name: Authorization

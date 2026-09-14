@@ -593,10 +593,10 @@ export class Wso2Client {
   }
 
   // --- Gateway Endpoints ---
-  async getGatewayApis(discoveryUrl: string, auth?: string): Promise<any> {
+  async getGatewayApis(managementApiUrl: string, auth?: string): Promise<any> {
     const headers: Record<string, string> = { Accept: 'application/json' };
     if (auth) headers.Authorization = auth;
-    const response = await undiciFetch(discoveryUrl, {
+    const response = await undiciFetch(managementApiUrl, {
       headers,
       dispatcher: this.dispatcher,
     });
@@ -607,13 +607,13 @@ export class Wso2Client {
   }
 
   async getGatewayApiDetail(
-    discoveryUrl: string,
+    managementApiUrl: string,
     apiId: string,
     auth?: string,
   ): Promise<any> {
     const headers: Record<string, string> = { Accept: 'application/json' };
     if (auth) headers.Authorization = auth;
-    const response = await undiciFetch(`${discoveryUrl}/${apiId}`, {
+    const response = await undiciFetch(`${managementApiUrl}/${apiId}`, {
       headers,
       dispatcher: this.dispatcher,
     });

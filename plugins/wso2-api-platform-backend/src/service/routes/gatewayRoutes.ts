@@ -58,9 +58,12 @@ export function registerGatewayRoutes(
       if (config.platformGateway?.enabled && config.selfHostedGateways) {
         const gwPromises = config.selfHostedGateways.map(async gw => {
           let status = 'Online';
-          if (gw.discoveryUrl) {
+          if (gw.managementApiUrl) {
             try {
-              await client.getGatewayApis(gw.discoveryUrl, gw.discoveryAuth);
+              await client.getGatewayApis(
+                gw.managementApiUrl,
+                gw.managementApiAuth,
+              );
             } catch (error) {
               status = 'Offline';
             }
@@ -73,7 +76,7 @@ export function registerGatewayRoutes(
             gatewayType,
             description: gw.description || `Self-Hosted Gateway: ${gw.name}`,
             source: 'Config',
-            urls: gw.discoveryUrl ? [gw.discoveryUrl] : [],
+            urls: gw.runtimeUrls,
             status,
             active: gatewayStatusTracker.getStatus(gw.name).active,
           };

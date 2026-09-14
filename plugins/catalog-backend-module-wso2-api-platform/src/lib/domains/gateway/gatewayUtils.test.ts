@@ -41,12 +41,12 @@ describe('gateway/gatewayUtils', () => {
     mockClient = new Wso2Client({} as any);
   });
 
-  it('should skip discovery if no gateway has discoveryUrl configured', async () => {
+  it('should skip discovery if no gateway has managementApiUrl configured', async () => {
     const gateways: PlatformGateway[] = [
       {
         environmentName: 'gw-1',
         environmentType: 'PROD',
-        urls: ['https://gw1.com'],
+        runtimeUrls: ['https://gw1.com'],
       },
     ];
 
@@ -60,9 +60,9 @@ describe('gateway/gatewayUtils', () => {
       {
         environmentName: 'MySelfHostedGate',
         environmentType: 'PRODUCTION',
-        urls: ['https://gateway.com'],
-        discoveryUrl: 'https://discovery-service.com/apis',
-        discoveryAuth: 'Basic abc-auth',
+        runtimeUrls: ['https://gateway.com'],
+        managementApiUrl: 'https://discovery-service.com/apis',
+        managementApiAuth: 'Basic abc-auth',
       },
     ];
 
@@ -133,9 +133,9 @@ describe('gateway/gatewayUtils', () => {
       {
         environmentName: 'oc-poc-gateway',
         environmentType: 'PRODUCTION',
-        urls: ['https://gateway.com'],
-        discoveryUrl: 'https://controller.com/rest-apis',
-        discoveryAuth: 'Basic abc-auth',
+        runtimeUrls: ['https://gateway.com'],
+        managementApiUrl: 'https://controller.com/rest-apis',
+        managementApiAuth: 'Basic abc-auth',
       },
     ];
 
@@ -184,9 +184,9 @@ describe('gateway/gatewayUtils', () => {
       {
         environmentName: 'MySelfHostedGate',
         environmentType: 'PRODUCTION',
-        urls: ['https://gateway.com'],
-        discoveryUrl: 'https://discovery-service.com/apis',
-        discoveryAuth: 'Basic abc-auth',
+        runtimeUrls: ['https://gateway.com'],
+        managementApiUrl: 'https://discovery-service.com/apis',
+        managementApiAuth: 'Basic abc-auth',
       },
     ];
 
@@ -204,8 +204,8 @@ describe('gateway/gatewayUtils', () => {
       {
         environmentName: 'MySelfHostedGate',
         environmentType: 'PRODUCTION',
-        urls: ['https://gateway.com'],
-        discoveryUrl: 'https://discovery-service.com/apis',
+        runtimeUrls: ['https://gateway.com'],
+        managementApiUrl: 'https://discovery-service.com/apis',
       },
     ];
 

@@ -49,7 +49,7 @@ export type RestApiArtifactDiff = {
   hasChanges: boolean;
 };
 
-/** Adapts a raw `GET {discoveryUrl}/{apiId}` response into a `RestApiArtifact`, dropping the readOnly `status`. */
+/** Adapts a raw `GET {managementApiUrl}/{apiId}` response into a `RestApiArtifact`, dropping the readOnly `status`. */
 export function adaptRawRestApiArtifact(
   raw: unknown,
 ): RestApiArtifact | undefined {

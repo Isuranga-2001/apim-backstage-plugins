@@ -62,18 +62,18 @@ export interface Config {
   };
   wso2ApiPlatformGateway?: {
     /**
-     * Enables WSO2 API Platform Gateway discovery.
+     * Enables WSO2 API Platform Gateway integration.
      * Defaults to false.
      */
     enabled?: boolean;
     gateways?: Array<{
       name: string;
-      urls: string[];
-      discoveryUrl?: string;
+      runtimeUrls: string[];
+      managementApiUrl?: string;
       /** @visibility secret */
-      discoveryUsername?: string;
+      managementApiUsername?: string;
       /** @visibility secret */
-      discoveryPassword?: string;
+      managementApiPassword?: string;
       environmentType?: string;
       organizationId?: string;
       integration?: 'self-hosted' | 'openchoreo';
