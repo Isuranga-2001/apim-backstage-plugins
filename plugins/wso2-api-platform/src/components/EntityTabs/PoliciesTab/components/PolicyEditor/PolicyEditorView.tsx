@@ -55,6 +55,7 @@ import { PolicyConfigDialog, PolicyConfigRef } from './PolicyConfigDialog';
 import { PolicyDiffSummary } from './PolicyDiffSummary';
 import { getDraggedPolicy } from './policyDnd';
 import { buildPolicyArtifact, hasLocalChanges } from './policyArtifact';
+import { useUnsavedChangesGuard } from './useUnsavedChangesGuard';
 import {
   ApiPolicy,
   FlowPolicies,
@@ -133,8 +134,14 @@ export function PolicyEditorView({
   >(undefined);
 
   const canEdit = !editingDisabledReason;
-  const canSave =
-    canEdit && hasLocalChanges(initialModel, apiFlows, operations);
+  const isDirty = hasLocalChanges(initialModel, apiFlows, operations);
+  const canSave = canEdit && isDirty;
+
+  const {
+    hasPendingNavigation,
+    proceedWithPendingNavigation,
+    cancelPendingNavigation,
+  } = useUnsavedChangesGuard(isDirty);
 
   const handleSaveClick = async () => {
     if (onPreviewDiff) {
@@ -156,6 +163,11 @@ export function PolicyEditorView({
       await onSaveClick?.(buildPolicyArtifact(apiFlows, apiIsFlat, operations));
       setConfirmOpen(false);
       setDiffResult(undefined);
+      // Leaving the tab is what triggered this save (rather than the Save
+      // button) — now that it succeeded, complete the navigation.
+      if (hasPendingNavigation) {
+        proceedWithPendingNavigation();
+      }
     } catch (e) {
       // error is surfaced via the snackbar; keep the dialog open to retry
     }
@@ -435,6 +447,40 @@ export function PolicyEditorView({
           {previewing ? <CircularProgress size={20} /> : 'Save'}
         </Button>
       </Box>
+
+      <Dialog
+        open={hasPendingNavigation && !confirmOpen}
+        onClose={cancelPendingNavigation}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Unsaved Policy Changes</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            You have unsaved changes to this API's policies. Save them before
+            leaving, or discard them?
+          </DialogContentText>
+          {editingDisabledReason && (
+            <Typography variant="body2" color="error">
+              {editingDisabledReason} — changes can't be saved right now.
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelPendingNavigation}>Keep Editing</Button>
+          <Button onClick={proceedWithPendingNavigation} color="secondary">
+            Discard Changes
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleSaveClick}
+            disabled={!canEdit || previewing}
+          >
+            {previewing ? <CircularProgress size={20} /> : 'Save Changes'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog
         open={confirmOpen}
