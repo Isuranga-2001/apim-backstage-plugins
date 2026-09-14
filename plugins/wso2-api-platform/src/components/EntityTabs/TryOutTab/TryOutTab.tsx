@@ -22,6 +22,7 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
 import Box from '@material-ui/core/Box';
 import Typography from '@material-ui/core/Typography';
+import TextField from '@material-ui/core/TextField';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import LinearProgress from '@material-ui/core/LinearProgress';
 
@@ -45,6 +46,8 @@ const WSO2_API_ID_ANNOTATION = 'wso2.com/api-id';
 
 const WSO2_GATEWAY_API_ID_ANNOTATION = 'wso2-gateway.com/api-id';
 
+const DISCOVERY_TYPE_ANNOTATION = 'wso2.com/api-discovery-type';
+
 /**
  * A specialized API Definition card for WSO2 APIs that enables Try out
  * and targets the WSO2 Gateway with automatic auth.
@@ -62,6 +65,9 @@ const EntityWso2TryOutTabContent = () => {
     !!entity.metadata.annotations?.['wso2.com/platform-gateway-endpoints'];
   const isSelfHostedGateway =
     !!entity.metadata.annotations?.['wso2-gateway.com/api-endpoints'];
+  const isOpenChoreoGateway =
+    entity.metadata.annotations?.[DISCOVERY_TYPE_ANNOTATION] ===
+    'openchoreo-gateway';
 
   const isDiscovered =
     entity.metadata.annotations?.['wso2.com/is-discovered'] === 'true';
@@ -93,6 +99,7 @@ const EntityWso2TryOutTabContent = () => {
     swaggerSpec,
     isPlaceholder,
     isRevisionsLoading,
+    hasLiveOpenApiSpec,
   } = useTryOutData({
     entity,
     apiId,
@@ -113,7 +120,7 @@ const EntityWso2TryOutTabContent = () => {
   const [manualKeyInput, setManualKeyInput] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
-  const externalApiKey = '';
+  const [externalApiKey, setExternalApiKey] = useState('');
 
   const hasApiKeyHeader = useMemo(() => {
     if (!details) return true;
@@ -236,10 +243,46 @@ const EntityWso2TryOutTabContent = () => {
             isKeyLoading={isKeyLoading}
           />
         )}
+      {isOpenChoreoGateway && isDeployed && apiKeyAuthPolicy && (
+        <Box display="flex" justifyContent="center" width="100%" my={2}>
+          <TextField
+            label={
+              apiKeyAuthPolicy.params?.key
+                ? `API Key (${apiKeyAuthPolicy.params.key})`
+                : 'API Key'
+            }
+            placeholder="Paste your API key here..."
+            value={externalApiKey}
+            onChange={e => setExternalApiKey(e.target.value)}
+            variant="outlined"
+            size="small"
+            style={{ width: '400px' }}
+          />
+        </Box>
+      )}
     </Box>
   );
 
   const renderTryItOutSection = () => {
+    if (isOpenChoreoGateway && hasLiveOpenApiSpec) {
+      return (
+        <div className={classes.root}>
+          {renderAuthSection()}
+          <Box p={2}>
+            <SwaggerConsole
+              key={`swagger-console-openchoreo-${isDeployed}`}
+              swaggerSpec={swaggerSpec}
+              tryOutPlugin={tryOutPlugin}
+              apiKeyRef={apiKeyRef}
+              externalApiKey={externalApiKey}
+              apiKeyAuthPolicy={apiKeyAuthPolicy}
+              details={details}
+            />
+          </Box>
+        </div>
+      );
+    }
+
     if (isApiPlatform || isSelfHostedGateway) {
       return (
         <div className={classes.root}>

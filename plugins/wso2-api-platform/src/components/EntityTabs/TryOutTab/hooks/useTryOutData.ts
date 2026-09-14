@@ -18,7 +18,8 @@
 
 import { useMemo } from 'react';
 import { useAsync } from 'react-use';
-import { Entity } from '@backstage/catalog-model';
+import * as yaml from 'js-yaml';
+import { Entity, getCompoundEntityRef } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
 import { wso2ApiPlatformApiRef, Wso2ApiDetail } from '../../../../api';
 import { formatGraphQL, formatAsyncApi, isAsyncType } from '../../../../utils';
@@ -31,6 +32,7 @@ const PLATFORM_GATEWAY_ENDPOINTS_ANNOTATION =
 const API_TYPE_ANNOTATION = 'wso2.com/api-type';
 const API_POLICY_DETAILS_ANNOTATION = 'wso2.com/api-level-policies';
 const API_OPERATIONS_ANNOTATION = 'wso2.com/operation-level-policies';
+const DISCOVERY_TYPE_ANNOTATION = 'wso2.com/api-discovery-type';
 
 function parseAnnotationJson<T>(value: string | undefined, fallback: T): T {
   if (!value) return fallback;
@@ -62,9 +64,44 @@ export const useTryOutData = (options: {
   swaggerSpec: any;
   isPlaceholder: boolean;
   isRevisionsLoading: boolean;
+  hasLiveOpenApiSpec: boolean;
 } => {
   const { entity, apiId, isApiPlatform } = options;
   const apiClient = useApi(wso2ApiPlatformApiRef);
+
+  const isOpenChoreoGateway =
+    entity.metadata.annotations?.[DISCOVERY_TYPE_ANNOTATION] ===
+    'openchoreo-gateway';
+
+  const entityRef = useMemo(() => getCompoundEntityRef(entity), [entity]);
+
+  // OpenChoreo-discovered APIs only carry a bare operations list (method +
+  // path) on the entity itself. A real, executable OpenAPI document - the
+  // same one shown/edited on the Definition tab - lives in the plugin's
+  // definition store once someone has uploaded/verified one there.
+  const storedDefinitionState = useAsync(async () => {
+    if (!isOpenChoreoGateway) return null;
+    try {
+      const res = await apiClient.getDefinition(entityRef);
+      return res.definition;
+    } catch (e) {
+      return null;
+    }
+  }, [apiClient, entityRef, isOpenChoreoGateway]);
+
+  const storedOpenApiSpec = useMemo(() => {
+    const content = storedDefinitionState.value?.content;
+    if (!isOpenChoreoGateway || !content) return undefined;
+    try {
+      const doc = yaml.load(content) as any;
+      if (doc && typeof doc === 'object' && (doc.openapi || doc.swagger)) {
+        return doc;
+      }
+    } catch (e) {
+      /* ignore - not a parseable OpenAPI/Swagger document */
+    }
+    return undefined;
+  }, [storedDefinitionState.value, isOpenChoreoGateway]);
 
   const details = useMemo(() => {
     const annotations = entity.metadata.annotations || {};
@@ -264,6 +301,17 @@ export const useTryOutData = (options: {
   }, [entity, gatewayUrls, revisionsState.value]);
 
   const swaggerSpec = useMemo(() => {
+    if (storedOpenApiSpec) {
+      const spec = JSON.parse(JSON.stringify(storedOpenApiSpec));
+      if (gatewayUrls.length > 0) {
+        spec.servers = gatewayUrls.map(gw => ({
+          url: gw.url,
+          description: gw.description,
+        }));
+      }
+      return spec;
+    }
+
     if (!definitionState.value && !hasOperationsOnly) return undefined;
     const val = definitionState.value;
     let spec: any;
@@ -330,6 +378,7 @@ export const useTryOutData = (options: {
     entity.metadata.title,
     gatewayUrls,
     hasOperationsOnly,
+    storedOpenApiSpec,
   ]);
 
   const isPlaceholder = useMemo(() => {
@@ -344,7 +393,9 @@ export const useTryOutData = (options: {
   return {
     details,
     definition: definitionState.value,
-    isDefinitionLoading: definitionState.loading,
+    isDefinitionLoading:
+      definitionState.loading ||
+      (isOpenChoreoGateway && storedDefinitionState.loading),
     hasOperationsOnly,
     gatewayOperations,
     gatewayApiPolicies,
@@ -354,5 +405,6 @@ export const useTryOutData = (options: {
     swaggerSpec,
     isPlaceholder,
     isRevisionsLoading: revisionsState.loading,
+    hasLiveOpenApiSpec: !!storedOpenApiSpec,
   };
 };
