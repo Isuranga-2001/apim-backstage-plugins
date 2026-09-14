@@ -414,14 +414,15 @@ export function PolicyEditorView({
           </Card>
         </Box>
 
-        {/* RIGHT: Available Policies (drag source) */}
-        <Box flexShrink={0} width={340} minWidth={280}>
-          <Card variant="outlined" style={{ height: '100%' }}>
-            <CardContent style={{ height: 560 }}>
-              <AvailablePoliciesPanel />
-            </CardContent>
-          </Card>
-        </Box>
+        {!editingDisabledReason && (
+          <Box flexShrink={0} width={340} minWidth={280}>
+            <Card variant="outlined" style={{ height: '100%' }}>
+              <CardContent style={{ height: 560 }}>
+                <AvailablePoliciesPanel />
+              </CardContent>
+            </Card>
+          </Box>
+        )}
       </Box>
 
       <Box display="flex" justifyContent="flex-end" mt={2}>

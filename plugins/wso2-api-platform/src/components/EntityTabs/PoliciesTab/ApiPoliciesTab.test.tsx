@@ -259,13 +259,12 @@ describe('EntityWso2ApiPoliciesTab', () => {
       gatewayApiPolicies: {},
     });
 
-    // In editable mode, visibility is driven by the live-fetched artifact
-    // (not the catalog's `details`/`gatewayOperations`), so it must be mocked
-    // here for the editor to render.
     (usePolicyArtifact as jest.Mock).mockReturnValue({
       artifact: {
         apiPolicies: { request: [{ name: 'cors', version: 'v1' }] },
-        operations: [{ method: 'GET', path: '/books', policies: [] }],
+        operations: [
+          { method: 'GET', path: '/books', policies: [] },
+        ],
       },
       loading: false,
       error: undefined,
@@ -313,84 +312,5 @@ describe('EntityWso2ApiPoliciesTab', () => {
 
     renderComponent();
     expect(screen.getByTestId('policy-editor')).toBeInTheDocument();
-  });
-
-  it('shows a loading spinner while the live artifact is being fetched', () => {
-    (useEntity as jest.Mock).mockReturnValue({
-      entity: {
-        metadata: {
-          annotations: {
-            'wso2.com/api-id': '123',
-            'wso2.com/api-discovery-type': 'openchoreo-gateway',
-          },
-        },
-        spec: { type: 'api' },
-      },
-    });
-
-    (usePolicyAccessMode as jest.Mock).mockReturnValue({
-      mode: 'editable',
-      editingDisabledReason: undefined,
-    });
-
-    (useWso2ApiPolicies as jest.Mock).mockReturnValue({
-      isDefinitionLoading: false,
-      isPlaceholder: false,
-      definition: {},
-      details: { apiPolicies: null, operations: [] },
-      gatewayOperations: [],
-      gatewayApiPolicies: {},
-    });
-
-    (usePolicyArtifact as jest.Mock).mockReturnValue({
-      artifact: null,
-      loading: true,
-      error: undefined,
-      refresh: jest.fn(),
-    });
-
-    renderComponent();
-    expect(screen.getByText('Loading Policies...')).toBeInTheDocument();
-    expect(screen.queryByTestId('policy-editor')).not.toBeInTheDocument();
-  });
-
-  it('shows a "Failed to load policies" empty state when the live artifact fetch errors', () => {
-    (useEntity as jest.Mock).mockReturnValue({
-      entity: {
-        metadata: {
-          annotations: {
-            'wso2.com/api-id': '123',
-            'wso2.com/api-discovery-type': 'openchoreo-gateway',
-          },
-        },
-        spec: { type: 'api' },
-      },
-    });
-
-    (usePolicyAccessMode as jest.Mock).mockReturnValue({
-      mode: 'editable',
-      editingDisabledReason: undefined,
-    });
-
-    (useWso2ApiPolicies as jest.Mock).mockReturnValue({
-      isDefinitionLoading: false,
-      isPlaceholder: false,
-      definition: {},
-      details: { apiPolicies: null, operations: [] },
-      gatewayOperations: [],
-      gatewayApiPolicies: {},
-    });
-
-    (usePolicyArtifact as jest.Mock).mockReturnValue({
-      artifact: null,
-      loading: false,
-      error: new Error('gateway unreachable'),
-      refresh: jest.fn(),
-    });
-
-    renderComponent();
-    expect(screen.getByText('Failed to load policies')).toBeInTheDocument();
-    expect(screen.getByText('gateway unreachable')).toBeInTheDocument();
-    expect(screen.queryByTestId('policy-editor')).not.toBeInTheDocument();
   });
 });

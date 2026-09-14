@@ -52,7 +52,7 @@ describe('gateway/mapperUtils', () => {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'API',
       metadata: {
-        name: 'user-core-api',
+        name: 'user-core-api-1-2-0',
         namespace: 'wso2-gateways',
         title: 'User Core API',
         description: 'Discovered from gateway-1',

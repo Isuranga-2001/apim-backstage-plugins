@@ -25,7 +25,8 @@ import { normalizeEntityName, resolveApiType } from '../api';
 export function mapDiscoveredApiToEntity(api: any): ApiEntity {
   const spec = api.fullConfig.spec;
   const displayName = spec.displayName;
-  const normalizedName = normalizeEntityName(displayName);
+  const version = spec.version || '1.0.0';
+  const normalizedName = normalizeEntityName(`${displayName}-${version}`);
   const discoveryNamespace = 'wso2-gateways';
   const isOpenChoreo = api.integration === 'openchoreo';
   const gatewayLabel = isOpenChoreo ? 'OpenChoreo' : 'Self Hosted';
@@ -46,7 +47,7 @@ export function mapDiscoveredApiToEntity(api: any): ApiEntity {
         'backstage.io/managed-by-origin-location': `wso2-gateway:${api.environmentName}`,
         'wso2-gateway.com/api-id': api.id,
         'wso2-gateway.com/api-name': displayName,
-        'wso2-gateway.com/api-version': spec.version || '1.0.0',
+        'wso2-gateway.com/api-version': version,
         'wso2-gateway.com/api-context': spec.context || '/',
         'wso2.com/api-type': resolveApiType(api, spec),
         'wso2.com/api-gateway': gatewayLabel,
