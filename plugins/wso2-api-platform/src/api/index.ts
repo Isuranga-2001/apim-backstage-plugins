@@ -49,6 +49,13 @@ export type {
   Wso2ApiRevision,
   Wso2ApiRevisionsResponse,
   Wso2McpTool,
+  Wso2ApiPolicyArtifact,
+  Wso2ApiPolicyArtifactResponse,
+  UpsertWso2ApiPolicyArtifactRequest,
+  Wso2PolicyChangeRef,
+  Wso2PolicyFlowDiff,
+  Wso2ApiPolicyDiff,
+  Wso2PolicyDiffResponse,
 } from './types';
 
 export * from './policyHub';

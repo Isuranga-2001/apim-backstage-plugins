@@ -12,7 +12,12 @@ describe('usePolicyEditorModel', () => {
     );
     expect(result.current.initialModel.apiIsFlat).toBe(true);
     expect(result.current.initialModel.apiFlows.request).toEqual([
-      { name: 'cors', version: '1.0.0', params: undefined },
+      {
+        name: 'cors',
+        version: '1.0.0',
+        params: undefined,
+        raw: { policyName: 'cors', policyVersion: '1.0.0' },
+      },
     ]);
     expect(result.current.initialModel.apiFlows.response).toEqual([]);
   });
@@ -40,13 +45,29 @@ describe('usePolicyEditorModel', () => {
           operations: [{ method: 'GET', path: '/foo', policies: [] }],
         },
         gatewayOperations: [],
-        gatewayApiPolicies: {},
+        gatewayApiPolicies: undefined,
       }),
     );
     expect(result.current.initialModel.apiFlows.request).toHaveLength(1);
     expect(result.current.initialModel.operations).toHaveLength(1);
     expect(result.current.initialModel.operations[0].method).toBe('GET');
     expect(result.current.initialModel.operations[0].path).toBe('/foo');
+  });
+
+  it('treats an operation with no policies field at all as flat, not as an empty {request,response,fault} object', () => {
+    // A gateway RestApi operation that has never had a policy attached
+    // simply omits `policies` — it must normalize to an empty flat array,
+    // never the object shape, or saving re-serializes it as
+    // {request:[],response:[],fault:[]}, which the gateway rejects.
+    const { result } = renderHook(() =>
+      usePolicyEditorModel({
+        gatewayOperations: [{ method: 'POST', path: '/payments' }],
+        gatewayApiPolicies: [],
+      }),
+    );
+    const [op] = result.current.initialModel.operations;
+    expect(op.isFlat).toBe(true);
+    expect(op.flows.request).toEqual([]);
   });
 
   it('normalizes operations using verb/target and operationPolicies field variants', () => {

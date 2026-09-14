@@ -244,6 +244,40 @@ export type Wso2DefinitionDiffResponse = {
   diff: Wso2RestApiArtifactDiff | null;
 };
 
+export type Wso2ApiPolicyArtifact = {
+  apiPolicies: unknown;
+  operations: Array<{ method: string; path: string; policies: unknown }>;
+};
+
+export type Wso2ApiPolicyArtifactResponse = {
+  policies: Wso2ApiPolicyArtifact;
+};
+
+export type UpsertWso2ApiPolicyArtifactRequest = Wso2ApiPolicyArtifact;
+
+export type Wso2PolicyChangeRef = { name: string; version: string };
+
+export type Wso2PolicyFlowDiff = {
+  flow: 'request' | 'response' | 'fault' | 'flat';
+  added: Wso2PolicyChangeRef[];
+  removed: Wso2PolicyChangeRef[];
+  changed: Wso2PolicyChangeRef[];
+};
+
+export type Wso2ApiPolicyDiff = {
+  apiLevel: Wso2PolicyFlowDiff[];
+  operations: Array<{
+    method: string;
+    path: string;
+    flows: Wso2PolicyFlowDiff[];
+  }>;
+  hasChanges: boolean;
+};
+
+export type Wso2PolicyDiffResponse = {
+  diff: Wso2ApiPolicyDiff | null;
+};
+
 export type Wso2ApiRevision = {
   id: string;
   displayName: string;
@@ -345,4 +379,15 @@ export interface Wso2ApiPlatformApi {
     entityRef: CompoundEntityRef,
     content: string,
   ): Promise<Wso2DefinitionDiffResponse>;
+  getPolicyArtifact(
+    entityRef: CompoundEntityRef,
+  ): Promise<Wso2ApiPolicyArtifactResponse>;
+  upsertPolicyArtifact(
+    entityRef: CompoundEntityRef,
+    input: UpsertWso2ApiPolicyArtifactRequest,
+  ): Promise<Wso2ApiPolicyArtifactResponse>;
+  previewPolicyDiff(
+    entityRef: CompoundEntityRef,
+    input: Wso2ApiPolicyArtifact,
+  ): Promise<Wso2PolicyDiffResponse>;
 }

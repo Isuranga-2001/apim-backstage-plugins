@@ -26,19 +26,35 @@ import Accordion from '@material-ui/core/Accordion';
 import AccordionSummary from '@material-ui/core/AccordionSummary';
 import AccordionDetails from '@material-ui/core/AccordionDetails';
 import Button from '@material-ui/core/Button';
-import Tooltip from '@material-ui/core/Tooltip';
+import CircularProgress from '@material-ui/core/CircularProgress';
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogContentText from '@material-ui/core/DialogContentText';
+import DialogTitle from '@material-ui/core/DialogTitle';
+import Snackbar from '@material-ui/core/Snackbar';
+import Alert from '@material-ui/lab/Alert';
 import Typography from '@material-ui/core/Typography';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import LanguageIcon from '@material-ui/icons/Language';
 import WarningIcon from '@material-ui/icons/Warning';
-import { PolicySummary } from '../../../../../api/policyHub';
+import {
+  PolicySummary,
+  Wso2ApiPolicyArtifact,
+  Wso2ApiPolicyDiff,
+} from '../../../../../api';
 import { CODE_FONT_FAMILY } from '../../../../../styles/fonts';
-import { EditableModel, EditableOperation } from '../../hooks/usePolicyEditorModel';
+import {
+  EditableModel,
+  EditableOperation,
+} from '../../hooks/usePolicyEditorModel';
 import { AttachedPolicyList } from './AttachedPolicyList';
 import { AvailablePoliciesPanel } from './AvailablePoliciesPanel';
 import { DropZone } from './DropZone';
 import { PolicyConfigDialog, PolicyConfigRef } from './PolicyConfigDialog';
+import { PolicyDiffSummary } from './PolicyDiffSummary';
 import { getDraggedPolicy } from './policyDnd';
+import { buildPolicyArtifact, hasLocalChanges } from './policyArtifact';
 import {
   ApiPolicy,
   FlowPolicies,
@@ -64,10 +80,13 @@ const FLOW_LABELS: Record<PolicyFlow, string> = {
 const getMethodColor = (method: string) => {
   const m = (method || '').toUpperCase();
   if (m === 'GET') return { main: '#61affe', light: 'rgba(97, 175, 254, 0.1)' };
-  if (m === 'POST') return { main: '#49cc90', light: 'rgba(73, 204, 144, 0.1)' };
+  if (m === 'POST')
+    return { main: '#49cc90', light: 'rgba(73, 204, 144, 0.1)' };
   if (m === 'PUT') return { main: '#fca130', light: 'rgba(252, 161, 48, 0.1)' };
-  if (m === 'DELETE') return { main: '#f93e3e', light: 'rgba(249, 62, 62, 0.1)' };
-  if (m === 'PATCH') return { main: '#50e3c2', light: 'rgba(80, 227, 194, 0.1)' };
+  if (m === 'DELETE')
+    return { main: '#f93e3e', light: 'rgba(249, 62, 62, 0.1)' };
+  if (m === 'PATCH')
+    return { main: '#50e3c2', light: 'rgba(80, 227, 194, 0.1)' };
   return { main: '#9012fe', light: 'rgba(144, 18, 254, 0.1)' };
 };
 
@@ -78,10 +97,24 @@ export function PolicyEditorView({
   apiType,
   initialModel,
   editingDisabledReason,
+  onPreviewDiff,
+  onSaveClick,
+  submitting,
+  previewing,
+  snackbar,
+  onCloseSnackbar,
 }: {
   apiType?: string;
   initialModel: EditableModel;
   editingDisabledReason?: string;
+  onPreviewDiff?: (
+    artifact: Wso2ApiPolicyArtifact,
+  ) => Promise<Wso2ApiPolicyDiff | null | undefined>;
+  onSaveClick?: (artifact: Wso2ApiPolicyArtifact) => Promise<void>;
+  submitting?: boolean;
+  previewing?: boolean;
+  snackbar?: { open: boolean; message: string; severity: 'success' | 'error' };
+  onCloseSnackbar?: () => void;
 }) {
   const [apiFlows, setApiFlows] = useState<FlowPolicies>(initialModel.apiFlows);
   const [operations, setOperations] = useState<EditableOperation[]>(
@@ -94,7 +127,39 @@ export function PolicyEditorView({
   const [editing, setEditing] = useState<EditState>(null);
   const [activeZone, setActiveZone] = useState<string | null>(null);
 
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [diffResult, setDiffResult] = useState<
+    Wso2ApiPolicyDiff | null | undefined
+  >(undefined);
+
   const canEdit = !editingDisabledReason;
+  const canSave =
+    canEdit && hasLocalChanges(initialModel, apiFlows, operations);
+
+  const handleSaveClick = async () => {
+    if (onPreviewDiff) {
+      try {
+        setDiffResult(
+          await onPreviewDiff(
+            buildPolicyArtifact(apiFlows, apiIsFlat, operations),
+          ),
+        );
+      } catch (e) {
+        setDiffResult(undefined);
+      }
+    }
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmSave = async () => {
+    try {
+      await onSaveClick?.(buildPolicyArtifact(apiFlows, apiIsFlat, operations));
+      setConfirmOpen(false);
+      setDiffResult(undefined);
+    } catch (e) {
+      // error is surfaced via the snackbar; keep the dialog open to retry
+    }
+  };
 
   const policiesFor = (s: PolicyScope): ApiPolicy[] =>
     s.kind === 'api' ? apiFlows[s.flow] : operations[s.index].flows[s.flow];
@@ -105,7 +170,9 @@ export function PolicyEditorView({
     } else {
       setOperations(ops =>
         ops.map((op, i) =>
-          i === s.index ? { ...op, flows: { ...op.flows, [s.flow]: next } } : op,
+          i === s.index
+            ? { ...op, flows: { ...op.flows, [s.flow]: next } }
+            : op,
         ),
       );
     }
@@ -137,9 +204,14 @@ export function PolicyEditorView({
   const confirmPolicy = (policy: ApiPolicy) => {
     if (!scope) return;
     if (editing) {
+      // The dialog only edits `params`; identity (name/version) is fixed,
+      // so the original entry's preserved fields still apply.
+      const updated = { ...policy, raw: editing.policy.raw };
       setPoliciesFor(
         scope,
-        policiesFor(scope).map((p, i) => (i === editing.policyIndex ? policy : p)),
+        policiesFor(scope).map((p, i) =>
+          i === editing.policyIndex ? updated : p,
+        ),
       );
     } else {
       setPoliciesFor(scope, [...policiesFor(scope), policy]);
@@ -165,7 +237,11 @@ export function PolicyEditorView({
     ? { name: editing.policy.name, version: editing.policy.version }
     : picked;
 
-  const renderFlowZone = (s: PolicyScope, policies: ApiPolicy[], hideLabel: boolean) => {
+  const renderFlowZone = (
+    s: PolicyScope,
+    policies: ApiPolicy[],
+    hideLabel: boolean,
+  ) => {
     const zid = scopeId(s);
     return (
       <DropZone
@@ -180,7 +256,11 @@ export function PolicyEditorView({
           {!hideLabel && (
             <Typography
               variant="caption"
-              style={{ fontWeight: 700, textTransform: 'uppercase', opacity: 0.7 }}
+              style={{
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                opacity: 0.7,
+              }}
             >
               {FLOW_LABELS[s.flow]}
             </Typography>
@@ -242,7 +322,12 @@ export function PolicyEditorView({
         </Box>
       )}
 
-      <Box display="flex" flexDirection="row" flexWrap="wrap" style={{ gap: 16 }}>
+      <Box
+        display="flex"
+        flexDirection="row"
+        flexWrap="wrap"
+        style={{ gap: 16 }}
+      >
         {/* LEFT: Policies (drop targets) */}
         <Box flex={1} minWidth={320}>
           <Card variant="outlined" style={{ height: '100%' }}>
@@ -250,7 +335,11 @@ export function PolicyEditorView({
               <Typography variant="subtitle1" style={{ marginBottom: 4 }}>
                 Policies
               </Typography>
-              <Typography variant="body2" color="textSecondary" style={{ marginBottom: 16 }}>
+              <Typography
+                variant="body2"
+                color="textSecondary"
+                style={{ marginBottom: 16 }}
+              >
                 Drag policies from the right onto the API or a resource.
               </Typography>
 
@@ -283,7 +372,11 @@ export function PolicyEditorView({
                     return (
                       <Accordion key={index} elevation={0} variant="outlined">
                         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                          <Box display="flex" alignItems="center" style={{ gap: 12 }}>
+                          <Box
+                            display="flex"
+                            alignItems="center"
+                            style={{ gap: 12 }}
+                          >
                             <Chip
                               label={op.method}
                               size="small"
@@ -301,7 +394,11 @@ export function PolicyEditorView({
                               {op.path}
                             </Typography>
                             {count > 0 && (
-                              <Chip label={count} size="small" variant="outlined" />
+                              <Chip
+                                label={count}
+                                size="small"
+                                variant="outlined"
+                              />
                             )}
                           </Box>
                         </AccordionSummary>
@@ -328,14 +425,56 @@ export function PolicyEditorView({
       </Box>
 
       <Box display="flex" justifyContent="flex-end" mt={2}>
-        <Tooltip title="Persistence coming soon">
-          <span>
-            <Button variant="contained" color="primary" disabled>
-              Save
-            </Button>
-          </span>
-        </Tooltip>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleSaveClick}
+          disabled={!canSave || previewing}
+        >
+          {previewing ? <CircularProgress size={20} /> : 'Save'}
+        </Button>
       </Box>
+
+      <Dialog
+        open={confirmOpen}
+        onClose={() => !submitting && setConfirmOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Save Policies</DialogTitle>
+        <DialogContent>
+          <PolicyDiffSummary diff={diffResult} />
+          <DialogContentText>
+            Are you sure you want to save these changes?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmOpen(false)} disabled={submitting}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleConfirmSave}
+            disabled={submitting || diffResult?.hasChanges === false}
+          >
+            {submitting ? <CircularProgress size={20} /> : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={snackbar?.open ?? false}
+        autoHideDuration={4000}
+        onClose={onCloseSnackbar}
+      >
+        <Alert
+          onClose={onCloseSnackbar}
+          severity={snackbar?.severity ?? 'success'}
+        >
+          {snackbar?.message}
+        </Alert>
+      </Snackbar>
 
       <PolicyConfigDialog
         policy={configRef}

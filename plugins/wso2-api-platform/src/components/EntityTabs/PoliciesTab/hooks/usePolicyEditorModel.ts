@@ -49,10 +49,15 @@ export function usePolicyEditorModel(options: {
   const { details, gatewayOperations, gatewayApiPolicies } = options;
 
   const initialModel = useMemo(() => {
+    // `gatewayApiPolicies`/`op.policies` being present-but-empty (`[]`, a
+    // real "no policies attached" gateway artifact) must win over `details`
+    // — falling back just because it's empty would re-normalize it through
+    // the `{}` default below and silently flip a flat scope's `isFlat` off,
+    // which corrupts what gets sent back on save (see normalizeFlowPolicies).
     const rawApiPolicies =
-      gatewayApiPolicies && Object.keys(gatewayApiPolicies).length > 0
+      gatewayApiPolicies !== undefined
         ? gatewayApiPolicies
-        : details?.apiPolicies || {};
+        : details?.apiPolicies;
     const { flows: apiFlows, isFlat: apiIsFlat } =
       normalizeFlowPolicies(rawApiPolicies);
 
@@ -62,7 +67,7 @@ export function usePolicyEditorModel(options: {
         : details?.operations || [];
 
     const operations: EditableOperation[] = rawOperations.map((op: any) => {
-      const rawOpPolicies = op.operationPolicies || op.policies || {};
+      const rawOpPolicies = op.operationPolicies ?? op.policies;
       const { flows, isFlat } = normalizeFlowPolicies(rawOpPolicies);
       return {
         method: String(op.verb || op.method || 'UNKNOWN').toUpperCase(),

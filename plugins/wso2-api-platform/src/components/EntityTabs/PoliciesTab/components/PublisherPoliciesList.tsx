@@ -29,10 +29,7 @@ import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import InfoIcon from '@material-ui/icons/InfoOutlined';
 import ChevronRightIcon from '@material-ui/icons/ChevronRight';
 import { getPolicyFriendlyName } from './PolicyDetailsViewer';
-import {
-  PolicyDetailsDialog,
-  PolicyDetailsRef,
-} from './PolicyDetailsDialog';
+import { PolicyDetailsDialog, PolicyDetailsRef } from './PolicyDetailsDialog';
 import { CODE_FONT_FAMILY } from '../../../../styles/fonts';
 import { useListStyles } from './styles';
 import { PolicyPagination } from './PolicyPagination';
@@ -95,10 +92,7 @@ const Wso2PolicyFlowList = ({
                   ({version})
                 </span>
               </Typography>
-              <ChevronRightIcon
-                fontSize="small"
-                style={{ opacity: 0.5 }}
-              />
+              <ChevronRightIcon fontSize="small" style={{ opacity: 0.5 }} />
             </Box>
           );
         })}
@@ -169,8 +163,9 @@ export const Wso2PublisherPoliciesList = ({
   const [opPage, setOpPage] = useState(1);
   const opsPerPage = 5;
 
-  const [selectedPolicy, setSelectedPolicy] =
-    useState<PolicyDetailsRef | null>(null);
+  const [selectedPolicy, setSelectedPolicy] = useState<PolicyDetailsRef | null>(
+    null,
+  );
   const handlePolicyClick = (policy: any) => {
     setSelectedPolicy({
       name: policy.policyName || policy.name || 'Unknown',

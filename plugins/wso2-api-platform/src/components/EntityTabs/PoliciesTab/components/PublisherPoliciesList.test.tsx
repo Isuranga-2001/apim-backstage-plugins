@@ -5,7 +5,9 @@ import { ThemeProvider } from '@material-ui/core/styles';
 import { lightTheme } from '@backstage/theme';
 import { Wso2PublisherPoliciesList } from './PublisherPoliciesList';
 
-const renderList = (props: React.ComponentProps<typeof Wso2PublisherPoliciesList>) =>
+const renderList = (
+  props: React.ComponentProps<typeof Wso2PublisherPoliciesList>,
+) =>
   render(
     <ThemeProvider theme={lightTheme}>
       <Wso2PublisherPoliciesList {...props} />
@@ -38,7 +40,9 @@ describe('Wso2PublisherPoliciesList', () => {
 
   it('renders "No Global API policies found" when there are none', () => {
     renderList({ details: {}, gatewayApiPolicies: {}, gatewayOperations: [] });
-    expect(screen.getByText('No Global API policies found.')).toBeInTheDocument();
+    expect(
+      screen.getByText('No Global API policies found.'),
+    ).toBeInTheDocument();
   });
 
   it('skips operation-level policies for GraphQL APIs', () => {
@@ -49,7 +53,9 @@ describe('Wso2PublisherPoliciesList', () => {
       apiType: 'GRAPHQL',
     });
     expect(
-      screen.getByText('Operational level policies are not supported for GraphQL APIs.'),
+      screen.getByText(
+        'Operational level policies are not supported for GraphQL APIs.',
+      ),
     ).toBeInTheDocument();
   });
 });

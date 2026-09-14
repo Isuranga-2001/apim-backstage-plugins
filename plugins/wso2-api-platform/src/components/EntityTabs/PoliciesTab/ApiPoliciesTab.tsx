@@ -16,6 +16,7 @@
  * under the License.
  */
 
+import { useState } from 'react';
 import { InfoCard, EmptyState } from '@backstage/core-components';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import Box from '@material-ui/core/Box';
@@ -27,6 +28,8 @@ import { isMcpEntity, isServiceEntity } from '../../../utils';
 import { useWso2ApiPolicies } from './hooks/useApiPolicies';
 import { usePolicyAccessMode } from './hooks/usePolicyAccessMode';
 import { usePolicyEditorModel } from './hooks/usePolicyEditorModel';
+import { usePolicyArtifact } from './hooks/usePolicyArtifact';
+import { usePolicyMutations } from './hooks/usePolicyMutations';
 import { Wso2PublisherPoliciesList } from './components/PublisherPoliciesList';
 import { PolicyEditorView } from './components/PolicyEditor';
 import { EntityWso2ServiceDefinitionCard } from '../DefinitionTab';
@@ -76,11 +79,34 @@ export const EntityWso2ApiPoliciesTab = (): React.JSX.Element | null => {
     skip: isService,
   });
 
-  const { initialModel } = usePolicyEditorModel({
-    details,
-    gatewayOperations,
-    gatewayApiPolicies,
+  const {
+    artifact: liveArtifact,
+    loading: isArtifactLoading,
+    error: artifactError,
+    refresh: refreshArtifact,
+  } = usePolicyArtifact(entity, {
+    skip: mode !== 'editable' || !apiId || isService,
   });
+
+  const {
+    submitting,
+    previewing,
+    snackbar,
+    closeSnackbar,
+    upsertPolicies,
+    previewDiff,
+  } = usePolicyMutations(entity);
+
+  const [artifactVersion, setArtifactVersion] = useState(0);
+
+  const { initialModel } = usePolicyEditorModel(
+    mode === 'editable'
+      ? {
+          gatewayApiPolicies: liveArtifact?.apiPolicies,
+          gatewayOperations: liveArtifact?.operations,
+        }
+      : { details, gatewayOperations, gatewayApiPolicies },
+  );
 
   if (isService) {
     return <EntityWso2ServiceDefinitionCard />;
@@ -91,23 +117,38 @@ export const EntityWso2ApiPoliciesTab = (): React.JSX.Element | null => {
   }
 
   const isPublisherApi = !skipKeyGeneration;
-  const hasPolicyDetails = Boolean(details?.apiPolicies);
-  const hasOperationPolicies = Boolean(
-    (details?.operations && details.operations.length > 0) ||
-      (gatewayOperations && gatewayOperations.length > 0),
-  );
-  const hasGatewayApiPolicies = Boolean(
-    gatewayApiPolicies &&
-      ((gatewayApiPolicies as any).request?.length > 0 ||
-        (gatewayApiPolicies as any).response?.length > 0 ||
-        (gatewayApiPolicies as any).fault?.length > 0),
-  );
-  const showPublisherPoliciesTab =
-    !isMcp &&
-    (isPublisherApi || skipKeyGeneration) &&
-    (hasPolicyDetails || hasOperationPolicies || hasGatewayApiPolicies);
+  const isEditable = mode === 'editable';
 
-  const isLoading = isDefinitionLoading;
+  const hasPolicyDetails = isEditable
+    ? Boolean(
+        liveArtifact?.apiPolicies &&
+          (Array.isArray(liveArtifact.apiPolicies)
+            ? liveArtifact.apiPolicies.length > 0
+            : Object.keys(liveArtifact.apiPolicies as object).length > 0),
+      )
+    : Boolean(details?.apiPolicies);
+  const hasOperationPolicies = isEditable
+    ? Boolean(liveArtifact?.operations && liveArtifact.operations.length > 0)
+    : Boolean(
+        (details?.operations && details.operations.length > 0) ||
+          (gatewayOperations && gatewayOperations.length > 0),
+      );
+  const hasGatewayApiPolicies =
+    !isEditable &&
+    Boolean(
+      gatewayApiPolicies &&
+        ((gatewayApiPolicies as any).request?.length > 0 ||
+          (gatewayApiPolicies as any).response?.length > 0 ||
+          (gatewayApiPolicies as any).fault?.length > 0),
+    );
+  const showPublisherPoliciesTab = isEditable
+    ? !isMcp && Boolean(liveArtifact)
+    : !isMcp &&
+      (isPublisherApi || skipKeyGeneration) &&
+      (hasPolicyDetails || hasOperationPolicies || hasGatewayApiPolicies);
+
+  const isLoading =
+    isDefinitionLoading || (mode === 'editable' && isArtifactLoading);
 
   return (
     <InfoCard>
@@ -171,40 +212,65 @@ export const EntityWso2ApiPoliciesTab = (): React.JSX.Element | null => {
         </Box>
       )}
 
-      {!isLoading && !isPlaceholder && definition === null && !isMcp && (
+      {!isLoading &&
+        !isPlaceholder &&
+        !isEditable &&
+        definition === null &&
+        !isMcp && (
+          <EmptyState
+            title="No Definition"
+            missing="info"
+            description="This API does not have a definition available in the catalog."
+          />
+        )}
+
+      {isEditable && artifactError && !isLoading && (
         <EmptyState
-          title="No Definition"
-          missing="info"
-          description="This API does not have a definition available in the catalog."
+          title="Failed to load policies"
+          missing="data"
+          description={artifactError.message}
         />
       )}
 
-      {(definition || isMcp) && !isPlaceholder && (
-        <>
-          {showPublisherPoliciesTab ? (
-            mode === 'editable' ? (
-              <PolicyEditorView
-                apiType={apiType}
-                initialModel={initialModel}
-                editingDisabledReason={editingDisabledReason}
-              />
+      {((isEditable ? Boolean(liveArtifact) : Boolean(definition)) || isMcp) &&
+        !isPlaceholder &&
+        !(isEditable && artifactError) && (
+          <>
+            {showPublisherPoliciesTab ? (
+              isEditable ? (
+                <PolicyEditorView
+                  key={artifactVersion}
+                  apiType={apiType}
+                  initialModel={initialModel}
+                  editingDisabledReason={editingDisabledReason}
+                  onPreviewDiff={artifact => previewDiff(artifact)}
+                  onSaveClick={async artifact => {
+                    await upsertPolicies(artifact);
+                    await refreshArtifact();
+                    setArtifactVersion(v => v + 1);
+                  }}
+                  submitting={submitting}
+                  previewing={previewing}
+                  snackbar={snackbar}
+                  onCloseSnackbar={closeSnackbar}
+                />
+              ) : (
+                <Wso2PublisherPoliciesList
+                  details={details}
+                  gatewayOperations={gatewayOperations}
+                  gatewayApiPolicies={gatewayApiPolicies}
+                  apiType={apiType}
+                />
+              )
             ) : (
-              <Wso2PublisherPoliciesList
-                details={details}
-                gatewayOperations={gatewayOperations}
-                gatewayApiPolicies={gatewayApiPolicies}
-                apiType={apiType}
+              <EmptyState
+                title="No Policies"
+                missing="info"
+                description="This API does not have policies available."
               />
-            )
-          ) : (
-            <EmptyState
-              title="No Policies"
-              missing="info"
-              description="This API does not have policies available."
-            />
-          )}
-        </>
-      )}
+            )}
+          </>
+        )}
     </InfoCard>
   );
 };

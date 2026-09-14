@@ -1,0 +1,55 @@
+/*
+ * Copyright (c) 2026, WSO2 LLC. (http://www.wso2.com).
+ *
+ * WSO2 LLC. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Entity, getCompoundEntityRef } from '@backstage/catalog-model';
+import { useApi } from '@backstage/core-plugin-api';
+import { Wso2ApiPolicyArtifact, wso2ApiPlatformApiRef } from '../../../../api';
+
+export const usePolicyArtifact = (
+  entity: Entity,
+  options?: { skip?: boolean },
+) => {
+  const wso2Api = useApi(wso2ApiPlatformApiRef);
+  const entityRef = useMemo(() => getCompoundEntityRef(entity), [entity]);
+
+  const [artifact, setArtifact] = useState<Wso2ApiPolicyArtifact | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | undefined>(undefined);
+
+  const fetchArtifact = useCallback(async () => {
+    setLoading(true);
+    setError(undefined);
+    try {
+      const res = await wso2Api.getPolicyArtifact(entityRef);
+      setArtifact(res.policies);
+    } catch (e) {
+      setError(e instanceof Error ? e : new Error(String(e)));
+    } finally {
+      setLoading(false);
+    }
+  }, [wso2Api, entityRef]);
+
+  useEffect(() => {
+    if (options?.skip) return;
+    fetchArtifact();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [options?.skip, entityRef.kind, entityRef.namespace, entityRef.name]);
+
+  return { artifact, loading, error, refresh: fetchArtifact };
+};

@@ -28,7 +28,8 @@ export const DEFAULT_POLICY_HUB_BASE_URL =
   'https://db720294-98fd-40f4-85a1-cc6a3b65bc9a-dev.e1-us-east-azure.choreoapis.dev/api-platform/policy-hub-api/policy-hub-public/v1.0';
 
 /** Public Policy Hub website. */
-export const POLICY_HUB_WEBSITE_URL = 'https://wso2.com/api-platform/policy-hub/';
+export const POLICY_HUB_WEBSITE_URL =
+  'https://wso2.com/api-platform/policy-hub/';
 
 /** A policy as listed by the Policy Hub catalog. */
 export type PolicySummary = {
@@ -57,7 +58,8 @@ export type PolicyDefinition = {
   schema: ParameterSchema;
 };
 
-const asArray = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+const asArray = (value: unknown): unknown[] =>
+  Array.isArray(value) ? value : [];
 const str = (value: unknown): string =>
   typeof value === 'string' ? value : value == null ? '' : String(value);
 const asRecord = (value: unknown): Record<string, unknown> =>
@@ -132,7 +134,10 @@ export async function listPolicies(
 
 /** GET /policies/categories - available category names. */
 export async function listPolicyCategories(baseUrl: string): Promise<string[]> {
-  const data = await hubGet<{ data?: unknown[] }>(baseUrl, '/policies/categories');
+  const data = await hubGet<{ data?: unknown[] }>(
+    baseUrl,
+    '/policies/categories',
+  );
   return asArray(data.data).map(str);
 }
 
@@ -197,9 +202,9 @@ export async function getPolicyDefinition(
   let response: Response;
   try {
     response = await fetch(
-      `${baseUrl}/policies/${encodeURIComponent(name)}/versions/${encodeURIComponent(
-        version,
-      )}/definition`,
+      `${baseUrl}/policies/${encodeURIComponent(
+        name,
+      )}/versions/${encodeURIComponent(version)}/definition`,
       { headers: { Accept: 'text/yaml, application/json' } },
     );
   } catch (error) {

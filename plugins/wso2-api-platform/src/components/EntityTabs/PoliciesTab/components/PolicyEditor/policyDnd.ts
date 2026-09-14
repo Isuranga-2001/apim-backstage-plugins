@@ -30,7 +30,10 @@ export const POLICY_DND_MIME = 'application/x-policy-ref';
 
 export const POLICY_REORDER_MIME = 'application/x-policy-reorder';
 
-export type DraggedPolicy = Pick<PolicySummary, 'name' | 'version' | 'displayName'>;
+export type DraggedPolicy = Pick<
+  PolicySummary,
+  'name' | 'version' | 'displayName'
+>;
 
 let dragged: DraggedPolicy | null = null;
 

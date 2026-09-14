@@ -22,15 +22,19 @@ import {
   CreateWso2ApiDocumentRequest,
   UpdateWso2ApiDocumentMetadataRequest,
   UpsertWso2ApiDefinitionRequest,
+  UpsertWso2ApiPolicyArtifactRequest,
   Wso2ApiDefinitionResponse,
   Wso2ApiDocument,
   Wso2ApiDocumentListResponse,
+  Wso2ApiPolicyArtifact,
+  Wso2ApiPolicyArtifactResponse,
   Wso2ApiRevisionsResponse,
   Wso2ApiPlatformApi,
   Wso2ApiPlatformRuntimeConfig,
   Wso2DefinitionDiffResponse,
   Wso2GatewaySummary,
   Wso2GenerateApiKeyOptions,
+  Wso2PolicyDiffResponse,
 } from './types';
 
 /**
@@ -139,6 +143,13 @@ export class Wso2ApiPlatformClient implements Wso2ApiPlatformApi {
     const namespace = encodeURIComponent(entityRef.namespace || 'default');
     const name = encodeURIComponent(entityRef.name);
     return `/entities/${kind}/${namespace}/${name}/definition`;
+  }
+
+  private entityPoliciesPath(entityRef: CompoundEntityRef): string {
+    const kind = encodeURIComponent(entityRef.kind.toLowerCase());
+    const namespace = encodeURIComponent(entityRef.namespace || 'default');
+    const name = encodeURIComponent(entityRef.name);
+    return `/entities/${kind}/${namespace}/${name}/policies`;
   }
 
   async generateApiKey(
@@ -307,6 +318,34 @@ export class Wso2ApiPlatformClient implements Wso2ApiPlatformApi {
     return this.request<Wso2DefinitionDiffResponse>(
       `${this.entityDefinitionPath(entityRef)}/diff`,
       { method: 'POST', body: { content } },
+    );
+  }
+
+  async getPolicyArtifact(
+    entityRef: CompoundEntityRef,
+  ): Promise<Wso2ApiPolicyArtifactResponse> {
+    return this.request<Wso2ApiPolicyArtifactResponse>(
+      this.entityPoliciesPath(entityRef),
+    );
+  }
+
+  async upsertPolicyArtifact(
+    entityRef: CompoundEntityRef,
+    input: UpsertWso2ApiPolicyArtifactRequest,
+  ): Promise<Wso2ApiPolicyArtifactResponse> {
+    return this.request<Wso2ApiPolicyArtifactResponse>(
+      this.entityPoliciesPath(entityRef),
+      { method: 'PUT', body: input },
+    );
+  }
+
+  async previewPolicyDiff(
+    entityRef: CompoundEntityRef,
+    input: Wso2ApiPolicyArtifact,
+  ): Promise<Wso2PolicyDiffResponse> {
+    return this.request<Wso2PolicyDiffResponse>(
+      `${this.entityPoliciesPath(entityRef)}/diff`,
+      { method: 'POST', body: input },
     );
   }
 }

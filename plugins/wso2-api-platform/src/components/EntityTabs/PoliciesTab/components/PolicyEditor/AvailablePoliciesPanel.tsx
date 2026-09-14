@@ -37,6 +37,7 @@ import {
 } from '../../../../../api/policyHub';
 import { POLICY_DND_MIME, setDraggedPolicy } from './policyDnd';
 import { PolicyPagination } from '../PolicyPagination';
+import { formatPolicyVersion } from './policyModel';
 
 const PAGE_SIZE = 20;
 
@@ -76,7 +77,12 @@ export function AvailablePoliciesPanel() {
 
   return (
     <Box display="flex" flexDirection="column" height="100%">
-      <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+      <Box
+        display="flex"
+        alignItems="center"
+        justifyContent="space-between"
+        mb={1}
+      >
         <Typography variant="subtitle1" style={{ fontWeight: 'bold' }}>
           Available Policies
         </Typography>
@@ -197,7 +203,11 @@ export function AvailablePoliciesPanel() {
                 <Box display="flex" color="text.disabled">
                   <DragIndicatorIcon fontSize="small" />
                 </Box>
-                <Avatar src={policy.iconUrl} style={{ width: 28, height: 28 }} variant="rounded">
+                <Avatar
+                  src={policy.iconUrl}
+                  style={{ width: 28, height: 28 }}
+                  variant="rounded"
+                >
                   <SecurityIcon fontSize="small" />
                 </Avatar>
                 <Typography
@@ -207,7 +217,11 @@ export function AvailablePoliciesPanel() {
                 >
                   {policy.displayName}
                 </Typography>
-                <Chip label={`v${policy.version}`} size="small" variant="outlined" />
+                <Chip
+                  label={formatPolicyVersion(policy.version)}
+                  size="small"
+                  variant="outlined"
+                />
               </Box>
             ))}
           </Box>

@@ -27,7 +27,7 @@ import EditIcon from '@material-ui/icons/Edit';
 import SecurityIcon from '@material-ui/icons/Security';
 import DeleteIcon from '@material-ui/icons/Delete';
 import { getPolicyFriendlyName } from '../PolicyDetailsViewer';
-import { ApiPolicy } from './policyModel';
+import { ApiPolicy, formatPolicyVersion } from './policyModel';
 import { POLICY_REORDER_MIME } from './policyDnd';
 
 /**
@@ -75,7 +75,8 @@ export function AttachedPolicyList({
       ) : (
         <Box display="flex" flexDirection="column" style={{ gap: 6 }}>
           {policies.map((policy, index) => {
-            const isOver = overIndex === index && dragIndex !== null && dragIndex !== index;
+            const isOver =
+              overIndex === index && dragIndex !== null && dragIndex !== index;
             return (
               <Box
                 draggable={canAdd}
@@ -93,7 +94,10 @@ export function AttachedPolicyList({
                   if (!canAdd) return;
                   setDragIndex(index);
                   event.dataTransfer.effectAllowed = 'move';
-                  event.dataTransfer.setData(POLICY_REORDER_MIME, String(index));
+                  event.dataTransfer.setData(
+                    POLICY_REORDER_MIME,
+                    String(index),
+                  );
                 }}
                 onDrop={event => {
                   if (dragIndex === null) return;
@@ -118,7 +122,11 @@ export function AttachedPolicyList({
                 }}
               >
                 {canAdd && (
-                  <Box display="flex" color="text.disabled" style={{ cursor: 'grab' }}>
+                  <Box
+                    display="flex"
+                    color="text.disabled"
+                    style={{ cursor: 'grab' }}
+                  >
                     <DragIndicatorIcon fontSize="small" />
                   </Box>
                 )}
@@ -130,7 +138,13 @@ export function AttachedPolicyList({
                 >
                   {getPolicyFriendlyName(policy.name)}
                 </Typography>
-                <Chip label={`v${policy.version}`} size="small" variant="outlined" />
+                <Box display="flex" marginTop={0.8}>
+                  <Chip
+                    label={formatPolicyVersion(policy.version)}
+                    size="small"
+                    variant="outlined"
+                  />
+                </Box>
                 {canAdd && (
                   <Box display="flex">
                     <Tooltip title="Edit">

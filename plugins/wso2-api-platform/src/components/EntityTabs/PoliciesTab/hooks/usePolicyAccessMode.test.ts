@@ -12,9 +12,10 @@ jest.mock('../../../common/useGatewayStatus', () => ({
   useGatewayStatus: jest.fn(),
 }));
 
-const entityWith = (annotations: Record<string, string>) => ({
-  metadata: { annotations },
-}) as any;
+const entityWith = (annotations: Record<string, string>) =>
+  ({
+    metadata: { annotations },
+  } as any);
 
 describe('usePolicyAccessMode', () => {
   beforeEach(() => {
@@ -29,7 +30,10 @@ describe('usePolicyAccessMode', () => {
   });
 
   it('is editable for an OpenChoreo-gateway API with storage enabled by default', () => {
-    (useGatewayStatus as jest.Mock).mockReturnValue({ applicable: true, active: true });
+    (useGatewayStatus as jest.Mock).mockReturnValue({
+      applicable: true,
+      active: true,
+    });
     const { result } = renderHook(() =>
       usePolicyAccessMode(
         entityWith({ 'wso2.com/api-discovery-type': 'openchoreo-gateway' }),
@@ -40,14 +44,19 @@ describe('usePolicyAccessMode', () => {
   });
 
   it('is editable but disabled when the OpenChoreo gateway is inactive', () => {
-    (useGatewayStatus as jest.Mock).mockReturnValue({ applicable: true, active: false });
+    (useGatewayStatus as jest.Mock).mockReturnValue({
+      applicable: true,
+      active: false,
+    });
     const { result } = renderHook(() =>
       usePolicyAccessMode(
         entityWith({ 'wso2.com/api-discovery-type': 'openchoreo-gateway' }),
       ),
     );
     expect(result.current.mode).toBe('editable');
-    expect(result.current.editingDisabledReason).toBe('Gateway is currently inactive');
+    expect(result.current.editingDisabledReason).toBe(
+      'Gateway is currently inactive',
+    );
   });
 
   it('is read-only when definition storage is disabled', () => {

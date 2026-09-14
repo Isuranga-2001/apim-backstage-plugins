@@ -1,4 +1,5 @@
 import {
+  denormalizeFlowPolicies,
   normalizeFlowPolicies,
   reorderPolicies,
   scopeId,
@@ -7,29 +8,53 @@ import {
 
 describe('toApiPolicy', () => {
   it('normalizes annotation-style field names', () => {
-    expect(
-      toApiPolicy({ policyName: 'foo', policyVersion: '1.0.0', parameters: { a: 1 } }),
-    ).toEqual({ name: 'foo', version: '1.0.0', params: { a: 1 } });
+    const raw = {
+      policyName: 'foo',
+      policyVersion: '1.0.0',
+      parameters: { a: 1 },
+    };
+    expect(toApiPolicy(raw)).toEqual({
+      name: 'foo',
+      version: '1.0.0',
+      params: { a: 1 },
+      raw,
+    });
   });
 
   it('normalizes flat name/version/params field names', () => {
-    expect(toApiPolicy({ name: 'bar', version: '2.0.0', params: { b: 2 } })).toEqual({
+    const raw = { name: 'bar', version: '2.0.0', params: { b: 2 } };
+    expect(toApiPolicy(raw)).toEqual({
       name: 'bar',
       version: '2.0.0',
       params: { b: 2 },
+      raw,
     });
   });
 
   it('falls back to Unknown/N/A when fields are missing', () => {
-    expect(toApiPolicy({})).toEqual({ name: 'Unknown', version: 'N/A', params: undefined });
+    expect(toApiPolicy({})).toEqual({
+      name: 'Unknown',
+      version: 'N/A',
+      params: undefined,
+      raw: {},
+    });
   });
 });
 
 describe('normalizeFlowPolicies', () => {
   it('treats a flat array as the request flow and marks isFlat', () => {
-    const { flows, isFlat } = normalizeFlowPolicies([{ name: 'a', version: '1' }]);
+    const { flows, isFlat } = normalizeFlowPolicies([
+      { name: 'a', version: '1' },
+    ]);
     expect(isFlat).toBe(true);
-    expect(flows.request).toEqual([{ name: 'a', version: '1', params: undefined }]);
+    expect(flows.request).toEqual([
+      {
+        name: 'a',
+        version: '1',
+        params: undefined,
+        raw: { name: 'a', version: '1' },
+      },
+    ]);
     expect(flows.response).toEqual([]);
     expect(flows.fault).toEqual([]);
   });
@@ -46,10 +71,14 @@ describe('normalizeFlowPolicies', () => {
     expect(flows.fault).toHaveLength(0);
   });
 
-  it('handles missing/empty input', () => {
+  it('treats missing input as flat (a gateway RestApi has no object-shaped policies form)', () => {
     expect(normalizeFlowPolicies(undefined)).toEqual({
       flows: { request: [], response: [], fault: [] },
-      isFlat: false,
+      isFlat: true,
+    });
+    expect(normalizeFlowPolicies(null)).toEqual({
+      flows: { request: [], response: [], fault: [] },
+      isFlat: true,
     });
   });
 });
@@ -62,7 +91,11 @@ describe('reorderPolicies', () => {
   ];
 
   it('moves an item from one index to another', () => {
-    expect(reorderPolicies(policies, 0, 2).map(p => p.name)).toEqual(['b', 'c', 'a']);
+    expect(reorderPolicies(policies, 0, 2).map(p => p.name)).toEqual([
+      'b',
+      'c',
+      'a',
+    ]);
   });
 
   it('is a no-op for out-of-range indices', () => {
@@ -78,6 +111,44 @@ describe('reorderPolicies', () => {
 describe('scopeId', () => {
   it('builds a stable id per scope+flow', () => {
     expect(scopeId({ kind: 'api', flow: 'request' })).toBe('api-request');
-    expect(scopeId({ kind: 'operation', index: 2, flow: 'fault' })).toBe('op-2-fault');
+    expect(scopeId({ kind: 'operation', index: 2, flow: 'fault' })).toBe(
+      'op-2-fault',
+    );
+  });
+});
+
+describe('denormalizeFlowPolicies', () => {
+  it('serializes a flat scope back to a plain array', () => {
+    const { flows } = normalizeFlowPolicies([{ name: 'a', version: '1' }]);
+    expect(denormalizeFlowPolicies(flows, true)).toEqual([
+      { name: 'a', version: '1', params: undefined },
+    ]);
+  });
+
+  it('serializes a non-flat scope back to a {request,response,fault} object', () => {
+    const { flows } = normalizeFlowPolicies({
+      request: [{ name: 'a', version: '1' }],
+      response: [{ name: 'b', version: '2' }],
+      fault: [],
+    });
+    expect(denormalizeFlowPolicies(flows, false)).toEqual({
+      request: [{ name: 'a', version: '1', params: undefined }],
+      response: [{ name: 'b', version: '2', params: undefined }],
+      fault: [],
+    });
+  });
+
+  it('preserves unmodeled fields carried on the original raw entry', () => {
+    const { flows } = normalizeFlowPolicies([
+      { name: 'a', version: '1', executionCondition: 'always' },
+    ]);
+    expect(denormalizeFlowPolicies(flows, true)).toEqual([
+      {
+        name: 'a',
+        version: '1',
+        params: undefined,
+        executionCondition: 'always',
+      },
+    ]);
   });
 });

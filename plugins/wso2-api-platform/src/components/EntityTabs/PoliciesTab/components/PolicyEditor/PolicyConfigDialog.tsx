@@ -41,7 +41,11 @@ import { getPolicyFriendlyName } from '../PolicyDetailsViewer';
 import { ApiPolicy } from './policyModel';
 import { defaultForSchema, SchemaField } from './SchemaField';
 
-export type PolicyConfigRef = { name: string; version: string; displayName?: string };
+export type PolicyConfigRef = {
+  name: string;
+  version: string;
+  displayName?: string;
+};
 
 /**
  * Dialog to configure a policy's parameters via a form generated recursively
@@ -71,7 +75,9 @@ export function PolicyConfigDialog({
   );
   const schema: ParameterSchema | undefined = definitionQuery.value?.schema;
 
-  const [valuesByKey, setValuesByKey] = useState<Record<string, ParameterValues>>({});
+  const [valuesByKey, setValuesByKey] = useState<
+    Record<string, ParameterValues>
+  >({});
   const formKey = policy ? `${policy.name}@${policy.version}` : '';
   const values =
     valuesByKey[formKey] ?? (schema ? initValues(schema, initialValues) : {});
@@ -85,7 +91,9 @@ export function PolicyConfigDialog({
   const onAddItem = (path: string, itemSchema: ParameterSchema) => {
     const current = getByPath(values, path);
     const arr = Array.isArray(current) ? current : [];
-    update(setByPath(values, `${path}.${arr.length}`, defaultForSchema(itemSchema)));
+    update(
+      setByPath(values, `${path}.${arr.length}`, defaultForSchema(itemSchema)),
+    );
   };
 
   const onRemoveItem = (path: string, index: number) => {
@@ -114,7 +122,8 @@ export function PolicyConfigDialog({
       <DialogTitle disableTypography>
         <Box display="flex" alignItems="center" justifyContent="space-between">
           <Typography variant="h6">
-            Configure {policy?.displayName || getPolicyFriendlyName(policy?.name || '')}
+            Configure{' '}
+            {policy?.displayName || getPolicyFriendlyName(policy?.name || '')}
           </Typography>
           <IconButton aria-label="Close" onClick={onClose} size="small">
             <CloseIcon fontSize="small" />
@@ -128,7 +137,10 @@ export function PolicyConfigDialog({
             <CircularProgress size={24} />
           </Box>
         ) : definitionQuery.error ? (
-          <WarningPanel severity="error" title="Failed to load policy definition">
+          <WarningPanel
+            severity="error"
+            title="Failed to load policy definition"
+          >
             <Box display="flex" flexDirection="column" style={{ gap: 8 }}>
               <Typography variant="body2">
                 {definitionQuery.error.message ||

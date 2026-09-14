@@ -102,7 +102,9 @@ function MapField({
   value: unknown;
   onChange: (path: string, value: unknown) => void;
 }) {
-  const valueSchema = schema.additionalProperties ?? { type: 'string' as const };
+  const valueSchema = schema.additionalProperties ?? {
+    type: 'string' as const,
+  };
   const [entries, setEntries] = useState<Array<[string, unknown]>>(() =>
     value && typeof value === 'object' && !Array.isArray(value)
       ? Object.entries(value as Record<string, unknown>)
@@ -121,17 +123,27 @@ function MapField({
   const setVal = (i: number, val: unknown) =>
     commit(entries.map((e, idx) => (idx === i ? [e[0], val] : e)));
   const remove = (i: number) => commit(entries.filter((_e, idx) => idx !== i));
-  const add = () => commit([...entries, ['', defaultForSchema(valueSchema) ?? '']]);
+  const add = () =>
+    commit([...entries, ['', defaultForSchema(valueSchema) ?? '']]);
 
   const isNum = valueSchema.type === 'number' || valueSchema.type === 'integer';
   const isBool = valueSchema.type === 'boolean';
 
   return (
     <Box>
-      <FieldLabel description={schema.description} label={label} required={required} />
+      <FieldLabel
+        description={schema.description}
+        label={label}
+        required={required}
+      />
       <Box display="flex" flexDirection="column" style={{ gap: 8 }}>
         {entries.map(([key, val], index) => (
-          <Box key={index} display="flex" alignItems="center" style={{ gap: 8 }}>
+          <Box
+            key={index}
+            display="flex"
+            alignItems="center"
+            style={{ gap: 8 }}
+          >
             <TextField
               onChange={event => setKey(index, event.target.value)}
               placeholder="Key"
@@ -172,7 +184,11 @@ function MapField({
             </IconButton>
           </Box>
         ))}
-        <Button onClick={add} size="small" startIcon={<AddIcon fontSize="small" />}>
+        <Button
+          onClick={add}
+          size="small"
+          startIcon={<AddIcon fontSize="small" />}
+        >
           Add entry
         </Button>
       </Box>
@@ -241,7 +257,11 @@ export function SchemaField({
     return (
       <Box>
         {label && (
-          <FieldLabel description={schema.description} label={label} required={required} />
+          <FieldLabel
+            description={schema.description}
+            label={label}
+            required={required}
+          />
         )}
         <Box
           style={
@@ -287,7 +307,11 @@ export function SchemaField({
     const itemSchema = schema.items;
     return (
       <Box>
-        <FieldLabel description={schema.description} label={label} required={required} />
+        <FieldLabel
+          description={schema.description}
+          label={label}
+          required={required}
+        />
         <Box display="flex" flexDirection="column" style={{ gap: 8 }}>
           {items.map((_item, index) => (
             <Box
@@ -337,7 +361,11 @@ export function SchemaField({
   if (schema.type === 'string' && schema.enum && schema.enum.length > 0) {
     return (
       <Box>
-        <FieldLabel description={schema.description} label={label} required={required} />
+        <FieldLabel
+          description={schema.description}
+          label={label}
+          required={required}
+        />
         <Select
           displayEmpty
           fullWidth
@@ -392,7 +420,11 @@ export function SchemaField({
   const isNumber = schema.type === 'number' || schema.type === 'integer';
   return (
     <Box>
-      <FieldLabel description={schema.description} label={label} required={required} />
+      <FieldLabel
+        description={schema.description}
+        label={label}
+        required={required}
+      />
       <TextField
         fullWidth
         onChange={event =>
