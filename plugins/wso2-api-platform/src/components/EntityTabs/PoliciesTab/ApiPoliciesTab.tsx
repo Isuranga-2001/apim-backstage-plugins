@@ -25,7 +25,10 @@ import Typography from '@material-ui/core/Typography';
 
 import { isMcpEntity, isServiceEntity } from '../../../utils';
 import { useWso2ApiPolicies } from './hooks/useApiPolicies';
+import { usePolicyAccessMode } from './hooks/usePolicyAccessMode';
+import { usePolicyEditorModel } from './hooks/usePolicyEditorModel';
 import { Wso2PublisherPoliciesList } from './components/PublisherPoliciesList';
+import { PolicyEditorView } from './components/PolicyEditor';
 import { EntityWso2ServiceDefinitionCard } from '../DefinitionTab';
 
 const WSO2_API_ID_ANNOTATION = 'wso2.com/api-id';
@@ -56,6 +59,8 @@ export const EntityWso2ApiPoliciesTab = (): React.JSX.Element | null => {
 
   const skipKeyGeneration = isApiPlatform || isSelfHostedGateway || isMcp;
 
+  const { mode, editingDisabledReason } = usePolicyAccessMode(entity);
+
   const {
     details,
     definition,
@@ -69,6 +74,12 @@ export const EntityWso2ApiPoliciesTab = (): React.JSX.Element | null => {
     apiId,
     isApiPlatform: skipKeyGeneration,
     skip: isService,
+  });
+
+  const { initialModel } = usePolicyEditorModel({
+    details,
+    gatewayOperations,
+    gatewayApiPolicies,
   });
 
   if (isService) {
@@ -171,12 +182,20 @@ export const EntityWso2ApiPoliciesTab = (): React.JSX.Element | null => {
       {(definition || isMcp) && !isPlaceholder && (
         <>
           {showPublisherPoliciesTab ? (
-            <Wso2PublisherPoliciesList
-              details={details}
-              gatewayOperations={gatewayOperations}
-              gatewayApiPolicies={gatewayApiPolicies}
-              apiType={apiType}
-            />
+            mode === 'editable' ? (
+              <PolicyEditorView
+                apiType={apiType}
+                initialModel={initialModel}
+                editingDisabledReason={editingDisabledReason}
+              />
+            ) : (
+              <Wso2PublisherPoliciesList
+                details={details}
+                gatewayOperations={gatewayOperations}
+                gatewayApiPolicies={gatewayApiPolicies}
+                apiType={apiType}
+              />
+            )
           ) : (
             <EmptyState
               title="No Policies"

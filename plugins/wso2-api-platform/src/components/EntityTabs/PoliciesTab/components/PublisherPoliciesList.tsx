@@ -25,64 +25,17 @@ import AccordionSummary from '@material-ui/core/AccordionSummary';
 import AccordionDetails from '@material-ui/core/AccordionDetails';
 import Divider from '@material-ui/core/Divider';
 import Tooltip from '@material-ui/core/Tooltip';
-import Button from '@material-ui/core/Button';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import InfoIcon from '@material-ui/icons/InfoOutlined';
+import ChevronRightIcon from '@material-ui/icons/ChevronRight';
+import { getPolicyFriendlyName } from './PolicyDetailsViewer';
 import {
-  Wso2PolicyDetailsViewer,
-  getPolicyFriendlyName,
-} from './PolicyDetailsViewer';
+  PolicyDetailsDialog,
+  PolicyDetailsRef,
+} from './PolicyDetailsDialog';
 import { CODE_FONT_FAMILY } from '../../../../styles/fonts';
 import { useListStyles } from './styles';
-
-// Shared mini pagination control
-const PolicyPagination = ({
-  currentPage,
-  totalPages,
-  onPageChange,
-}: {
-  currentPage: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
-}) => {
-  if (totalPages <= 1) return null;
-  return (
-    <Box
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
-      mt={2}
-      mb={1}
-      style={{ gap: '12px' }}
-    >
-      <Button
-        size="small"
-        variant="outlined"
-        disabled={currentPage === 1}
-        onClick={() => onPageChange(currentPage - 1)}
-        style={{ textTransform: 'none', minWidth: '70px' }}
-      >
-        &lt; Prev
-      </Button>
-      <Typography
-        variant="caption"
-        color="textSecondary"
-        style={{ fontWeight: 600 }}
-      >
-        Page {currentPage} of {totalPages}
-      </Typography>
-      <Button
-        size="small"
-        variant="outlined"
-        disabled={currentPage === totalPages}
-        onClick={() => onPageChange(currentPage + 1)}
-        style={{ textTransform: 'none', minWidth: '70px' }}
-      >
-        Next &gt;
-      </Button>
-    </Box>
-  );
-};
+import { PolicyPagination } from './PolicyPagination';
 
 // Stateful sub-component for paginated flow-level policies
 const Wso2PolicyFlowList = ({
@@ -90,11 +43,13 @@ const Wso2PolicyFlowList = ({
   policies,
   classes,
   hideLabel = false,
+  onPolicyClick,
 }: {
   flowType: string;
   policies: any[];
   classes: any;
   hideLabel?: boolean;
+  onPolicyClick: (policy: any) => void;
 }) => {
   const [page, setPage] = useState(1);
   const theme = useTheme();
@@ -112,49 +67,39 @@ const Wso2PolicyFlowList = ({
     <Box>
       <Box>
         {paginatedPolicies.map((policy: any, idx: number) => {
-          const hasParams =
-            (policy.parameters && Object.keys(policy.parameters).length > 0) ||
-            (policy.params && Object.keys(policy.params).length > 0);
           const policyName = policy.policyName || policy.name || 'Unknown';
           const version = policy.policyVersion || policy.version || 'N/A';
 
           return (
-            <Accordion
+            <Box
               key={`${flowType}-${idx}`}
               className={classes.policyAccordion}
-              elevation={0}
+              display="flex"
+              alignItems="center"
+              justifyContent="space-between"
+              px={2}
+              py={1}
+              style={{ cursor: 'pointer' }}
+              onClick={() => onPolicyClick(policy)}
             >
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Box>
-                  <Typography className={classes.policyTitle}>
-                    {getPolicyFriendlyName(policyName)}
-                    <span
-                      style={{
-                        fontWeight: 400,
-                        opacity: 0.5,
-                        fontSize: '0.75rem',
-                        marginLeft: '8px',
-                      }}
-                    >
-                      ({version})
-                    </span>
-                  </Typography>
-                </Box>
-              </AccordionSummary>
-              <AccordionDetails style={{ display: 'block', padding: 0 }}>
-                {hasParams ? (
-                  <Wso2PolicyDetailsViewer
-                    parameters={policy.parameters || policy.params}
-                  />
-                ) : (
-                  <Box p={2}>
-                    <Typography variant="body2" color="textSecondary">
-                      This policy has no configurable parameters.
-                    </Typography>
-                  </Box>
-                )}
-              </AccordionDetails>
-            </Accordion>
+              <Typography className={classes.policyTitle}>
+                {getPolicyFriendlyName(policyName)}
+                <span
+                  style={{
+                    fontWeight: 400,
+                    opacity: 0.5,
+                    fontSize: '0.75rem',
+                    marginLeft: '8px',
+                  }}
+                >
+                  ({version})
+                </span>
+              </Typography>
+              <ChevronRightIcon
+                fontSize="small"
+                style={{ opacity: 0.5 }}
+              />
+            </Box>
           );
         })}
       </Box>
@@ -223,6 +168,16 @@ export const Wso2PublisherPoliciesList = ({
 
   const [opPage, setOpPage] = useState(1);
   const opsPerPage = 5;
+
+  const [selectedPolicy, setSelectedPolicy] =
+    useState<PolicyDetailsRef | null>(null);
+  const handlePolicyClick = (policy: any) => {
+    setSelectedPolicy({
+      name: policy.policyName || policy.name || 'Unknown',
+      version: policy.policyVersion || policy.version,
+      parameters: policy.parameters || policy.params,
+    });
+  };
 
   const getMethodColors = (method: string) => {
     const m = (method || '').toUpperCase();
@@ -314,16 +269,19 @@ export const Wso2PublisherPoliciesList = ({
               policies={apiPolicies.request}
               classes={classes}
               hideLabel={isFlatApiPolicies}
+              onPolicyClick={handlePolicyClick}
             />
             <Wso2PolicyFlowList
               flowType="Response"
               policies={apiPolicies.response}
               classes={classes}
+              onPolicyClick={handlePolicyClick}
             />
             <Wso2PolicyFlowList
               flowType="Fault"
               policies={apiPolicies.fault}
               classes={classes}
+              onPolicyClick={handlePolicyClick}
             />
           </Box>
         )}
@@ -449,6 +407,7 @@ export const Wso2PublisherPoliciesList = ({
                                 policies={opPolicies.request}
                                 classes={classes}
                                 hideLabel={isFlatOpPolicies}
+                                onPolicyClick={handlePolicyClick}
                               />
                               {opPolicies.response?.length > 0 && (
                                 <>
@@ -457,6 +416,7 @@ export const Wso2PublisherPoliciesList = ({
                                     flowType="Response"
                                     policies={opPolicies.response}
                                     classes={classes}
+                                    onPolicyClick={handlePolicyClick}
                                   />
                                 </>
                               )}
@@ -467,6 +427,7 @@ export const Wso2PublisherPoliciesList = ({
                                     flowType="Fault"
                                     policies={opPolicies.fault}
                                     classes={classes}
+                                    onPolicyClick={handlePolicyClick}
                                   />
                                 </>
                               )}
@@ -492,6 +453,12 @@ export const Wso2PublisherPoliciesList = ({
           )}
         </>
       )}
+
+      <PolicyDetailsDialog
+        policy={selectedPolicy}
+        open={!!selectedPolicy}
+        onClose={() => setSelectedPolicy(null)}
+      />
     </Box>
   );
 };

@@ -4,6 +4,7 @@ import '@testing-library/jest-dom';
 import { EntityWso2ApiPoliciesTab } from './ApiPoliciesTab';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { useWso2ApiPolicies } from './hooks/useApiPolicies';
+import { usePolicyAccessMode } from './hooks/usePolicyAccessMode';
 import { ThemeProvider } from '@material-ui/core/styles';
 import { lightTheme } from '@backstage/theme';
 
@@ -37,6 +38,10 @@ jest.mock('./hooks/useApiPolicies', () => ({
   useWso2ApiPolicies: jest.fn(),
 }));
 
+jest.mock('./hooks/usePolicyAccessMode', () => ({
+  usePolicyAccessMode: jest.fn(),
+}));
+
 jest.mock('./components/PublisherPoliciesList', () => ({
   Wso2PublisherPoliciesList: () => {
     const React = require('react');
@@ -44,6 +49,17 @@ jest.mock('./components/PublisherPoliciesList', () => ({
       'div',
       { 'data-testid': 'policies-list' },
       'Policies List',
+    );
+  },
+}));
+
+jest.mock('./components/PolicyEditor', () => ({
+  PolicyEditorView: () => {
+    const React = require('react');
+    return React.createElement(
+      'div',
+      { 'data-testid': 'policy-editor' },
+      'Policy Editor',
     );
   },
 }));
@@ -59,6 +75,10 @@ describe('EntityWso2ApiPoliciesTab', () => {
       gatewayApiPolicies: [],
       isPlaceholder: false,
       isRevisionsLoading: false,
+    });
+    (usePolicyAccessMode as jest.Mock).mockReturnValue({
+      mode: 'read-only',
+      editingDisabledReason: undefined,
     });
   });
 
@@ -186,5 +206,37 @@ describe('EntityWso2ApiPoliciesTab', () => {
 
     renderComponent();
     expect(screen.getByText('Discovered API')).toBeInTheDocument();
+  });
+
+  it('renders the policy editor for editable (OpenChoreo) APIs', () => {
+    (useEntity as jest.Mock).mockReturnValue({
+      entity: {
+        metadata: {
+          annotations: {
+            'wso2.com/api-id': '123',
+            'wso2.com/api-discovery-type': 'openchoreo-gateway',
+          },
+        },
+        spec: { type: 'api' },
+      },
+    });
+
+    (usePolicyAccessMode as jest.Mock).mockReturnValue({
+      mode: 'editable',
+      editingDisabledReason: undefined,
+    });
+
+    (useWso2ApiPolicies as jest.Mock).mockReturnValue({
+      isDefinitionLoading: false,
+      isPlaceholder: false,
+      definition: {},
+      details: { apiPolicies: { request: [{ policyName: 'test' }] } },
+      gatewayOperations: [],
+      gatewayApiPolicies: {},
+    });
+
+    renderComponent();
+    expect(screen.getByTestId('policy-editor')).toBeInTheDocument();
+    expect(screen.queryByTestId('policies-list')).not.toBeInTheDocument();
   });
 });

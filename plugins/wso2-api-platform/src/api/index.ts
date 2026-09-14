@@ -50,3 +50,5 @@ export type {
   Wso2ApiRevisionsResponse,
   Wso2McpTool,
 } from './types';
+
+export * from './policyHub';

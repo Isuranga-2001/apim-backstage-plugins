@@ -53,6 +53,18 @@ export interface Config {
         maxSizeKb?: number;
       };
     };
+    /**
+     * Frontend-visible Policy Hub configuration. The Policies tab's policy
+     * editor calls the Policy Hub directly from the browser, so its base URL
+     * must be readable client-side. Falls back to the platform's public
+     * Policy Hub instance when unset.
+     */
+    policyHub?: {
+      /**
+       * @visibility frontend
+       */
+      baseUrl?: string;
+    };
   };
   wso2ApiPlatformGateway?: {
     /**
