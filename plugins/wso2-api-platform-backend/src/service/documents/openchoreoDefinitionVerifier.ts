@@ -30,13 +30,13 @@ import {
   parseDefinitionInfo,
 } from './restApiArtifactMapper';
 
-type OpenChoreoGateway = {
+export type OpenChoreoGateway = {
   discoveryUrl: string;
   discoveryAuth?: string;
 };
 
 /** Resolves the configured OpenChoreo gateway, or undefined (fail open) if none has a discovery URL. */
-function resolveOpenChoreoGateway(
+export function resolveOpenChoreoGateway(
   client: Wso2ApiPlatformClient,
   apiRef: Pick<ApiRef, 'gatewayId' | 'apiId'>,
   logger: LoggerService,
@@ -62,7 +62,7 @@ function resolveOpenChoreoGateway(
 }
 
 /** Fetches and adapts the currently-discovered API into a `RestApiArtifact`. Fails closed on any error. */
-async function fetchDiscoveredArtifact(
+export async function fetchDiscoveredArtifact(
   client: Wso2ApiPlatformClient,
   gateway: OpenChoreoGateway,
   apiId: string,

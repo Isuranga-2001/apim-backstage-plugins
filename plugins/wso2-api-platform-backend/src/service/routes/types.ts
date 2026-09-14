@@ -23,6 +23,7 @@ import { Wso2ApiPlatformClient } from '../client';
 import {
   DefinitionStorageConfig,
   DocumentStorageConfig,
+  PolicyStorageConfig,
 } from '../documents/config';
 import { ApiDocumentStoreResolver } from '../documents/stores/ApiDocumentStoreResolver';
 import { ApiDefinitionStoreResolver } from '../documents/stores/ApiDefinitionStoreResolver';
@@ -45,4 +46,7 @@ export type RouteContext = {
   documentStorage?: DocumentStorageConfig;
   definitionStoreResolver?: ApiDefinitionStoreResolver;
   definitionStorage?: DefinitionStorageConfig;
+  // Policy routes need only catalog + httpAuth (no database — policies are
+  // always read/applied live against the gateway); see registerPolicyRoutes.
+  policyStorage?: PolicyStorageConfig;
 };

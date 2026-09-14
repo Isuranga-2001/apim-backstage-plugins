@@ -18,7 +18,11 @@
 
 import { InputError } from '@backstage/errors';
 import { z } from 'zod';
-import { DocumentStorageConfig, DefinitionStorageConfig } from './config';
+import {
+  DocumentStorageConfig,
+  DefinitionStorageConfig,
+  PolicyStorageConfig,
+} from './config';
 
 // SWAGGER_DOC is legacy/APIM-internal and intentionally excluded from the
 // create/edit dropdown — it can still be read back on the on-prem path via
@@ -227,6 +231,55 @@ export function assertDefinitionSizeWithinLimit(
   if (bytes > config.maxSizeBytes) {
     throw new InputError(
       `Definition content is ${bytes} bytes, exceeding the configured limit of ${config.maxSizeBytes} bytes`,
+    );
+  }
+}
+
+// Policies are `unknown` in shape (either a flat array, or a
+// `{request,response,fault}` object) — this schema only pins down the
+// envelope, not what a single policy entry looks like.
+const policiesValueSchema = z.union([
+  z.array(z.unknown()),
+  z
+    .object({
+      request: z.array(z.unknown()).optional(),
+      response: z.array(z.unknown()).optional(),
+      fault: z.array(z.unknown()).optional(),
+    })
+    .passthrough(),
+]);
+
+const upsertPolicyArtifactSchema = z.object({
+  apiPolicies: policiesValueSchema,
+  operations: z.array(
+    z.object({
+      method: z.string().trim().min(1),
+      path: z.string().trim().min(1),
+      policies: policiesValueSchema,
+    }),
+  ),
+});
+
+export type UpsertPolicyArtifactBody = z.infer<
+  typeof upsertPolicyArtifactSchema
+>;
+
+export function parseUpsertPolicyInput(raw: unknown): UpsertPolicyArtifactBody {
+  const result = upsertPolicyArtifactSchema.safeParse(raw);
+  if (!result.success) {
+    throw new InputError(`Invalid policy payload: ${result.error.message}`);
+  }
+  return result.data;
+}
+
+export function assertPolicySizeWithinLimit(
+  input: UpsertPolicyArtifactBody,
+  config: PolicyStorageConfig,
+) {
+  const bytes = Buffer.byteLength(JSON.stringify(input), 'utf8');
+  if (bytes > config.maxSizeBytes) {
+    throw new InputError(
+      `Policy payload is ${bytes} bytes, exceeding the configured limit of ${config.maxSizeBytes} bytes`,
     );
   }
 }

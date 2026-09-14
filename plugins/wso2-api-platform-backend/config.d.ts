@@ -95,6 +95,14 @@ export interface Config {
          */
         maxSizeKb?: number;
       };
+      policies?: {
+        /**
+         * Maximum size, in kilobytes, for a policy artifact payload.
+         * Defaults to 256.
+         * @visibility frontend
+         */
+        maxSizeKb?: number;
+      };
     };
   };
   /**

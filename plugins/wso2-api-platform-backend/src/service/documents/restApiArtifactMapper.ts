@@ -196,3 +196,284 @@ export function diffRestApiArtifacts(
     hasChanges,
   };
 }
+
+/** Wire shape for the Policy Editor: `spec.policies` plus each operation's own `policies`. */
+export type Wso2ApiPolicyArtifact = {
+  apiPolicies: unknown;
+  operations: Array<{ method: string; path: string; policies: unknown }>;
+};
+
+export type PolicyChangeRef = { name: string; version: string };
+
+export type PolicyFlowDiff = {
+  flow: 'request' | 'response' | 'fault' | 'flat';
+  added: PolicyChangeRef[];
+  removed: PolicyChangeRef[];
+  changed: PolicyChangeRef[];
+};
+
+export type Wso2ApiPolicyDiff = {
+  apiLevel: PolicyFlowDiff[];
+  operations: Array<{ method: string; path: string; flows: PolicyFlowDiff[] }>;
+  hasChanges: boolean;
+};
+
+type NormalizedPolicyFlows = {
+  request: unknown[];
+  response: unknown[];
+  fault: unknown[];
+};
+
+/**
+ * Flat array (a "flat" scope) vs `{request,response,fault}` object (a
+ * flow-aware scope) — mirrors the frontend's `normalizeFlowPolicies`.
+ *
+ * A `RestApi` resource's `policies` (both `spec.policies` and each
+ * operation's `policies`) is *always* a flat array per the gateway
+ * controller's schema — the `{request,response,fault}` object form doesn't
+ * exist for this resource type at all (it belongs to the separate,
+ * APIM-Publisher-style `apiPolicies` concept used by the read-only policy
+ * view). So a missing/`undefined` `policies` field — an operation that has
+ * never had a policy attached — must normalize to flat, not to the object
+ * shape; treating it as "object" would re-serialize it as
+ * `{request:[],response:[],fault:[]}` on save, which the gateway rejects.
+ */
+export function normalizePolicyFlows(raw: unknown): {
+  flows: NormalizedPolicyFlows;
+  isFlat: boolean;
+} {
+  if (raw == null || Array.isArray(raw)) {
+    return {
+      flows: { request: raw ?? [], response: [], fault: [] },
+      isFlat: true,
+    };
+  }
+  const source = raw as Record<string, any>;
+  return {
+    flows: {
+      request: Array.isArray(source.request) ? source.request : [],
+      response: Array.isArray(source.response) ? source.response : [],
+      fault: Array.isArray(source.fault) ? source.fault : [],
+    },
+    isFlat: false,
+  };
+}
+
+/** Re-emits normalized flow arrays back into a flat array or `{request,response,fault}` object, matching the original scope's shape. */
+function denormalizePolicyFlows(
+  flows: NormalizedPolicyFlows,
+  isFlat: boolean,
+): unknown {
+  return isFlat
+    ? flows.request
+    : { request: flows.request, response: flows.response, fault: flows.fault };
+}
+
+function toGatewayPolicyVersion(version: string): string {
+  const match = /^v?(\d+)/.exec(version.trim());
+  return match ? `v${match[1]}` : version;
+}
+
+function normalizePolicyEntryVersion(entry: unknown): unknown {
+  if (!entry || typeof entry !== 'object') {
+    return entry;
+  }
+  const item = entry as Record<string, unknown>;
+  if (typeof item.version !== 'string') {
+    return entry;
+  }
+  const version = toGatewayPolicyVersion(item.version);
+  return version === item.version ? entry : { ...item, version };
+}
+
+function normalizeFlowsVersions(
+  flows: NormalizedPolicyFlows,
+): NormalizedPolicyFlows {
+  return {
+    request: flows.request.map(normalizePolicyEntryVersion),
+    response: flows.response.map(normalizePolicyEntryVersion),
+    fault: flows.fault.map(normalizePolicyEntryVersion),
+  };
+}
+
+/** A single policy entry's identity/config, tolerant of either the gateway's `name`/`version`/`params` fields or the legacy `policyName`/`policyVersion`/`parameters` naming. */
+function policyIdentity(raw: unknown): {
+  name: string;
+  version: string;
+  params: unknown;
+} {
+  const p = (raw as Record<string, any>) ?? {};
+  return {
+    name: p.name ?? p.policyName ?? 'Unknown',
+    version: p.version ?? p.policyVersion ?? 'N/A',
+    params: p.params ?? p.parameters,
+  };
+}
+
+function policyKey(raw: unknown): string {
+  const { name, version } = policyIdentity(raw);
+  return `${name}@${version}`;
+}
+
+function sortKeysDeep(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(sortKeysDeep);
+  }
+  if (value && typeof value === 'object') {
+    return Object.keys(value as Record<string, unknown>)
+      .sort()
+      .reduce((acc, key) => {
+        acc[key] = sortKeysDeep((value as Record<string, unknown>)[key]);
+        return acc;
+      }, {} as Record<string, unknown>);
+  }
+  return value;
+}
+
+/** Order-insensitive, key-sorted comparison so two params objects that differ only in key order compare equal. */
+function stableStringify(value: unknown): string {
+  return JSON.stringify(sortKeysDeep(value));
+}
+
+/** Maps the Policy Editor's edited artifact onto `previous`: only `spec.policies` and each matched operation's `policies` are derived; everything else (including operations present in `previous` but absent from `input`) carries over untouched, since `PUT` is a full-replace. */
+export function mapPoliciesToRestApiArtifact(
+  input: Wso2ApiPolicyArtifact,
+  previous: RestApiArtifact,
+): RestApiArtifact {
+  const { isFlat: apiIsFlat } = normalizePolicyFlows(previous.spec.policies);
+  const { flows: nextApiFlows } = normalizePolicyFlows(input.apiPolicies);
+  const nextApiPolicies = denormalizePolicyFlows(
+    normalizeFlowsVersions(nextApiFlows),
+    apiIsFlat,
+  );
+
+  const inputOperationsByKey = new Map(
+    input.operations.map(op => [operationKey(op), op]),
+  );
+
+  const nextOperations = (previous.spec.operations ?? []).map(op => {
+    const match = inputOperationsByKey.get(operationKey(op));
+    if (!match) {
+      return op;
+    }
+    const { isFlat: opIsFlat } = normalizePolicyFlows(op.policies);
+    const { flows: nextOpFlows } = normalizePolicyFlows(match.policies);
+    return {
+      ...op,
+      policies: denormalizePolicyFlows(
+        normalizeFlowsVersions(nextOpFlows),
+        opIsFlat,
+      ),
+    };
+  });
+
+  return {
+    apiVersion: previous.apiVersion,
+    kind: previous.kind,
+    metadata: previous.metadata,
+    spec: {
+      ...previous.spec,
+      policies: nextApiPolicies,
+      operations: nextOperations,
+    },
+  };
+}
+
+/** Diffs one flow-aware scope (a "flat" policies array, or a `{request,response,fault}` object) between `previous`/`next`, keyed by `${name}@${version}`. */
+function diffPolicyScope(
+  previousRaw: unknown,
+  nextRaw: unknown,
+): PolicyFlowDiff[] {
+  const { flows: previousFlows, isFlat } = normalizePolicyFlows(previousRaw);
+  const { flows: nextFlows } = normalizePolicyFlows(nextRaw);
+
+  const diffOneFlow = (
+    flow: PolicyFlowDiff['flow'],
+    previousItems: unknown[],
+    nextItems: unknown[],
+  ): PolicyFlowDiff | undefined => {
+    const previousByKey = new Map(previousItems.map(p => [policyKey(p), p]));
+    const nextByKey = new Map(nextItems.map(p => [policyKey(p), p]));
+
+    const refOf = (raw: unknown): PolicyChangeRef => {
+      const { name, version } = policyIdentity(raw);
+      return { name, version };
+    };
+
+    const added: PolicyChangeRef[] = [];
+    const removed: PolicyChangeRef[] = [];
+    const changed: PolicyChangeRef[] = [];
+
+    for (const [key, item] of nextByKey) {
+      if (!previousByKey.has(key)) {
+        added.push(refOf(item));
+      }
+    }
+    for (const [key, item] of previousByKey) {
+      const nextItem = nextByKey.get(key);
+      if (!nextItem) {
+        removed.push(refOf(item));
+      } else if (
+        stableStringify(policyIdentity(item).params) !==
+        stableStringify(policyIdentity(nextItem).params)
+      ) {
+        changed.push(refOf(item));
+      }
+    }
+
+    if (added.length === 0 && removed.length === 0 && changed.length === 0) {
+      return undefined;
+    }
+    return { flow, added, removed, changed };
+  };
+
+  if (isFlat) {
+    const diff = diffOneFlow('flat', previousFlows.request, nextFlows.request);
+    return diff ? [diff] : [];
+  }
+
+  return (['request', 'response', 'fault'] as const)
+    .map(flow => diffOneFlow(flow, previousFlows[flow], nextFlows[flow]))
+    .filter((d): d is PolicyFlowDiff => !!d);
+}
+
+/** Reports added/removed/changed policies at API level and per-operation, keyed by `${name}@${version}` within each flow. Only non-empty flows/operations are included. */
+export function diffPolicyArtifacts(
+  previous: RestApiArtifact,
+  next: RestApiArtifact,
+): Wso2ApiPolicyDiff {
+  const apiLevel = diffPolicyScope(previous.spec.policies, next.spec.policies);
+
+  const previousOperationsByKey = new Map(
+    (previous.spec.operations ?? []).map(op => [operationKey(op), op]),
+  );
+
+  const operations: Wso2ApiPolicyDiff['operations'] = [];
+  for (const nextOp of next.spec.operations ?? []) {
+    const previousOp = previousOperationsByKey.get(operationKey(nextOp));
+    const flows = diffPolicyScope(
+      (previousOp as any)?.policies,
+      (nextOp as any).policies,
+    );
+    if (flows.length > 0) {
+      operations.push({ method: nextOp.method, path: nextOp.path, flows });
+    }
+  }
+
+  const hasChanges = apiLevel.length > 0 || operations.length > 0;
+  return { apiLevel, operations, hasChanges };
+}
+
+/** Small mapper for the GET route: pulls just the policy-relevant fields out of a full `RestApiArtifact`. */
+export function toPolicyArtifact(
+  artifact: RestApiArtifact,
+): Wso2ApiPolicyArtifact {
+  return {
+    apiPolicies: artifact.spec.policies,
+    operations: (artifact.spec.operations ?? []).map(op => ({
+      method: op.method,
+      path: op.path,
+      policies: (op as any).policies,
+    })),
+  };
+}

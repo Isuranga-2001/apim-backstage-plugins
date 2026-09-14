@@ -36,11 +36,13 @@ import { registerStreamingRoutes } from './routes/streamingRoutes';
 import { registerGatewayRoutes } from './routes/gatewayRoutes';
 import { registerDocumentRoutes } from './routes/documentRoutes';
 import { registerDefinitionRoutes } from './routes/definitionRoutes';
+import { registerPolicyRoutes } from './routes/policyRoutes';
 import { RouteContext } from './routes/types';
 import {
   deriveJsonBodyLimitBytes,
   readDefinitionStorageConfig,
   readDocumentStorageConfig,
+  readPolicyStorageConfig,
 } from './documents/config';
 import { ArtifactDao } from './documents/dao/ArtifactDao';
 import { applyDatabaseMigrations } from './documents/dao/migrations';
@@ -73,6 +75,7 @@ export async function createRouter(
   });
   const documentStorage = readDocumentStorageConfig(config);
   const definitionStorage = readDefinitionStorageConfig(config);
+  const policyStorage = readPolicyStorageConfig(config);
 
   if (scheduler) {
     startGatewayStatusWatchdog({ scheduler, config, client, logger });
@@ -149,6 +152,15 @@ export async function createRouter(
     logger.warn(
       'WSO2 API Platform document/definition storage routes are disabled: database and/or catalog service not provided to createRouter',
     );
+  }
+
+  if (catalog) {
+    registerPolicyRoutes(router, {
+      ...routeContext,
+      httpAuth,
+      catalog,
+      policyStorage,
+    });
   }
 
   logger.info('WSO2 API Manager backend router initialized');

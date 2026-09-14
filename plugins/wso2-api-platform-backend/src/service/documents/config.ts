@@ -156,3 +156,21 @@ export function readDefinitionStorageConfig(
     maxSizeBytes: Math.floor(maxSizeKb * 1024),
   };
 }
+
+export type PolicyStorageConfig = {
+  maxSizeBytes: number;
+};
+
+const DEFAULT_MAX_POLICY_SIZE_KB = 256;
+
+export function readPolicyStorageConfig(
+  config: RootConfigService,
+): PolicyStorageConfig {
+  const maxSizeKb =
+    getOptionalNumber(config, 'wso2ApiPlatform.storage.policies.maxSizeKb') ??
+    DEFAULT_MAX_POLICY_SIZE_KB;
+
+  return {
+    maxSizeBytes: Math.floor(maxSizeKb * 1024),
+  };
+}
