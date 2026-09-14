@@ -23,6 +23,7 @@ import {
   getPolicyDefinition,
   listPolicies,
   listPolicyCategories,
+  resolvePolicyHubVersion,
 } from './policyHubClient';
 
 /** Resolves the configured Policy Hub base URL, falling back to the default. */
@@ -65,6 +66,11 @@ export function usePolicyDefinition(
   const baseUrl = usePolicyHubBaseUrl();
   return useAsyncRetry(async () => {
     if (!enabled || !name || !version) return undefined;
-    return getPolicyDefinition(baseUrl, name, version);
+    const resolvedVersion = await resolvePolicyHubVersion(
+      baseUrl,
+      name,
+      version,
+    );
+    return getPolicyDefinition(baseUrl, name, resolvedVersion);
   }, [baseUrl, name, version, enabled]);
 }

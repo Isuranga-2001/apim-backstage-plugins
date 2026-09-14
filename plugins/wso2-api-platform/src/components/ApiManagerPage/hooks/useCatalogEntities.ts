@@ -96,7 +96,7 @@ export const useCatalogEntities = (catalogApi: any) => {
             ann['wso2-gateway.com/api-context']) as string,
           provider: (ann['wso2.com/api-provider'] || 'Gateway') as string,
           lifeCycleStatus: (ann['wso2.com/api-lifecycle-status'] ||
-            'Published') as string,
+            (isGatewayDiscovered ? 'N/A' : 'Published')) as string,
           type: ann['wso2.com/api-type'] as string,
           isDiscovered: ann['wso2.com/is-discovered'] === 'true',
           source: isGatewayDiscovered ? 'Gateway' : 'Publisher',

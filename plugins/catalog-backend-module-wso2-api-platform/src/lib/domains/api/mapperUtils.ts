@@ -235,6 +235,7 @@ export function reconstructGatewayEndpoints(
 
       let context = api.context || '';
       if (!context.startsWith('/')) context = `/${context}`;
+      if (api.version) context = context.replace('$version', api.version);
       const basePath = vhost.basePath || '';
       let fullPath = context;
       if (basePath && !fullPath.startsWith(basePath)) {

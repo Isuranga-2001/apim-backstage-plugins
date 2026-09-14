@@ -146,7 +146,7 @@ describe('gateway/gatewayUtils', () => {
       spec: {
         displayName: 'Orders API',
         version: 'v1.0',
-        context: '/orders-api-dev-55b5a86f',
+        context: '/orders-api-dev-55b5a86f/$version',
         policies: [{ name: 'cors', version: 'v1' }],
         operations: [{ method: 'GET', path: '/orders' }],
       },
@@ -169,7 +169,7 @@ describe('gateway/gatewayUtils', () => {
         id: '019ff545-0000-0000-0000-000000000000',
         name: 'Orders API',
         version: 'v1.0',
-        context: '/orders-api-dev-55b5a86f',
+        context: '/orders-api-dev-55b5a86f/v1.0',
         lifeCycleStatus: 'Deployed',
         initiatedFromGateway: true,
         isDirectDiscovery: true,

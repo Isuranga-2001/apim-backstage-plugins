@@ -120,6 +120,13 @@ export async function discoverWSO2PlatformGatewayApis(
               continue;
             }
 
+            if (adaptedApi.version && adaptedApi.context) {
+              adaptedApi.context = adaptedApi.context.replace(
+                '$version',
+                adaptedApi.version,
+              );
+            }
+
             const gatewayApiDetails = adaptedApi;
 
             const gatewayApi = {

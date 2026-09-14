@@ -26,6 +26,7 @@ export function mapDiscoveredApiToEntity(api: any): ApiEntity {
   const spec = api.fullConfig.spec;
   const displayName = spec.displayName;
   const version = spec.version || '1.0.0';
+  const context = api.context || spec.context || '/';
   const normalizedName = normalizeEntityName(`${displayName}-${version}`);
   const discoveryNamespace = 'wso2-gateways';
   const isOpenChoreo = api.integration === 'openchoreo';
@@ -48,7 +49,7 @@ export function mapDiscoveredApiToEntity(api: any): ApiEntity {
         'wso2-gateway.com/api-id': api.id,
         'wso2-gateway.com/api-name': displayName,
         'wso2-gateway.com/api-version': version,
-        'wso2-gateway.com/api-context': spec.context || '/',
+        'wso2-gateway.com/api-context': context,
         'wso2.com/api-type': resolveApiType(api, spec),
         'wso2.com/api-gateway': gatewayLabel,
         'wso2.com/api-discovery-type': discoveryType,
@@ -59,9 +60,7 @@ export function mapDiscoveredApiToEntity(api: any): ApiEntity {
             gatewayType: gatewayLabel,
             urls: (api.gatewayUrls || []).map((u: string) => {
               const base = u.replace(/\/$/, '');
-              const ctx = spec.context?.startsWith('/')
-                ? spec.context
-                : `/${spec.context || '/'}`;
+              const ctx = context.startsWith('/') ? context : `/${context}`;
               return `${base}${ctx.replace(/\/$/, '')}`;
             }),
           },

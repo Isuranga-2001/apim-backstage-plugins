@@ -262,9 +262,7 @@ describe('EntityWso2ApiPoliciesTab', () => {
     (usePolicyArtifact as jest.Mock).mockReturnValue({
       artifact: {
         apiPolicies: { request: [{ name: 'cors', version: 'v1' }] },
-        operations: [
-          { method: 'GET', path: '/books', policies: [] },
-        ],
+        operations: [{ method: 'GET', path: '/books', policies: [] }],
       },
       loading: false,
       error: undefined,

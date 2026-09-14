@@ -156,6 +156,47 @@ export async function listPolicyVersions(
   return list.map(toSummary);
 }
 
+function isGatewayMajorOnlyVersion(version: string): boolean {
+  return /^v\d+$/i.test(version.trim());
+}
+
+function parseVersionParts(version: string): number[] {
+  const digits = version.match(/\d+/g);
+  return (digits ?? ['0']).map(Number);
+}
+
+function compareVersionsDescending(a: string, b: string): number {
+  const pa = parseVersionParts(a);
+  const pb = parseVersionParts(b);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const diff = (pb[i] ?? 0) - (pa[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
+export async function resolvePolicyHubVersion(
+  baseUrl: string,
+  name: string,
+  version: string,
+): Promise<string> {
+  if (!isGatewayMajorOnlyVersion(version)) {
+    return version;
+  }
+  const major = parseVersionParts(version)[0];
+  const versions = await listPolicyVersions(baseUrl, name);
+  const matching = versions
+    .filter(v => parseVersionParts(v.version)[0] === major)
+    .sort((a, b) => compareVersionsDescending(a.version, b.version));
+
+  if (matching.length === 0) {
+    throw new Error(
+      `No Policy Hub version of '${name}' matches major version '${version}'`,
+    );
+  }
+  return matching[0].version;
+}
+
 const EMPTY_SCHEMA: ParameterSchema = { type: 'object', properties: {} };
 
 /** Normalizes a raw YAML node into a recursive ParameterSchema. */
@@ -182,8 +223,6 @@ const toSchema = (raw: unknown): ParameterSchema => {
     );
   }
   if (s.items) schema.items = toSchema(s.items);
-  // A dynamic key-value map: object with `additionalProperties` as a value
-  // schema (the boolean form is ignored). Renders as a key-value editor.
   if (s.additionalProperties && typeof s.additionalProperties === 'object') {
     schema.additionalProperties = toSchema(s.additionalProperties);
   }
