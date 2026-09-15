@@ -19,7 +19,10 @@
 import { NotAllowedError } from '@backstage/errors';
 import express from 'express';
 import { load } from 'js-yaml';
-import { apiDescriptionOverrideTracker } from '@wso2/backstage-plugin-catalog-backend-module-wso2-api-platform';
+import {
+  apiDescriptionOverrideTracker,
+  apiCatalogSyncTrigger,
+} from '@wso2/backstage-plugin-catalog-backend-module-wso2-api-platform';
 import { RouteContext } from './types';
 import {
   actorFor,
@@ -145,6 +148,13 @@ export function registerDefinitionRoutes(
       credentials,
       logger,
     );
+    try {
+      await apiCatalogSyncTrigger.runNow();
+    } catch (e) {
+      logger.debug(
+        `Catalog sync after definition update is advisory; ignored: ${e}`,
+      );
+    }
     res.json({ definition, capabilities: store.capabilities });
   });
 
@@ -158,11 +168,13 @@ export function registerDefinitionRoutes(
     }
 
     const input = parsePreviewDefinitionInput(req.body);
+    const existing = await store.get(apiRef);
     const diff = await previewOpenChoreoDefinitionUpdate(
       client,
       apiRef,
       input.content,
       logger,
+      existing?.description,
     );
     res.json({ diff: diff ?? null });
   });

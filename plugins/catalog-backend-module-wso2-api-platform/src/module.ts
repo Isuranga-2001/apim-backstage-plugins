@@ -25,6 +25,10 @@ import { catalogProcessingExtensionPoint } from '@backstage/plugin-catalog-node'
 import { Wso2ApiEntityProvider } from './providers/Wso2ApiEntityProvider';
 import { DefinitionDescriptionProcessor } from './lib/apiDescriptionOverride';
 
+export const apiCatalogSyncTrigger = {
+  runNow: async (): Promise<void> => {},
+};
+
 export const catalogModuleWso2ApiPlatform = createBackendModule({
   pluginId: 'catalog',
   moduleId: 'wso2-apim',
@@ -47,6 +51,7 @@ export const catalogModuleWso2ApiPlatform = createBackendModule({
 
         // Add the provider to the catalog
         catalog.addEntityProvider(provider);
+        apiCatalogSyncTrigger.runNow = () => provider.run();
 
         // Applies definition-derived descriptions to gateway/OpenChoreo API
         // entities, which the discovery response itself never carries.

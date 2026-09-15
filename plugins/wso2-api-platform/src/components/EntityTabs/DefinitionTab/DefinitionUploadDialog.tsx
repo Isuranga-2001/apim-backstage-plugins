@@ -18,8 +18,9 @@
 
 import { useRef, useState } from 'react';
 import * as yaml from 'js-yaml';
+import { useNavigate } from 'react-router-dom';
 import { Entity } from '@backstage/catalog-model';
-import { configApiRef, useApi } from '@backstage/core-plugin-api';
+import { configApiRef, useApi, useRouteRef } from '@backstage/core-plugin-api';
 import Box from '@material-ui/core/Box';
 import Button from '@material-ui/core/Button';
 import Chip from '@material-ui/core/Chip';
@@ -35,6 +36,7 @@ import { useDefinitionMutations } from './hooks/useDefinitionMutations';
 import { humanizeBytes } from '../DocsTab/utils/humanizeBytes';
 import { DefinitionDiffSummary } from './DefinitionDiffSummary';
 import { Wso2RestApiArtifactDiff } from '../../../api/types';
+import { rootRouteRef } from '../../../routes';
 
 const ALLOWED_EXTENSIONS = ['yaml', 'yml', 'json'];
 
@@ -56,14 +58,12 @@ export const DefinitionUploadDialog = (options: {
 }) => {
   const { entity, open, hasExistingDefinition, onClose, onSaved } = options;
   const configApi = useApi(configApiRef);
-  const {
-    submitting,
-    upsertDefinition,
-    previewing,
-    previewDiff,
-    snackbar,
-    closeSnackbar,
-  } = useDefinitionMutations(entity);
+  const navigate = useNavigate();
+  const homeRoute = useRouteRef(rootRouteRef);
+  const { upsertDefinition, previewing, previewDiff, snackbar, closeSnackbar } =
+    useDefinitionMutations(entity);
+
+  const [applying, setApplying] = useState(false);
 
   const maxSizeKb =
     configApi.getOptionalNumber(
@@ -115,10 +115,13 @@ export const DefinitionUploadDialog = (options: {
     if (!file) {
       return;
     }
+    setApplying(true);
     try {
       await upsertDefinition(file.name, content);
       onSaved();
+      navigate(homeRoute());
     } catch (e) {
+      setApplying(false);
       setError(e instanceof Error ? e.message : 'Failed to save definition.');
     }
   };
@@ -164,89 +167,114 @@ export const DefinitionUploadDialog = (options: {
   } else if (hasExistingDefinition) {
     dialogTitle = 'Upload Definition';
   }
+  if (applying) {
+    dialogTitle = 'Applying Changes';
+  }
 
   return (
     <>
-      <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <Dialog
+        open={open}
+        onClose={applying ? undefined : onClose}
+        disableEscapeKeyDown={applying}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>{dialogTitle}</DialogTitle>
         <DialogContent>
-          {error && (
-            <Box mb={2}>
-              <Alert severity="error">{error}</Alert>
+          {applying ? (
+            <Box
+              display="flex"
+              flexDirection="column"
+              alignItems="center"
+              py={4}
+            >
+              <CircularProgress />
+              <Typography
+                variant="body2"
+                color="textSecondary"
+                style={{ marginTop: 16 }}
+              >
+                Saving the definition and syncing the catalog. Please wait…
+              </Typography>
             </Box>
-          )}
-          {isReviewing ? (
-            <DefinitionDiffSummary diff={diffResult} />
           ) : (
             <>
-              <input
-                ref={inputRef}
-                type="file"
-                accept=".yaml,.yml,.json"
-                style={{ display: 'none' }}
-                data-testid="definition-file-input"
-                onChange={e => setFile(e.target.files?.[0] ?? null)}
-              />
-              <Button
-                variant="outlined"
-                onClick={() => inputRef.current?.click()}
-              >
-                Choose file
-              </Button>
-              {file && (
-                <Chip
-                  style={{ marginLeft: 8 }}
-                  label={`${file.name} (${humanizeBytes(file.size)})`}
-                  onDelete={() => setFile(null)}
-                />
+              {error && (
+                <Box mb={2}>
+                  <Alert severity="error">{error}</Alert>
+                </Box>
               )}
-              <Typography
-                variant="caption"
-                color="textSecondary"
-                display="block"
-                style={{ marginTop: 8 }}
-              >
-                Allowed types: {ALLOWED_EXTENSIONS.join(', ')}. Max size:{' '}
-                {humanizeBytes(maxSizeBytes)}.
-              </Typography>
+              {isReviewing ? (
+                <DefinitionDiffSummary diff={diffResult} />
+              ) : (
+                <>
+                  <input
+                    ref={inputRef}
+                    type="file"
+                    accept=".yaml,.yml,.json"
+                    style={{ display: 'none' }}
+                    data-testid="definition-file-input"
+                    onChange={e => setFile(e.target.files?.[0] ?? null)}
+                  />
+                  <Button
+                    variant="outlined"
+                    onClick={() => inputRef.current?.click()}
+                  >
+                    Choose file
+                  </Button>
+                  {file && (
+                    <Chip
+                      style={{ marginLeft: 8 }}
+                      label={`${file.name} (${humanizeBytes(file.size)})`}
+                      onDelete={() => setFile(null)}
+                    />
+                  )}
+                  <Typography
+                    variant="caption"
+                    color="textSecondary"
+                    display="block"
+                    style={{ marginTop: 8 }}
+                  >
+                    Allowed types: {ALLOWED_EXTENSIONS.join(', ')}. Max size:{' '}
+                    {humanizeBytes(maxSizeBytes)}.
+                  </Typography>
+                </>
+              )}
             </>
           )}
         </DialogContent>
-        <DialogActions>
-          {isReviewing ? (
-            <>
-              <Button onClick={handleBackToFilePicker} disabled={submitting}>
-                Back
-              </Button>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleConfirmReplace}
-                disabled={submitting || diffResult?.hasChanges === false}
-              >
-                {submitting ? <CircularProgress size={20} /> : 'Confirm & Save'}
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button onClick={onClose} disabled={submitting || previewing}>
-                Cancel
-              </Button>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleSubmit}
-                disabled={submitting || previewing}
-              >
-                {submitting || previewing ? (
-                  <CircularProgress size={20} />
-                ) : (
-                  'Save'
-                )}
-              </Button>
-            </>
-          )}
-        </DialogActions>
+        {!applying && (
+          <DialogActions>
+            {isReviewing ? (
+              <>
+                <Button onClick={handleBackToFilePicker}>Back</Button>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleConfirmReplace}
+                  disabled={diffResult?.hasChanges === false}
+                >
+                  Confirm & Save
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button onClick={onClose} disabled={previewing}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleSubmit}
+                  disabled={previewing}
+                >
+                  {previewing ? <CircularProgress size={20} /> : 'Save'}
+                </Button>
+              </>
+            )}
+          </DialogActions>
+        )}
       </Dialog>
       <Snackbar
         open={snackbar.open}

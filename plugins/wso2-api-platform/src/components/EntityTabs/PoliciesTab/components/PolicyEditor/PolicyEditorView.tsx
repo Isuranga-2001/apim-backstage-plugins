@@ -484,30 +484,53 @@ export function PolicyEditorView({
 
       <Dialog
         open={confirmOpen}
-        onClose={() => !submitting && setConfirmOpen(false)}
+        onClose={submitting ? undefined : () => setConfirmOpen(false)}
+        disableEscapeKeyDown={submitting}
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Save Policies</DialogTitle>
+        <DialogTitle>
+          {submitting ? 'Applying Changes' : 'Save Policies'}
+        </DialogTitle>
         <DialogContent>
-          <PolicyDiffSummary diff={diffResult} />
-          <DialogContentText>
-            Are you sure you want to save these changes?
-          </DialogContentText>
+          {submitting ? (
+            <Box
+              display="flex"
+              flexDirection="column"
+              alignItems="center"
+              py={4}
+            >
+              <CircularProgress />
+              <Typography
+                variant="body2"
+                color="textSecondary"
+                style={{ marginTop: 16 }}
+              >
+                Saving the policies and syncing the catalog. Please wait…
+              </Typography>
+            </Box>
+          ) : (
+            <>
+              <PolicyDiffSummary diff={diffResult} />
+              <DialogContentText>
+                Are you sure you want to save these changes?
+              </DialogContentText>
+            </>
+          )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setConfirmOpen(false)} disabled={submitting}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleConfirmSave}
-            disabled={submitting || diffResult?.hasChanges === false}
-          >
-            {submitting ? <CircularProgress size={20} /> : 'Save'}
-          </Button>
-        </DialogActions>
+        {!submitting && (
+          <DialogActions>
+            <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleConfirmSave}
+              disabled={diffResult?.hasChanges === false}
+            >
+              Save
+            </Button>
+          </DialogActions>
+        )}
       </Dialog>
 
       <Snackbar

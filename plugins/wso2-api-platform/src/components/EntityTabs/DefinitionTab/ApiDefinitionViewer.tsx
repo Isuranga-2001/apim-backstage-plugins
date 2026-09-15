@@ -163,9 +163,8 @@ export const ApiDefinitionViewer = ({
       await onSaveClick?.(editedValue);
       setLocalValue(editedValue);
       setIsEditing(false);
-      setConfirmOpen(false);
       setDiffResult(undefined);
-    } finally {
+    } catch (e) {
       setSaving(false);
     }
   };
@@ -323,13 +322,32 @@ export const ApiDefinitionViewer = ({
 
       <Dialog
         open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
+        onClose={saving ? undefined : () => setConfirmOpen(false)}
+        disableEscapeKeyDown={saving}
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Save Definition</DialogTitle>
+        <DialogTitle>
+          {saving ? 'Applying Changes' : 'Save Definition'}
+        </DialogTitle>
         <DialogContent>
-          {onPreviewDiff ? (
+          {saving ? (
+            <Box
+              display="flex"
+              flexDirection="column"
+              alignItems="center"
+              py={4}
+            >
+              <CircularProgress />
+              <Typography
+                variant="body2"
+                color="textSecondary"
+                style={{ marginTop: 16 }}
+              >
+                Saving the definition and syncing the catalog. Please wait…
+              </Typography>
+            </Box>
+          ) : onPreviewDiff ? (
             <>
               <DefinitionDiffSummary diff={diffResult} />
               <DialogContentText>
@@ -342,19 +360,19 @@ export const ApiDefinitionViewer = ({
             </DialogContentText>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setConfirmOpen(false)} disabled={saving}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleConfirmSave}
-            disabled={saving || diffResult?.hasChanges === false}
-          >
-            {saving ? <CircularProgress size={20} /> : 'Save'}
-          </Button>
-        </DialogActions>
+        {!saving && (
+          <DialogActions>
+            <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleConfirmSave}
+              disabled={diffResult?.hasChanges === false}
+            >
+              Save
+            </Button>
+          </DialogActions>
+        )}
       </Dialog>
 
       {/* Bottom status bar like VS Code */}

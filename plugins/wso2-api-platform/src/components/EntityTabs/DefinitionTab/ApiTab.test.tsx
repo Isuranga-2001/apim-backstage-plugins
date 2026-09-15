@@ -18,7 +18,16 @@
  */
 
 import { render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { EntityWso2ApiDefinitionTab } from './ApiTab';
+
+function renderTab() {
+  return render(
+    <MemoryRouter>
+      <EntityWso2ApiDefinitionTab />
+    </MemoryRouter>,
+  );
+}
 
 const mockConfigApi = {
   getOptionalBoolean: jest.fn().mockReturnValue(true),
@@ -38,6 +47,9 @@ jest.mock('@backstage/plugin-catalog-react', () => ({
 jest.mock('@backstage/core-plugin-api', () => ({
   configApiRef: { id: 'core.config' },
   createApiRef: jest.fn().mockReturnValue({}),
+  createRouteRef: jest.fn().mockReturnValue({}),
+  createExternalRouteRef: jest.fn().mockReturnValue({}),
+  useRouteRef: () => () => '/wso2-api-platform',
   useApi: (apiRef: any) =>
     apiRef.id === 'core.config' ? mockConfigApi : mockWso2Api,
 }));
@@ -97,7 +109,7 @@ describe('EntityWso2ApiDefinitionTab', () => {
       capabilities: { read: true, write: true },
     });
 
-    render(<EntityWso2ApiDefinitionTab />);
+    renderTab();
 
     expect(
       await screen.findByRole('button', { name: 'Add Definition' }),
@@ -112,7 +124,7 @@ describe('EntityWso2ApiDefinitionTab', () => {
       capabilities: { read: true, write: true },
     });
 
-    render(<EntityWso2ApiDefinitionTab />);
+    renderTab();
 
     expect(await screen.findByRole('button', { name: 'Upload' })).toBeDefined();
     expect(screen.getByTestId('definition-viewer').textContent).toContain(
@@ -123,7 +135,7 @@ describe('EntityWso2ApiDefinitionTab', () => {
   it('renders the on-prem definition from the catalog with no Add/Update button (regression)', async () => {
     mockEntity = APIM_ENTITY;
 
-    render(<EntityWso2ApiDefinitionTab />);
+    renderTab();
 
     await waitFor(() =>
       expect(screen.getByTestId('definition-viewer').textContent).toContain(

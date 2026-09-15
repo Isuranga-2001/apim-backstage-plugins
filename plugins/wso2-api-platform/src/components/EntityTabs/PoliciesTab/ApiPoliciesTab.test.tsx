@@ -33,6 +33,9 @@ jest.mock('@backstage/plugin-catalog-react', () => ({
 jest.mock('@backstage/core-plugin-api', () => ({
   useApi: jest.fn(),
   createApiRef: jest.fn().mockReturnValue({}),
+  createRouteRef: jest.fn().mockReturnValue({}),
+  createExternalRouteRef: jest.fn().mockReturnValue({}),
+  useRouteRef: () => () => '/wso2-api-platform',
   alertApiRef: { id: 'alertApiRef' },
 }));
 

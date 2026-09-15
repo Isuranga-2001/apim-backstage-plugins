@@ -26,7 +26,10 @@ import {
   mockServices,
   TestDatabases,
 } from '@backstage/backend-test-utils';
-import { apiDescriptionOverrideTracker } from '@wso2/backstage-plugin-catalog-backend-module-wso2-api-platform';
+import {
+  apiDescriptionOverrideTracker,
+  apiCatalogSyncTrigger,
+} from '@wso2/backstage-plugin-catalog-backend-module-wso2-api-platform';
 import { createRouter } from '../router';
 
 jest.mock('undici', () => ({
@@ -146,6 +149,19 @@ paths:
     get: {}
 `;
 
+const DEFINITION_WITH_DESCRIPTION = `openapi: 3.0.0
+info:
+  title: Payment API
+  version: 1.0.0
+  description: Payments API
+paths:
+  /books:
+    get: {}
+    post: {}
+  /books/{bookId}:
+    get: {}
+`;
+
 const MISSING_OPERATION_DEFINITION = `openapi: 3.0.0
 info:
   title: Payment API
@@ -248,6 +264,7 @@ describe('definition routes', () => {
 
   beforeEach(async () => {
     apiDescriptionOverrideTracker.reset();
+    apiCatalogSyncTrigger.runNow = jest.fn().mockResolvedValue(undefined);
     await buildApp();
   });
 
@@ -272,6 +289,7 @@ describe('definition routes', () => {
       description: 'Orders API',
     });
     expect(mockCatalog.refreshEntity).toHaveBeenCalled();
+    expect(apiCatalogSyncTrigger.runNow).toHaveBeenCalled();
     expect(
       apiDescriptionOverrideTracker.get('api:wso2-gateways/orders-api'),
     ).toBe('Orders API');
@@ -561,6 +579,37 @@ describe('definition routes', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.diff.hasChanges).toBe(false);
+    });
+
+    it('reports a description change only against the previously saved description, not the (description-less) gateway response', async () => {
+      mockClientInstance.getConfig.mockReturnValue(OPENCHOREO_GATEWAY_CONFIG);
+      mockClientInstance.getGatewayApiDetail.mockResolvedValue(
+        DISCOVERED_RESTAPI_CR_WITH_OPERATIONS,
+      );
+
+      await request(app).put(OPENCHOREO_PATH).send({
+        fileName: 'openapi.yaml',
+        content: DEFINITION_WITH_DESCRIPTION,
+      });
+
+      const unchanged = await request(app)
+        .post(DIFF_PATH)
+        .send({ content: DEFINITION_WITH_DESCRIPTION });
+      expect(unchanged.body.diff.descriptionChange).toBeUndefined();
+      expect(unchanged.body.diff.hasChanges).toBe(false);
+
+      const changed = await request(app)
+        .post(DIFF_PATH)
+        .send({
+          content: DEFINITION_WITH_DESCRIPTION.replace(
+            'Payments API',
+            'Updated Payments API',
+          ),
+        });
+      expect(changed.body.diff.descriptionChange).toEqual({
+        from: 'Payments API',
+        to: 'Updated Payments API',
+      });
     });
 
     it('returns diff: null for a non-OpenChoreo (self-hosted) entity', async () => {

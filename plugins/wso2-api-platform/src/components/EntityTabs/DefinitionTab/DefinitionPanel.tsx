@@ -17,8 +17,10 @@
  */
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Entity } from '@backstage/catalog-model';
 import { EmptyState, InfoCard } from '@backstage/core-components';
+import { useRouteRef } from '@backstage/core-plugin-api';
 import Box from '@material-ui/core/Box';
 import Button from '@material-ui/core/Button';
 import Typography from '@material-ui/core/Typography';
@@ -29,6 +31,7 @@ import { useApiDefinition } from './hooks/useApiDefinition';
 import { useApiDefinitionSource } from './hooks/useApiDefinitionSource';
 import { useDefinitionMutations } from './hooks/useDefinitionMutations';
 import { useGatewayStatus } from '../../common/useGatewayStatus';
+import { rootRouteRef } from '../../../routes';
 
 const NotAvailableBox = ({ message }: { message: string }) => (
   <Box
@@ -77,6 +80,8 @@ export const DefinitionPanel = (props: {
   wrapInCard?: boolean;
 }) => {
   const { entity, language, wrapInCard } = props;
+  const navigate = useNavigate();
+  const homeRoute = useRouteRef(rootRouteRef);
   const { mode } = useApiDefinitionSource(entity);
   const { definition, capabilities, refresh } = useApiDefinition(entity, mode);
   const { upsertDefinition, previewDiff } = useDefinitionMutations(entity);
@@ -128,7 +133,7 @@ export const DefinitionPanel = (props: {
                   definition.fileName ?? 'definition.yaml',
                   content,
                 );
-                refresh();
+                navigate(homeRoute());
               }
             : undefined
         }

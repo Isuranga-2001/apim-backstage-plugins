@@ -197,12 +197,13 @@ export async function assertMatchesDiscoveredOpenChoreoApi(
   }
 }
 
-/** UPDATE preview: returns the diff instead of rejecting on a mismatch, for the frontend's confirm step. */
+/** UPDATE preview: returns the diff for the frontend's confirm step. */
 export async function previewOpenChoreoDefinitionUpdate(
   client: Wso2ApiPlatformClient,
   apiRef: Pick<ApiRef, 'sourceKind' | 'gatewayId' | 'apiId'>,
   content: string,
   logger: LoggerService,
+  previousDescription?: string,
 ): Promise<RestApiArtifactDiff | undefined> {
   if (apiRef.sourceKind !== 'openchoreo') {
     return undefined;
@@ -215,7 +216,13 @@ export async function previewOpenChoreoDefinitionUpdate(
   assertLooksLikeOpenApi(content);
   const previous = await fetchDiscoveredArtifact(client, gateway, apiRef.apiId);
   const next = mapDefinitionToRestApiArtifact(content, previous);
-  return diffRestApiArtifacts(previous, next);
+  return diffRestApiArtifacts(
+    {
+      ...previous,
+      spec: { ...previous.spec, description: previousDescription },
+    },
+    next,
+  );
 }
 
 /** UPDATE commit: re-fetches fresh and pushes the mapped artifact via `PUT {managementApiUrl}/{apiId}`. */

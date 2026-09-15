@@ -18,7 +18,30 @@
  */
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { DefinitionUploadDialog } from './DefinitionUploadDialog';
+
+const ENTITY_PATH = '/catalog/default/api/orders-api';
+
+function renderDialog(props: {
+  entity: any;
+  open: boolean;
+  hasExistingDefinition: boolean;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  return render(
+    <MemoryRouter initialEntries={[ENTITY_PATH]}>
+      <Routes>
+        <Route
+          path={ENTITY_PATH}
+          element={<DefinitionUploadDialog {...props} />}
+        />
+        <Route path="/wso2-api-platform" element={<div>Home Page</div>} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
 
 const mockConfigApi = {
   getOptionalNumber: jest.fn().mockReturnValue(1024),
@@ -31,8 +54,11 @@ const mockWso2Api = {
 jest.mock('@backstage/core-plugin-api', () => ({
   configApiRef: { id: 'core.config' },
   createApiRef: jest.fn().mockReturnValue({}),
+  createRouteRef: jest.fn().mockReturnValue({}),
+  createExternalRouteRef: jest.fn().mockReturnValue({}),
   useApi: (apiRef: any) =>
     apiRef.id === 'core.config' ? mockConfigApi : mockWso2Api,
+  useRouteRef: () => () => '/wso2-api-platform',
 }));
 
 const entity: any = {
@@ -48,41 +74,35 @@ describe('DefinitionUploadDialog', () => {
   });
 
   it('shows "Add Definition" as the title when there is no existing definition', () => {
-    render(
-      <DefinitionUploadDialog
-        entity={entity}
-        open
-        hasExistingDefinition={false}
-        onClose={jest.fn()}
-        onSaved={jest.fn()}
-      />,
-    );
+    renderDialog({
+      entity: entity,
+      open: true,
+      hasExistingDefinition: false,
+      onClose: jest.fn(),
+      onSaved: jest.fn(),
+    });
     expect(screen.getByText('Add Definition')).toBeDefined();
   });
 
   it('shows "Upload Definition" as the title when a definition already exists', () => {
-    render(
-      <DefinitionUploadDialog
-        entity={entity}
-        open
-        hasExistingDefinition
-        onClose={jest.fn()}
-        onSaved={jest.fn()}
-      />,
-    );
+    renderDialog({
+      entity: entity,
+      open: true,
+      hasExistingDefinition: true,
+      onClose: jest.fn(),
+      onSaved: jest.fn(),
+    });
     expect(screen.getByText('Upload Definition')).toBeDefined();
   });
 
   it('requires a file before saving', () => {
-    render(
-      <DefinitionUploadDialog
-        entity={entity}
-        open
-        hasExistingDefinition={false}
-        onClose={jest.fn()}
-        onSaved={jest.fn()}
-      />,
-    );
+    renderDialog({
+      entity: entity,
+      open: true,
+      hasExistingDefinition: false,
+      onClose: jest.fn(),
+      onSaved: jest.fn(),
+    });
 
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(
@@ -92,15 +112,13 @@ describe('DefinitionUploadDialog', () => {
   });
 
   it('rejects a disallowed file extension', async () => {
-    render(
-      <DefinitionUploadDialog
-        entity={entity}
-        open
-        hasExistingDefinition={false}
-        onClose={jest.fn()}
-        onSaved={jest.fn()}
-      />,
-    );
+    renderDialog({
+      entity: entity,
+      open: true,
+      hasExistingDefinition: false,
+      onClose: jest.fn(),
+      onSaved: jest.fn(),
+    });
 
     const file = new File(['openapi: 3.0.0'], 'openapi.pdf', {
       type: 'application/pdf',
@@ -117,15 +135,13 @@ describe('DefinitionUploadDialog', () => {
   });
 
   it('rejects content that is not valid YAML or JSON', async () => {
-    render(
-      <DefinitionUploadDialog
-        entity={entity}
-        open
-        hasExistingDefinition={false}
-        onClose={jest.fn()}
-        onSaved={jest.fn()}
-      />,
-    );
+    renderDialog({
+      entity: entity,
+      open: true,
+      hasExistingDefinition: false,
+      onClose: jest.fn(),
+      onSaved: jest.fn(),
+    });
 
     const file = new File(['"unterminated'], 'openapi.yaml', {
       type: 'application/yaml',
@@ -148,15 +164,13 @@ describe('DefinitionUploadDialog', () => {
     });
     const onSaved = jest.fn();
 
-    render(
-      <DefinitionUploadDialog
-        entity={entity}
-        open
-        hasExistingDefinition={false}
-        onClose={jest.fn()}
-        onSaved={onSaved}
-      />,
-    );
+    renderDialog({
+      entity: entity,
+      open: true,
+      hasExistingDefinition: false,
+      onClose: jest.fn(),
+      onSaved: onSaved,
+    });
 
     const file = new File(['openapi: 3.0.0'], 'openapi.yaml', {
       type: 'application/yaml',
@@ -173,17 +187,90 @@ describe('DefinitionUploadDialog', () => {
     );
   });
 
+  it('blocks all actions behind a wait screen while saving, until the save (and its catalog sync) resolves', async () => {
+    let resolveUpsert: () => void = () => {};
+    mockWso2Api.upsertDefinition.mockReturnValue(
+      new Promise(resolve => {
+        resolveUpsert = () =>
+          resolve({
+            definition: { content: 'openapi: 3.0.0', format: 'YAML' },
+            capabilities: { read: true, write: true },
+          });
+      }),
+    );
+    const onSaved = jest.fn();
+
+    renderDialog({
+      entity,
+      open: true,
+      hasExistingDefinition: false,
+      onClose: jest.fn(),
+      onSaved,
+    });
+
+    const file = new File(['openapi: 3.0.0'], 'openapi.yaml', {
+      type: 'application/yaml',
+    });
+    fireEvent.change(screen.getByTestId('definition-file-input'), {
+      target: { files: [file] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('Applying Changes')).toBeDefined();
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull();
+
+    resolveUpsert();
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+  });
+
+  it('stays blocked (no backdrop-close) through save completion, and navigates to the home page', async () => {
+    let resolveUpsert: () => void = () => {};
+    mockWso2Api.upsertDefinition.mockReturnValue(
+      new Promise(resolve => {
+        resolveUpsert = () =>
+          resolve({
+            definition: { content: 'openapi: 3.0.0', format: 'YAML' },
+            capabilities: { read: true, write: true },
+          });
+      }),
+    );
+    const onClose = jest.fn();
+
+    renderDialog({
+      entity,
+      open: true,
+      hasExistingDefinition: false,
+      onClose,
+      onSaved: jest.fn(),
+    });
+
+    const file = new File(['openapi: 3.0.0'], 'openapi.yaml', {
+      type: 'application/yaml',
+    });
+    fireEvent.change(screen.getByTestId('definition-file-input'), {
+      target: { files: [file] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await screen.findByText('Applying Changes');
+
+    resolveUpsert();
+    fireEvent.click(document.querySelector('.MuiBackdrop-root')!);
+    expect(onClose).not.toHaveBeenCalled();
+
+    expect(await screen.findByText('Home Page')).toBeDefined();
+  });
+
   it('rejects a file larger than the configured limit', async () => {
     mockConfigApi.getOptionalNumber.mockReturnValue(0.001);
-    render(
-      <DefinitionUploadDialog
-        entity={entity}
-        open
-        hasExistingDefinition={false}
-        onClose={jest.fn()}
-        onSaved={jest.fn()}
-      />,
-    );
+    renderDialog({
+      entity: entity,
+      open: true,
+      hasExistingDefinition: false,
+      onClose: jest.fn(),
+      onSaved: jest.fn(),
+    });
 
     const file = new File(['openapi: 3.0.0'.repeat(50)], 'openapi.yaml', {
       type: 'application/yaml',
@@ -209,15 +296,13 @@ describe('DefinitionUploadDialog', () => {
         },
       });
 
-      render(
-        <DefinitionUploadDialog
-          entity={entity}
-          open
-          hasExistingDefinition
-          onClose={jest.fn()}
-          onSaved={jest.fn()}
-        />,
-      );
+      renderDialog({
+        entity: entity,
+        open: true,
+        hasExistingDefinition: true,
+        onClose: jest.fn(),
+        onSaved: jest.fn(),
+      });
 
       const file = new File(['openapi: 3.0.0'], 'openapi.yaml', {
         type: 'application/yaml',
@@ -246,15 +331,13 @@ describe('DefinitionUploadDialog', () => {
       });
       const onSaved = jest.fn();
 
-      render(
-        <DefinitionUploadDialog
-          entity={entity}
-          open
-          hasExistingDefinition
-          onClose={jest.fn()}
-          onSaved={onSaved}
-        />,
-      );
+      renderDialog({
+        entity: entity,
+        open: true,
+        hasExistingDefinition: true,
+        onClose: jest.fn(),
+        onSaved: onSaved,
+      });
 
       const file = new File(['openapi: 3.0.0'], 'openapi.yaml', {
         type: 'application/yaml',
@@ -279,15 +362,13 @@ describe('DefinitionUploadDialog', () => {
         diff: { addedOperations: [], removedOperations: [], hasChanges: false },
       });
 
-      render(
-        <DefinitionUploadDialog
-          entity={entity}
-          open
-          hasExistingDefinition
-          onClose={jest.fn()}
-          onSaved={jest.fn()}
-        />,
-      );
+      renderDialog({
+        entity: entity,
+        open: true,
+        hasExistingDefinition: true,
+        onClose: jest.fn(),
+        onSaved: jest.fn(),
+      });
 
       const file = new File(['openapi: 3.0.0'], 'openapi.yaml', {
         type: 'application/yaml',
@@ -309,15 +390,13 @@ describe('DefinitionUploadDialog', () => {
         diff: { addedOperations: [], removedOperations: [], hasChanges: false },
       });
 
-      render(
-        <DefinitionUploadDialog
-          entity={entity}
-          open
-          hasExistingDefinition
-          onClose={jest.fn()}
-          onSaved={jest.fn()}
-        />,
-      );
+      renderDialog({
+        entity: entity,
+        open: true,
+        hasExistingDefinition: true,
+        onClose: jest.fn(),
+        onSaved: jest.fn(),
+      });
 
       const file = new File(['openapi: 3.0.0'], 'openapi.yaml', {
         type: 'application/yaml',
@@ -340,15 +419,13 @@ describe('DefinitionUploadDialog', () => {
         new Error('Could not reach the OpenChoreo gateway'),
       );
 
-      render(
-        <DefinitionUploadDialog
-          entity={entity}
-          open
-          hasExistingDefinition
-          onClose={jest.fn()}
-          onSaved={jest.fn()}
-        />,
-      );
+      renderDialog({
+        entity: entity,
+        open: true,
+        hasExistingDefinition: true,
+        onClose: jest.fn(),
+        onSaved: jest.fn(),
+      });
 
       const file = new File(['openapi: 3.0.0'], 'openapi.yaml', {
         type: 'application/yaml',
