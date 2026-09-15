@@ -211,6 +211,21 @@ wso2ApiPlatform:
         - svg
     binary:
       backend: database
+  apiPortal:
+    enabled: ${WSO2_API_PORTAL_ENABLED}
+    baseUrl: ${WSO2_API_PORTAL_BASE_URL}
+    basePath: /api-portal/api/v0.9
+    auth:
+      mode: platform-login
+    defaults:
+      status: PUBLISHED
+      agentVisibility: VISIBLE
+      labels:
+        - default
+      subscriptionPlans: [] # must already exist in the org
+    requestTimeoutSeconds: 30
+    tls:
+      rejectUnauthorized: ${WSO2_TLS_REJECT_UNAUTHORIZED}
 
 wso2ApiPlatformGateway:
   enabled: true

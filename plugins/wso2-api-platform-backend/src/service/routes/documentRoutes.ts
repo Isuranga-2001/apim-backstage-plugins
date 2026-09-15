@@ -32,7 +32,11 @@ import {
   parseCreateDocumentMetadata,
   parseUpdateDocumentMetadata,
 } from '../documents/validation';
-import { CreateDocumentInput } from '../documents/types';
+import {
+  ApiDocumentSourceType,
+  CreateDocumentInput,
+  GATEWAY_DOCUMENT_SOURCE_TYPES,
+} from '../documents/types';
 
 const BASE_PATH = '/entities/:kind/:namespace/:name/documents';
 const DOCUMENT_PATH = `${BASE_PATH}/:documentId`;
@@ -119,10 +123,26 @@ export function registerDocumentRoutes(
     );
   }
 
+  function allowedSourceTypesFor(apiRef: {
+    sourceKind: string;
+  }): ApiDocumentSourceType[] | undefined {
+    return apiRef.sourceKind === 'self-hosted' ||
+      apiRef.sourceKind === 'openchoreo'
+      ? GATEWAY_DOCUMENT_SOURCE_TYPES
+      : undefined;
+  }
+
   router.get(BASE_PATH, async (req, res) => {
     const { apiRef, store } = await resolve(req);
     const list = await store.list(apiRef);
-    res.json({ count: list.length, list, capabilities: store.capabilities });
+    res.json({
+      count: list.length,
+      list,
+      capabilities: {
+        ...store.capabilities,
+        allowedSourceTypes: allowedSourceTypesFor(apiRef),
+      },
+    });
   });
 
   router.post(BASE_PATH, uploadSingleFile(upload, 'file'), async (req, res) => {
@@ -138,7 +158,9 @@ export function registerDocumentRoutes(
     const rawMetadata = isMultipart
       ? JSON.parse((req.body as { metadata?: string }).metadata ?? '{}')
       : req.body;
-    const metadata = parseCreateDocumentMetadata(rawMetadata);
+    const metadata = parseCreateDocumentMetadata(rawMetadata, {
+      allowedSourceTypes: allowedSourceTypesFor(apiRef),
+    });
 
     let input: CreateDocumentInput;
     if (metadata.sourceType === 'FILE') {

@@ -29,6 +29,8 @@ import { createRouter } from '../router';
 
 jest.mock('undici', () => ({
   request: jest.fn(),
+  fetch: jest.fn(),
+  Agent: jest.fn().mockImplementation(() => ({ close: jest.fn() })),
 }));
 
 const mockClientInstance = {
@@ -83,6 +85,23 @@ const APIM_ENTITY = {
   spec: {},
 };
 
+const OPENCHOREO_ENTITY = {
+  apiVersion: 'backstage.io/v1alpha1',
+  kind: 'API',
+  metadata: {
+    name: 'payment-api',
+    namespace: 'wso2-gateways',
+    annotations: {
+      'wso2.com/api-discovery-type': 'openchoreo-gateway',
+      'wso2-gateway.com/api-id': 'payment-api-service-v1.0',
+      'wso2-gateway.com/api-endpoints': JSON.stringify([
+        { environmentName: 'oc-dev' },
+      ]),
+    },
+  },
+  spec: {},
+};
+
 const NON_WSO2_ENTITY = {
   apiVersion: 'backstage.io/v1alpha1',
   kind: 'API',
@@ -119,6 +138,7 @@ describe('document routes', () => {
     };
     mockCatalog = {
       getEntityByRef: jest.fn().mockImplementation((ref: string) => {
+        if (ref === 'api:wso2-gateways/payment-api') return OPENCHOREO_ENTITY;
         if (ref.includes('wso2-gateways')) return GATEWAY_ENTITY;
         if (ref === 'api:default/orders-api') return APIM_ENTITY;
         if (ref === 'api:default/plain-api') return NON_WSO2_ENTITY;
@@ -167,6 +187,7 @@ describe('document routes', () => {
         updateMetadata: true,
         updateContent: false,
         delete: true,
+        allowedSourceTypes: ['MARKDOWN'],
       },
     });
   });
@@ -211,50 +232,57 @@ describe('document routes', () => {
     expect(afterDelete.body.count).toBe(0);
   });
 
-  it('creates a FILE document via multipart and streams it back', async () => {
-    const createRes = await request(app)
+  it('rejects a FILE document for a self-hosted-gateway API with a markdown-only message', async () => {
+    const res = await request(app)
       .post(GATEWAY_PATH)
       .field(
         'metadata',
         JSON.stringify({ name: 'Spec', type: 'SAMPLES', sourceType: 'FILE' }),
       )
       .attach('file', Buffer.from('binary content'), 'spec.txt');
-
-    expect(createRes.status).toBe(201);
-    expect(createRes.body).toMatchObject({
-      name: 'Spec',
-      fileName: 'spec.txt',
-    });
-
-    const contentRes = await request(app).get(
-      `${GATEWAY_PATH}/${createRes.body.documentId}/content`,
+    expect(res.status).toBe(400);
+    expect(res.body.error?.message ?? res.text).toMatch(
+      /Gateway-discovered APIs support markdown documents only/,
     );
-    expect(contentRes.status).toBe(200);
-    expect(contentRes.text).toBe('binary content');
-    expect(contentRes.headers['content-disposition']).toContain('spec.txt');
   });
 
-  it('redirects with 303 for URL documents', async () => {
-    const createRes = await request(app).post(GATEWAY_PATH).send({
-      name: 'External',
-      type: 'HOWTO',
-      sourceType: 'URL',
-      sourceUrl: 'https://example.com/docs',
-    });
+  it('rejects a FILE document for an OpenChoreo API with a markdown-only message', async () => {
+    const res = await request(app)
+      .post('/entities/api/wso2-gateways/payment-api/documents')
+      .field(
+        'metadata',
+        JSON.stringify({ name: 'Spec', type: 'SAMPLES', sourceType: 'FILE' }),
+      )
+      .attach('file', Buffer.from('binary content'), 'spec.txt');
+    expect(res.status).toBe(400);
+    expect(res.body.error?.message ?? res.text).toMatch(
+      /Gateway-discovered APIs support markdown documents only/,
+    );
+  });
 
-    const contentRes = await request(app)
-      .get(`${GATEWAY_PATH}/${createRes.body.documentId}/content`)
-      .redirects(0);
-    expect(contentRes.status).toBe(303);
-    expect(contentRes.headers.location).toBe('https://example.com/docs');
+  it('accepts a MARKDOWN document for an OpenChoreo API and reports allowedSourceTypes in capabilities', async () => {
+    const createRes = await request(app)
+      .post('/entities/api/wso2-gateways/payment-api/documents')
+      .send({
+        name: 'Guide',
+        type: 'HOWTO',
+        sourceType: 'MARKDOWN',
+        inlineContent: '# Hello',
+      });
+    expect(createRes.status).toBe(201);
+
+    const listRes = await request(app).get(
+      '/entities/api/wso2-gateways/payment-api/documents',
+    );
+    expect(listRes.body.capabilities.allowedSourceTypes).toEqual(['MARKDOWN']);
   });
 
   it('returns 409 for a duplicate document name', async () => {
     const body = {
       name: 'Dup',
       type: 'HOWTO',
-      sourceType: 'URL',
-      sourceUrl: 'https://example.com/1',
+      sourceType: 'MARKDOWN',
+      inlineContent: '# Hello',
     };
     await request(app).post(GATEWAY_PATH).send(body).expect(201);
     const res = await request(app).post(GATEWAY_PATH).send(body);

@@ -104,6 +104,34 @@ export interface Config {
         maxSizeKb?: number;
       };
     };
+    /** API Portal settings. */
+    apiPortal?: {
+      /** Defaults to false. @visibility frontend */
+      enabled?: boolean;
+      /** API Portal URL. @visibility frontend */
+      baseUrl?: string;
+      /** Defaults to '/api-portal/api/v0.9'. */
+      basePath?: string;
+      auth?: {
+        /** Defaults to 'platform-login'. */
+        mode?: 'platform-login' | 'idp';
+      };
+      defaults?: {
+        /** API status. */
+        status?: 'PUBLISHED' | 'DEPRECATED';
+        /** Existing org labels. */
+        labels?: string[];
+        /** Existing org subscription plans. */
+        subscriptionPlans?: string[];
+        /** Agent visibility. */
+        agentVisibility?: 'VISIBLE' | 'HIDDEN';
+      };
+      /** Request timeout in seconds. */
+      requestTimeoutSeconds?: number;
+      tls?: {
+        rejectUnauthorized?: boolean;
+      };
+    };
   };
   /**
    * Configuration for self-hosted WSO2 API Platform Gateways.

@@ -27,6 +27,10 @@ import {
 } from '../documents/config';
 import { ApiDocumentStoreResolver } from '../documents/stores/ApiDocumentStoreResolver';
 import { ApiDefinitionStoreResolver } from '../documents/stores/ApiDefinitionStoreResolver';
+import { ApiDefinitionStore } from '../documents/stores/ApiDefinitionStore';
+import { ApiDocumentStore } from '../documents/stores/ApiDocumentStore';
+import { ApiPortalConfig } from '../apiPortal/config';
+import { ApiPortalClient } from '../apiPortal/ApiPortalClient';
 
 export type EnsureAuthenticated = (
   req: express.Request,
@@ -49,4 +53,8 @@ export type RouteContext = {
   // Policy routes need only catalog + httpAuth (no database — policies are
   // always read/applied live against the gateway); see registerPolicyRoutes.
   policyStorage?: PolicyStorageConfig;
+  apiPortalConfig?: ApiPortalConfig;
+  apiPortalClient?: ApiPortalClient;
+  apiPortalDefinitionStore?: ApiDefinitionStore;
+  apiPortalDocumentStore?: ApiDocumentStore;
 };

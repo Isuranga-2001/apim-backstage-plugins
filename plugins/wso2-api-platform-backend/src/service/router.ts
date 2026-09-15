@@ -37,6 +37,7 @@ import { registerGatewayRoutes } from './routes/gatewayRoutes';
 import { registerDocumentRoutes } from './routes/documentRoutes';
 import { registerDefinitionRoutes } from './routes/definitionRoutes';
 import { registerPolicyRoutes } from './routes/policyRoutes';
+import { registerApiPortalRoutes } from './routes/apiPortalRoutes';
 import { RouteContext } from './routes/types';
 import {
   deriveJsonBodyLimitBytes,
@@ -52,6 +53,8 @@ import { ApimPublisherDocumentStore } from './documents/stores/ApimPublisherDocu
 import { DatabaseApiDocumentStore } from './documents/stores/DatabaseApiDocumentStore';
 import { ApiDefinitionStoreResolver } from './documents/stores/ApiDefinitionStoreResolver';
 import { DatabaseApiDefinitionStore } from './documents/stores/DatabaseApiDefinitionStore';
+import { readApiPortalConfig } from './apiPortal/config';
+import { ApiPortalClient } from './apiPortal/ApiPortalClient';
 
 export interface RouterOptions {
   auth?: AuthService;
@@ -76,6 +79,7 @@ export async function createRouter(
   const documentStorage = readDocumentStorageConfig(config);
   const definitionStorage = readDefinitionStorageConfig(config);
   const policyStorage = readPolicyStorageConfig(config);
+  const apiPortalConfig = readApiPortalConfig(config);
 
   if (scheduler) {
     startGatewayStatusWatchdog({ scheduler, config, client, logger });
@@ -98,6 +102,7 @@ export async function createRouter(
     client,
     ensureAuthenticated,
     logger,
+    apiPortalConfig,
   };
 
   registerConfigRoutes(router, routeContext);
@@ -147,6 +152,15 @@ export async function createRouter(
       httpAuth,
       catalog,
       definitionStorage,
+    });
+
+    registerApiPortalRoutes(router, {
+      ...routeContext,
+      httpAuth,
+      catalog,
+      apiPortalClient: new ApiPortalClient(apiPortalConfig, logger),
+      apiPortalDefinitionStore: definitionDatabaseStore,
+      apiPortalDocumentStore: databaseStore,
     });
   } else {
     logger.warn(

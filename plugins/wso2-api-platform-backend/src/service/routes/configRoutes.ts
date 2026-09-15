@@ -21,7 +21,7 @@ import { RouteContext } from './types';
 
 export function registerConfigRoutes(
   router: express.Router,
-  { client, ensureAuthenticated, logger }: RouteContext,
+  { client, ensureAuthenticated, logger, apiPortalConfig }: RouteContext,
 ) {
   router.get('/config', async (req, res) => {
     try {
@@ -34,6 +34,10 @@ export function registerConfigRoutes(
         platformGateway: {
           enabled: Boolean(clientConfig.platformGateway?.enabled),
           gatewayCount: clientConfig.selfHostedGateways.length,
+        },
+        apiPortal: {
+          enabled: Boolean(apiPortalConfig?.enabled),
+          baseUrl: apiPortalConfig?.baseUrl ?? '',
         },
       });
     } catch (e: any) {

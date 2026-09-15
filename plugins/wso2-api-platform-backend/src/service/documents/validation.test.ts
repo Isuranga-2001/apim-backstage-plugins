@@ -113,6 +113,43 @@ describe('parseCreateDocumentMetadata', () => {
       }),
     ).not.toThrow();
   });
+
+  it('accepts a sourceType included in allowedSourceTypes', () => {
+    expect(() =>
+      parseCreateDocumentMetadata(
+        {
+          name: 'Doc',
+          type: 'HOWTO',
+          sourceType: 'MARKDOWN',
+          inlineContent: '# Hello',
+        },
+        { allowedSourceTypes: ['MARKDOWN'] },
+      ),
+    ).not.toThrow();
+  });
+
+  it('rejects a sourceType outside allowedSourceTypes with a markdown-only message', () => {
+    expect(() =>
+      parseCreateDocumentMetadata(
+        {
+          name: 'Doc',
+          type: 'HOWTO',
+          sourceType: 'FILE',
+        },
+        { allowedSourceTypes: ['MARKDOWN'] },
+      ),
+    ).toThrow(/Gateway-discovered APIs support markdown documents only/);
+  });
+
+  it('does not restrict sourceType when allowedSourceTypes is omitted', () => {
+    expect(() =>
+      parseCreateDocumentMetadata({
+        name: 'Doc',
+        type: 'HOWTO',
+        sourceType: 'FILE',
+      }),
+    ).not.toThrow();
+  });
 });
 
 describe('parseUpdateDocumentMetadata', () => {

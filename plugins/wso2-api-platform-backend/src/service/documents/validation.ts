@@ -104,12 +104,23 @@ function assertBusinessRules(body: {
 
 export function parseCreateDocumentMetadata(
   raw: unknown,
+  opts?: { allowedSourceTypes?: string[] },
 ): CreateDocumentMetadataBody {
   const result = createDocumentMetadataSchema.safeParse(raw);
   if (!result.success) {
     throw new InputError(`Invalid document metadata: ${result.error.message}`);
   }
   assertBusinessRules(result.data);
+  if (
+    opts?.allowedSourceTypes &&
+    !opts.allowedSourceTypes.includes(result.data.sourceType)
+  ) {
+    throw new InputError(
+      `Gateway-discovered APIs support markdown documents only, because the ` +
+        `WSO2 API Portal ingests markdown documents. Received sourceType ` +
+        `'${result.data.sourceType}'.`,
+    );
+  }
   return result.data;
 }
 

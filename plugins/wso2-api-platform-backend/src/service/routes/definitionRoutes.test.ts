@@ -34,6 +34,8 @@ import { createRouter } from '../router';
 
 jest.mock('undici', () => ({
   request: jest.fn(),
+  fetch: jest.fn(),
+  Agent: jest.fn().mockImplementation(() => ({ close: jest.fn() })),
 }));
 
 const mockClientInstance = {

@@ -24,6 +24,8 @@ import { mockServices } from '@backstage/backend-test-utils';
 
 jest.mock('undici', () => ({
   request: jest.fn(),
+  fetch: jest.fn(),
+  Agent: jest.fn().mockImplementation(() => ({ close: jest.fn() })),
 }));
 
 // Mock instance to control Wso2ApiPlatformClient methods in router

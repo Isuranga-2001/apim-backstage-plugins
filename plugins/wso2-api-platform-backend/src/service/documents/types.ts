@@ -35,6 +35,10 @@ export type ApiDocumentType =
 
 export type ApiDocumentSourceType = 'INLINE' | 'MARKDOWN' | 'URL' | 'FILE';
 
+export const GATEWAY_DOCUMENT_SOURCE_TYPES: ApiDocumentSourceType[] = [
+  'MARKDOWN',
+];
+
 /**
  * Logical identity of an API, independent of its catalog entity name (which
  * can change on a gateway API rename).
@@ -77,6 +81,7 @@ export type ApiDocumentCapabilities = {
   updateMetadata: boolean;
   updateContent: boolean;
   delete: boolean;
+  allowedSourceTypes?: ApiDocumentSourceType[];
 };
 
 export type ApiDocumentListResult = {
