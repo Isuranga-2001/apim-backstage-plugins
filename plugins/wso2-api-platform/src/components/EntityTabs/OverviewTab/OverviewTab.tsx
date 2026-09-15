@@ -29,6 +29,8 @@ import DescriptionIcon from '@material-ui/icons/Description';
 import { formatLifecycleStatus, isServiceEntity } from '../../../utils';
 import { EntityWso2ServiceOverviewCard } from './components/ServiceOverviewCard';
 import { useGatewayStatus } from '../../common/useGatewayStatus';
+import { useApiDefinition } from '../DefinitionTab/hooks/useApiDefinition';
+import { useApiDefinitionSource } from '../DefinitionTab/hooks/useApiDefinitionSource';
 
 /**
  * A custom About card for WSO2 APIs that shows WSO2 specific metadata.
@@ -36,6 +38,11 @@ import { useGatewayStatus } from '../../common/useGatewayStatus';
 const EntityWso2OverviewTabContent = () => {
   const { entity } = useEntity();
   const gatewayStatus = useGatewayStatus(entity);
+  const { mode: definitionMode } = useApiDefinitionSource(entity);
+  const { definition: storedDefinition } = useApiDefinition(
+    entity,
+    definitionMode,
+  );
 
   const entityRoute = useRouteRef(entityRouteRef);
   const wso2TabUrl = `${entityRoute({
@@ -94,7 +101,10 @@ const EntityWso2OverviewTabContent = () => {
     return gateway || undefined;
   })();
 
-  const description = entity.metadata.description;
+  const description =
+    definitionMode === 'store'
+      ? storedDefinition?.description
+      : entity.metadata.description;
 
   return (
     <InfoCard

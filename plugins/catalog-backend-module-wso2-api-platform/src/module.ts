@@ -23,6 +23,7 @@ import {
 } from '@backstage/backend-plugin-api';
 import { catalogProcessingExtensionPoint } from '@backstage/plugin-catalog-node';
 import { Wso2ApiEntityProvider } from './providers/Wso2ApiEntityProvider';
+import { DefinitionDescriptionProcessor } from './lib/apiDescriptionOverride';
 
 export const catalogModuleWso2ApiPlatform = createBackendModule({
   pluginId: 'catalog',
@@ -46,6 +47,10 @@ export const catalogModuleWso2ApiPlatform = createBackendModule({
 
         // Add the provider to the catalog
         catalog.addEntityProvider(provider);
+
+        // Applies definition-derived descriptions to gateway/OpenChoreo API
+        // entities, which the discovery response itself never carries.
+        catalog.addProcessor(new DefinitionDescriptionProcessor());
 
         // Schedule the provider to run periodically
         const schedule = scheduler.createScheduledTaskRunner(

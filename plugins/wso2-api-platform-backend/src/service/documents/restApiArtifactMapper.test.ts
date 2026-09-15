@@ -238,6 +238,27 @@ paths: {}
     expect(diff.versionChange).toEqual({ from: 'v1.0', to: 'v9.9' });
   });
 
+  it('reports description changes from the definition info block', () => {
+    const next = mapDefinitionToRestApiArtifact(
+      `openapi: 3.0.0
+info:
+  title: Reading-List-API
+  version: v1.0
+  description: A revised description
+paths: {}
+`,
+      PREVIOUS,
+    );
+
+    const diff = diffRestApiArtifacts(PREVIOUS, next);
+
+    expect(diff.descriptionChange).toEqual({
+      from: '',
+      to: 'A revised description',
+    });
+    expect(diff.hasChanges).toBe(true);
+  });
+
   it('reports no title/version change when the definition is identical', () => {
     const next = mapDefinitionToRestApiArtifact(
       DEFINITION_SAME_SHAPE,

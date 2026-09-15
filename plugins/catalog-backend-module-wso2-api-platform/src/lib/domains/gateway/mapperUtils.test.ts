@@ -56,7 +56,6 @@ describe('gateway/mapperUtils', () => {
         name: 'user-core-api-1-2-0',
         namespace: 'wso2-gateways',
         title: 'User Core API',
-        description: 'Discovered from gateway-1',
         annotations: {
           'backstage.io/managed-by-location': 'wso2-gateway:gateway-1',
           'backstage.io/managed-by-origin-location': 'wso2-gateway:gateway-1',

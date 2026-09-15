@@ -209,6 +209,7 @@ export type Wso2ApiDefinitionFormat = 'YAML' | 'JSON';
 export type Wso2ApiDefinition = {
   content: string;
   format: Wso2ApiDefinitionFormat;
+  description?: string;
   fileName?: string;
   sizeBytes?: number;
   createdBy?: string;
@@ -235,6 +236,7 @@ export type UpsertWso2ApiDefinitionRequest = {
 export type Wso2RestApiArtifactDiff = {
   displayNameChange?: { from: string; to: string };
   versionChange?: { from: string; to: string };
+  descriptionChange?: { from: string; to: string };
   addedOperations: Array<{ method: string; path: string }>;
   removedOperations: Array<{ method: string; path: string }>;
   hasChanges: boolean;

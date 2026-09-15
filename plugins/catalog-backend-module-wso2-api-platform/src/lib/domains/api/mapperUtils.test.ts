@@ -311,6 +311,33 @@ Resulting Backstage Entity Lifecycle: "${entity.spec.lifecycle}"
       );
     });
 
+    it('prefers the description from the API definition when available', () => {
+      const api: Wso2Api = {
+        id: 'api-id-with-definition-description',
+        name: 'Definition Description API',
+        displayName: 'Definition Description API',
+        description: 'Description from APIM metadata',
+        version: '1.0.0',
+        context: 'definition-description',
+        provider: 'admin-team',
+        type: 'HTTP',
+        lifeCycleStatus: 'PUBLISHED',
+        definition:
+          'openapi: 3.0.0\ninfo:\n  title: Definition Description API\n  description: Description from the definition',
+      };
+
+      const entity = mapWso2ApiToEntity(
+        api,
+        'default',
+        'provider-id',
+        undefined,
+      );
+
+      expect(entity.metadata.description).toBe(
+        'Description from the definition',
+      );
+    });
+
     it('should map different spec types (GraphQL/WS) and production lifecycles correctly', () => {
       const api: Wso2Api = {
         id: 'graphql-api-v2',

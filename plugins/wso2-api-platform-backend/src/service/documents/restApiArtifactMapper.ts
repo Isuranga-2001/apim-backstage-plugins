@@ -36,6 +36,7 @@ export type RestApiArtifact = {
   spec: {
     displayName: string;
     version: string;
+    description?: string;
     operations: RestApiOperation[];
     [key: string]: unknown;
   };
@@ -44,6 +45,7 @@ export type RestApiArtifact = {
 export type RestApiArtifactDiff = {
   displayNameChange?: { from: string; to: string };
   versionChange?: { from: string; to: string };
+  descriptionChange?: { from: string; to: string };
   addedOperations: Array<{ method: string; path: string }>;
   removedOperations: Array<{ method: string; path: string }>;
   hasChanges: boolean;
@@ -101,6 +103,7 @@ export function operationKey(op: { method: string; path: string }): string {
 export function parseDefinitionInfo(content: string): {
   title?: string;
   version?: string;
+  description?: string;
   operations?: RestApiOperation[];
 } {
   try {
@@ -118,6 +121,7 @@ export function parseDefinitionInfo(content: string): {
     return {
       title: doc?.info?.title,
       version: doc?.info?.version,
+      description: doc?.info?.description,
       operations: operations.length > 0 ? operations : undefined,
     };
   } catch {
@@ -130,7 +134,8 @@ export function mapDefinitionToRestApiArtifact(
   content: string,
   previous: RestApiArtifact,
 ): RestApiArtifact {
-  const { title, version, operations } = parseDefinitionInfo(content);
+  const { title, version, description, operations } =
+    parseDefinitionInfo(content);
 
   const previousByKey = new Map(
     (previous.spec.operations ?? []).map(op => [operationKey(op), op]),
@@ -151,6 +156,7 @@ export function mapDefinitionToRestApiArtifact(
       ...previous.spec,
       displayName: title ?? previous.spec.displayName,
       version: version ?? previous.spec.version,
+      ...(description !== undefined ? { description } : {}),
       operations: nextOperations,
     },
   };
@@ -169,6 +175,13 @@ export function diffRestApiArtifacts(
     previous.spec.version !== next.spec.version
       ? { from: previous.spec.version, to: next.spec.version }
       : undefined;
+  const descriptionChange =
+    previous.spec.description !== next.spec.description
+      ? {
+          from: previous.spec.description ?? '',
+          to: next.spec.description ?? '',
+        }
+      : undefined;
 
   const previousOperations = previous.spec.operations ?? [];
   const nextOperations = next.spec.operations ?? [];
@@ -185,12 +198,14 @@ export function diffRestApiArtifacts(
   const hasChanges =
     !!displayNameChange ||
     !!versionChange ||
+    !!descriptionChange ||
     addedOperations.length > 0 ||
     removedOperations.length > 0;
 
   return {
     displayNameChange,
     versionChange,
+    descriptionChange,
     addedOperations,
     removedOperations,
     hasChanges,

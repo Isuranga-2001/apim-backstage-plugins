@@ -113,6 +113,24 @@ export function normalizeGatewayType(type?: string): string {
   return t;
 }
 
+function extractDefinitionDescription(definition?: string): string | undefined {
+  if (!definition) return undefined;
+
+  try {
+    const parsed = JSON.parse(definition) as {
+      info?: { description?: unknown };
+    };
+    return typeof parsed.info?.description === 'string'
+      ? parsed.info.description
+      : undefined;
+  } catch {
+    const match = definition.match(
+      /^\s*info:\s*\n(?:[ \t]+[^\n]*\n)*?[ \t]+description:\s*["']?([^"'\n]+)["']?\s*$/m,
+    );
+    return match?.[1]?.trim() || undefined;
+  }
+}
+
 /**
  * Maps a WSO2 API object to a Backstage ApiEntity.
  */
@@ -142,7 +160,10 @@ export function mapWso2ApiToEntity(
       name: normalizedName,
       namespace,
       title: api.displayName,
-      description: api.description || `WSO2 API: ${api.name}`,
+      description:
+        extractDefinitionDescription(api.definition) ||
+        api.description ||
+        `WSO2 API: ${api.name}`,
       tags: (api.tags || []).map(normalizeEntityName).filter(Boolean),
       annotations: {
         'backstage.io/managed-by-location': `wso2-apim:${providerId}`,

@@ -71,6 +71,12 @@ export const DefinitionDiffSummary = ({ diff }: DefinitionDiffSummaryProps) => {
           <strong>{diff.versionChange.to}</strong>
         </Typography>
       )}
+      {diff.descriptionChange && (
+        <Typography variant="body2" style={{ marginBottom: 4 }}>
+          Description: <strong>{diff.descriptionChange.from}</strong> &rarr;{' '}
+          <strong>{diff.descriptionChange.to}</strong>
+        </Typography>
+      )}
       {(diff.addedOperations.length > 0 ||
         diff.removedOperations.length > 0) && (
         <List dense disablePadding>

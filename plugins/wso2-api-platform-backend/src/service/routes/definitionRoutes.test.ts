@@ -26,6 +26,7 @@ import {
   mockServices,
   TestDatabases,
 } from '@backstage/backend-test-utils';
+import { apiDescriptionOverrideTracker } from '@wso2/backstage-plugin-catalog-backend-module-wso2-api-platform';
 import { createRouter } from '../router';
 
 jest.mock('undici', () => ({
@@ -246,6 +247,7 @@ describe('definition routes', () => {
   const APIM_PATH = '/entities/api/default/orders-api/definition';
 
   beforeEach(async () => {
+    apiDescriptionOverrideTracker.reset();
     await buildApp();
   });
 
@@ -258,19 +260,42 @@ describe('definition routes', () => {
     });
   });
 
-  it('adds a YAML definition via PUT, then reflects it on GET', async () => {
-    const putRes = await request(app)
-      .put(GATEWAY_PATH)
-      .send({ fileName: 'openapi.yaml', content: 'openapi: 3.0.0' });
+  it('adds a YAML definition via PUT, then reflects it on GET, tracking and clearing its description for the catalog entity', async () => {
+    const putRes = await request(app).put(GATEWAY_PATH).send({
+      fileName: 'openapi.yaml',
+      content: 'openapi: 3.0.0\ninfo:\n  description: Orders API',
+    });
     expect(putRes.status).toBe(200);
     expect(putRes.body.definition).toMatchObject({
       format: 'YAML',
       fileName: 'openapi.yaml',
+      description: 'Orders API',
     });
     expect(mockCatalog.refreshEntity).toHaveBeenCalled();
+    expect(
+      apiDescriptionOverrideTracker.get('api:wso2-gateways/orders-api'),
+    ).toBe('Orders API');
 
     const getRes = await request(app).get(GATEWAY_PATH);
-    expect(getRes.body.definition.content).toBe('openapi: 3.0.0');
+    expect(getRes.body.definition.content).toBe(
+      'openapi: 3.0.0\ninfo:\n  description: Orders API',
+    );
+    expect(getRes.body.definition.description).toBe('Orders API');
+
+    // A backend restart would clear the in-memory tracker; GET re-hydrates it.
+    apiDescriptionOverrideTracker.reset();
+    await request(app).get(GATEWAY_PATH);
+    expect(
+      apiDescriptionOverrideTracker.get('api:wso2-gateways/orders-api'),
+    ).toBe('Orders API');
+
+    // A later definition without a description clears the tracked value.
+    await request(app)
+      .put(GATEWAY_PATH)
+      .send({ fileName: 'openapi.yaml', content: 'openapi: 3.0.0' });
+    expect(
+      apiDescriptionOverrideTracker.get('api:wso2-gateways/orders-api'),
+    ).toBeUndefined();
   });
 
   it('replaces the definition (not duplicates it) on a second PUT', async () => {

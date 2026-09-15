@@ -45,7 +45,15 @@ describe('useUnsavedChangesGuard', () => {
         wrapper: ({ children }) => (
           <MemoryRouter initialEntries={['/catalog/default/api/foo/policies']}>
             <Routes>
-              <Route path="*" element={<>{children}<LocationProbe /></>} />
+              <Route
+                path="*"
+                element={
+                  <>
+                    {children}
+                    <LocationProbe />
+                  </>
+                }
+              />
             </Routes>
           </MemoryRouter>
         ),

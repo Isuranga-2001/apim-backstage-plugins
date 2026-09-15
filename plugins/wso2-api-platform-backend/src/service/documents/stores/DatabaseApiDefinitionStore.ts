@@ -57,6 +57,7 @@ function toApiDefinition(
   return {
     content: content.content_text ?? '',
     format: row.doc_type as ApiDefinitionFormat,
+    ...(row.summary ? { description: row.summary } : {}),
     fileName: content.file_name ?? undefined,
     sizeBytes:
       content.size_bytes !== undefined && content.size_bytes !== null
@@ -108,7 +109,7 @@ export class DatabaseApiDefinitionStore implements ApiDefinitionStore {
         name: DEFINITION_NAME,
         doc_type: format,
         other_type_name: null,
-        summary: null,
+        summary: input.description ?? null,
         source_type: 'FILE',
         source_url: null,
         created_by: actor.userEntityRef ?? null,

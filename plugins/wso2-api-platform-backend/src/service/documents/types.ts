@@ -129,6 +129,7 @@ export type ApiDefinitionFormat = 'YAML' | 'JSON';
 export type ApiDefinition = {
   content: string;
   format: ApiDefinitionFormat;
+  description?: string;
   fileName?: string;
   sizeBytes?: number;
   createdBy?: string;
@@ -145,4 +146,5 @@ export type ApiDefinitionCapabilities = {
 export type UpsertDefinitionInput = {
   fileName: string;
   content: string;
+  description?: string;
 };

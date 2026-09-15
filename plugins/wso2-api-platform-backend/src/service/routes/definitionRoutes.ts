@@ -18,6 +18,8 @@
 
 import { NotAllowedError } from '@backstage/errors';
 import express from 'express';
+import { load } from 'js-yaml';
+import { apiDescriptionOverrideTracker } from '@wso2/backstage-plugin-catalog-backend-module-wso2-api-platform';
 import { RouteContext } from './types';
 import {
   actorFor,
@@ -37,6 +39,19 @@ import {
 
 const DEFINITION_PATH = '/entities/:kind/:namespace/:name/definition';
 const DEFINITION_DIFF_PATH = '/entities/:kind/:namespace/:name/definition/diff';
+
+function extractDefinitionDescription(content: string): string | undefined {
+  try {
+    const definition = load(content) as {
+      info?: { description?: unknown };
+    } | null;
+    return typeof definition?.info?.description === 'string'
+      ? definition.info.description
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 export function registerDefinitionRoutes(
   router: express.Router,
@@ -79,6 +94,12 @@ export function registerDefinitionRoutes(
   router.get(DEFINITION_PATH, async (req, res) => {
     const { apiRef, store } = await resolve(req);
     const definition = await store.get(apiRef);
+    // Re-hydrates the tracker (e.g. after a backend restart) so the next
+    // entity processing pass keeps applying the persisted description.
+    apiDescriptionOverrideTracker.set(
+      apiRef.entityRef,
+      definition?.description,
+    );
     res.json({ definition, capabilities: store.capabilities });
   });
 
@@ -93,6 +114,7 @@ export function registerDefinitionRoutes(
 
     const input = parseUpsertDefinitionInput(req.body);
     assertDefinitionSizeWithinLimit(input.content, definitionStorage);
+    const description = extractDefinitionDescription(input.content);
 
     const existing = await store.get(apiRef);
     if (existing) {
@@ -111,7 +133,12 @@ export function registerDefinitionRoutes(
       );
     }
 
-    const definition = await store.upsert(apiRef, input, actorFor(credentials));
+    const definition = await store.upsert(
+      apiRef,
+      { ...input, description },
+      actorFor(credentials),
+    );
+    apiDescriptionOverrideTracker.set(apiRef.entityRef, description);
     await refreshCatalogEntityAdvisory(
       catalog,
       apiRef.entityRef,

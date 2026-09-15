@@ -34,6 +34,7 @@ describe('catalogModuleWso2ApiPlatform', () => {
   };
 
   const addEntityProvider = jest.fn();
+  const addProcessor = jest.fn();
   const mockProvider = {
     getProviderName: jest.fn().mockReturnValue('wso2-publisher-apis'),
     run: jest.fn().mockResolvedValue(undefined),
@@ -86,7 +87,7 @@ describe('catalogModuleWso2ApiPlatform', () => {
       catalogModuleWso2ApiPlatform as any
     ).getRegistrations();
     await registration.init.func({
-      catalog: { addEntityProvider },
+      catalog: { addEntityProvider, addProcessor },
       config,
       logger: mockServices.logger.mock(),
       scheduler: schedulerMock,
@@ -94,6 +95,9 @@ describe('catalogModuleWso2ApiPlatform', () => {
 
     expect(Wso2ApiEntityProvider.fromConfig).toHaveBeenCalledTimes(1);
     expect(addEntityProvider).toHaveBeenCalledWith(mockProvider);
+    expect(addProcessor).toHaveBeenCalledWith(
+      expect.objectContaining({ getProcessorName: expect.any(Function) }),
+    );
     expect(createScheduledTaskRunnerMock).toHaveBeenCalledWith(
       expect.objectContaining({
         frequency: expect.objectContaining({ minutes: 30 }),
