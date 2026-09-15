@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { AddDocumentDialog } from './AddDocumentDialog';
 
@@ -117,7 +118,7 @@ describe('AddDocumentDialog', () => {
     );
   });
 
-  it('requires an http(s) URL for URL documents', () => {
+  it('disables every source type but Markdown, since this dialog is gateway-only', () => {
     render(
       <AddDocumentDialog
         entity={entity}
@@ -127,134 +128,26 @@ describe('AddDocumentDialog', () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText(/^Name/), {
-      target: { value: 'Docs link' },
-    });
+    expect(screen.getByText('Markdown').closest('button')).toBeEnabled();
+    expect(screen.getByText('Text').closest('button')).toBeDisabled();
+    expect(screen.getByText('URL').closest('button')).toBeDisabled();
+    expect(screen.getByText('File').closest('button')).toBeDisabled();
+  });
+
+  it('ignores clicks on the disabled URL/File toggle buttons', () => {
+    render(
+      <AddDocumentDialog
+        entity={entity}
+        open
+        onClose={jest.fn()}
+        onCreated={jest.fn()}
+      />,
+    );
+
     fireEvent.click(screen.getByText('URL'));
-    fireEvent.change(screen.getByLabelText(/^Source URL/), {
-      target: { value: 'not-a-url' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Add Document' }));
+    expect(screen.queryByLabelText(/^Source URL/)).toBeNull();
 
-    expect(
-      screen.getByText('A valid http:// or https:// URL is required.'),
-    ).toBeDefined();
-    expect(mockWso2Api.createDocument).not.toHaveBeenCalled();
-  });
-
-  it('creates a URL document', async () => {
-    mockWso2Api.createDocument.mockResolvedValue({
-      documentId: 'd1',
-      name: 'Docs link',
-    });
-    const onCreated = jest.fn();
-
-    render(
-      <AddDocumentDialog
-        entity={entity}
-        open
-        onClose={jest.fn()}
-        onCreated={onCreated}
-      />,
-    );
-
-    fireEvent.change(screen.getByLabelText(/^Name/), {
-      target: { value: 'Docs link' },
-    });
-    fireEvent.click(screen.getByText('URL'));
-    fireEvent.change(screen.getByLabelText(/^Source URL/), {
-      target: { value: 'https://example.com/docs' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Add Document' }));
-
-    await waitFor(() => expect(onCreated).toHaveBeenCalled());
-    expect(mockWso2Api.createDocument).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        sourceType: 'URL',
-        sourceUrl: 'https://example.com/docs',
-      }),
-    );
-  });
-
-  it('requires a file for FILE documents', () => {
-    render(
-      <AddDocumentDialog
-        entity={entity}
-        open
-        onClose={jest.fn()}
-        onCreated={jest.fn()}
-      />,
-    );
-
-    fireEvent.change(screen.getByLabelText(/^Name/), {
-      target: { value: 'Spec' },
-    });
     fireEvent.click(screen.getByText('File'));
-    fireEvent.click(screen.getByRole('button', { name: 'Add Document' }));
-
-    expect(screen.getByText('A file is required.')).toBeDefined();
-    expect(mockWso2Api.createDocument).not.toHaveBeenCalled();
-  });
-
-  it('creates a FILE document', async () => {
-    mockWso2Api.createDocument.mockResolvedValue({
-      documentId: 'd1',
-      name: 'Spec',
-    });
-    const onCreated = jest.fn();
-
-    render(
-      <AddDocumentDialog
-        entity={entity}
-        open
-        onClose={jest.fn()}
-        onCreated={onCreated}
-      />,
-    );
-
-    fireEvent.change(screen.getByLabelText(/^Name/), {
-      target: { value: 'Spec' },
-    });
-    fireEvent.click(screen.getByText('File'));
-
-    const file = new File(['hello'], 'spec.txt', { type: 'text/plain' });
-    fireEvent.change(screen.getByTestId('file-content-input'), {
-      target: { files: [file] },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Add Document' }));
-
-    await waitFor(() => expect(onCreated).toHaveBeenCalled());
-    expect(mockWso2Api.createDocument).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({ sourceType: 'FILE', file }),
-    );
-  });
-
-  it('rejects a disallowed file extension client-side', () => {
-    render(
-      <AddDocumentDialog
-        entity={entity}
-        open
-        onClose={jest.fn()}
-        onCreated={jest.fn()}
-      />,
-    );
-
-    fireEvent.change(screen.getByLabelText(/^Name/), {
-      target: { value: 'Spec' },
-    });
-    fireEvent.click(screen.getByText('File'));
-
-    const file = new File(['bad'], 'malware.exe', {
-      type: 'application/octet-stream',
-    });
-    fireEvent.change(screen.getByTestId('file-content-input'), {
-      target: { files: [file] },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Add Document' }));
-
-    expect(screen.getByText(/is not in the allowed list/)).toBeDefined();
-    expect(mockWso2Api.createDocument).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('file-content-input')).toBeNull();
   });
 });

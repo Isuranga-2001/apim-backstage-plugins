@@ -39,6 +39,7 @@ export const DocumentContentEditor = (options: {
   maxFileSizeBytes: number;
   allowedExtensions: string[];
   fileError?: string;
+  allowedSourceTypes?: Wso2ApiDocumentSourceType[];
 }) => {
   const {
     value,
@@ -47,7 +48,11 @@ export const DocumentContentEditor = (options: {
     maxFileSizeBytes,
     allowedExtensions,
     fileError,
+    allowedSourceTypes,
   } = options;
+
+  const isDisallowed = (sourceType: Wso2ApiDocumentSourceType) =>
+    !!allowedSourceTypes && !allowedSourceTypes.includes(sourceType);
 
   return (
     <Box>
@@ -61,10 +66,18 @@ export const DocumentContentEditor = (options: {
           }
         }}
       >
-        <ToggleButton value="MARKDOWN">Markdown</ToggleButton>
-        <ToggleButton value="INLINE">Text</ToggleButton>
-        <ToggleButton value="URL">URL</ToggleButton>
-        <ToggleButton value="FILE">File</ToggleButton>
+        <ToggleButton value="INLINE" disabled={isDisallowed('INLINE')}>
+          Text
+        </ToggleButton>
+        <ToggleButton value="MARKDOWN" disabled={isDisallowed('MARKDOWN')}>
+          Markdown
+        </ToggleButton>
+        <ToggleButton value="URL" disabled={isDisallowed('URL')}>
+          URL
+        </ToggleButton>
+        <ToggleButton value="FILE" disabled={isDisallowed('FILE')}>
+          File
+        </ToggleButton>
       </ToggleButtonGroup>
       <Box mt={2}>
         {value.sourceType === 'MARKDOWN' && (

@@ -28,7 +28,10 @@ import DialogContent from '@material-ui/core/DialogContent';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import Snackbar from '@material-ui/core/Snackbar';
 import Alert from '@material-ui/lab/Alert';
-import { CreateWso2ApiDocumentRequest } from '../../../../api';
+import {
+  CreateWso2ApiDocumentRequest,
+  Wso2ApiDocumentSourceType,
+} from '../../../../api';
 import { useDocumentMutations } from '../hooks/useDocumentMutations';
 import {
   DocumentMetadataForm,
@@ -38,6 +41,8 @@ import {
   DocumentContentEditor,
   DocumentContentValue,
 } from './content/DocumentContentEditor';
+
+const ALLOWED_SOURCE_TYPES: Wso2ApiDocumentSourceType[] = ['MARKDOWN'];
 
 function isHttpUrl(value: string): boolean {
   try {
@@ -177,6 +182,7 @@ export const AddDocumentDialog = (options: {
               maxInlineSizeBytes={maxInlineSizeBytes}
               maxFileSizeBytes={maxFileSizeBytes}
               allowedExtensions={allowedExtensions}
+              allowedSourceTypes={ALLOWED_SOURCE_TYPES}
             />
           </Box>
         </DialogContent>
