@@ -65,6 +65,17 @@ export interface Config {
        */
       baseUrl?: string;
     };
+    /**
+     * Frontend-visible API Portal base URL. The Overview tab's "Publish to
+     * API Portal" dialog and "Open API Portal" link display and navigate to
+     * this URL directly from the browser.
+     */
+    apiPortal?: {
+      /**
+       * @visibility frontend
+       */
+      baseUrl?: string;
+    };
   };
   wso2ApiPlatformGateway?: {
     /**

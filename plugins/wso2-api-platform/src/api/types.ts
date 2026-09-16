@@ -334,6 +334,31 @@ export type Wso2GenerateApiKeyOptions = {
   };
 };
 
+export type Wso2ApiPortalCapabilities = {
+  publish: boolean;
+  reason?: string;
+};
+
+export type Wso2ApiPortalInfo = {
+  enabled: boolean;
+  capabilities: Wso2ApiPortalCapabilities;
+};
+
+export type Wso2ApiPortalSkippedDocument = {
+  name: string;
+  sourceType: string;
+  reason: string;
+};
+
+export type Wso2ApiPortalPublishResult = {
+  portalApiId: string;
+  portalUrl: string;
+  operation: 'created' | 'updated';
+  publishedAt: string;
+  documents: { published: number; skipped: Wso2ApiPortalSkippedDocument[] };
+  warnings: string[];
+};
+
 export interface Wso2ApiPlatformApi {
   generateApiKey(
     apiId: string,
@@ -392,4 +417,9 @@ export interface Wso2ApiPlatformApi {
     entityRef: CompoundEntityRef,
     input: Wso2ApiPolicyArtifact,
   ): Promise<Wso2PolicyDiffResponse>;
+  getApiPortalInfo(entityRef: CompoundEntityRef): Promise<Wso2ApiPortalInfo>;
+  publishToApiPortal(
+    entityRef: CompoundEntityRef,
+    accessToken: string,
+  ): Promise<Wso2ApiPortalPublishResult>;
 }

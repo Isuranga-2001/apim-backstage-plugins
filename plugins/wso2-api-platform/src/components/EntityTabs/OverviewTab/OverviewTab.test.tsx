@@ -19,7 +19,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { EntityWso2OverviewTab } from './OverviewTab';
 
 // Scope variable to dynamically control entity properties in test cases
@@ -38,13 +39,35 @@ jest.mock('@backstage/plugin-catalog-react', () => ({
   },
 }));
 
+const mockConfigApi = {
+  getOptionalString: jest.fn(),
+  getOptionalNumber: jest.fn(),
+  getOptionalBoolean: jest.fn(),
+  getOptionalStringArray: jest.fn(),
+};
+const mockWso2Api = {
+  getServiceUsage: jest.fn(),
+  getEntities: jest.fn(),
+  getGateways: jest.fn().mockResolvedValue([]),
+  getDefinition: jest
+    .fn()
+    .mockResolvedValue({ definition: null, capabilities: { read: true, write: true } }),
+  getApiPortalInfo: jest.fn().mockResolvedValue({
+    enabled: false,
+    capabilities: {
+      publish: false,
+      reason: 'The API Portal integration is not enabled',
+    },
+  }),
+  publishToApiPortal: jest.fn(),
+};
+
 // Mock @backstage/core-plugin-api directly to be fully sandboxed
 jest.mock('@backstage/core-plugin-api', () => ({
+  configApiRef: { id: 'core.config' },
   createApiRef: (options: any) => options,
-  useApi: () => ({
-    getServiceUsage: jest.fn(),
-    getEntities: jest.fn(),
-  }),
+  useApi: (apiRef: any) =>
+    apiRef?.id === 'core.config' ? mockConfigApi : mockWso2Api,
   useRouteRef: () => (params: any) =>
     `/catalog/${params.namespace}/${params.kind}/${params.name}`,
 }));
@@ -66,18 +89,15 @@ jest.mock('@backstage/plugin-catalog', () => ({
 jest.mock('@backstage/core-components', () => ({
   InfoCard: (props: any) => (
     <div data-testid="info-card">
+      {props.title && <span>{props.title}</span>}
       {props.subheader}
       {props.children}
     </div>
   ),
-  HeaderIconLinkRow: (props: any) => (
-    <div data-testid="header-icon-links">
-      {props.links?.map((link: any, idx: number) => (
-        <a key={idx} href={link.href}>
-          {link.label}
-        </a>
-      ))}
-    </div>
+  Link: (props: any) => (
+    <a href={props.to} style={props.style}>
+      {props.children}
+    </a>
   ),
 }));
 
@@ -115,21 +135,18 @@ describe('EntityWso2AboutCard', () => {
   it('should render all standard about card fields successfully', () => {
     render(<EntityWso2OverviewTab />);
 
-    expect(screen.getByText('Display Name')).toBeDefined();
-    expect(screen.getByText('Test API Title')).toBeDefined();
+    // Display name & version, shown together without field titles
+    expect(screen.getByText('Test API Title : 1.0.0')).toBeDefined();
 
     // Lifecycle
     expect(screen.getByText('Lifecycle')).toBeDefined();
     expect(screen.getByText('PUBLISHED')).toBeDefined();
 
-    // Context & Version
+    // Context
     expect(screen.getByText('Context')).toBeDefined();
     expect(screen.getByText('/test-context')).toBeDefined();
-    expect(screen.getByText('Version')).toBeDefined();
-    expect(screen.getByText('1.0.0')).toBeDefined();
 
-    // Description
-    expect(screen.getByText('Description')).toBeDefined();
+    // Description, shown without a field title
     expect(
       screen.getByText('This is a test WSO2 API description.'),
     ).toBeDefined();
@@ -140,13 +157,21 @@ describe('EntityWso2AboutCard', () => {
       screen.getByText('Production (https://gw.wso2.com/test-context/1.0.0)'),
     ).toBeDefined();
 
-    // TechDocs header vertical links
+    // Quick links
     expect(screen.getByText('View TechDocs')).toBeDefined();
-    const link = screen.getByRole('link', {
+    const techDocsLink = screen.getByRole('link', {
       name: 'View TechDocs',
     }) as HTMLAnchorElement;
-    expect(link.getAttribute('href')).toBe(
-      '/catalog/default/api/test-api/wso2',
+    expect(techDocsLink.getAttribute('href')).toBe(
+      '/catalog/default/api/test-api/docs',
+    );
+
+    expect(screen.getByText('View Policies')).toBeDefined();
+    const policiesLink = screen.getByRole('link', {
+      name: 'View Policies',
+    }) as HTMLAnchorElement;
+    expect(policiesLink.getAttribute('href')).toBe(
+      '/catalog/default/api/test-api/policies',
     );
   });
 
@@ -204,14 +229,14 @@ describe('EntityWso2AboutCard', () => {
 
     expect(screen.getByText('DEPRECATED')).toBeDefined();
     expect(screen.getByText('/fallback-context')).toBeDefined();
-    expect(screen.getByText('2.0.0')).toBeDefined();
+    expect(screen.getByText('Test API Title : 2.0.0')).toBeDefined();
   });
 
   it('should fallback display name to entity name if title is completely absent', () => {
     delete mockEntity.metadata.title;
     render(<EntityWso2OverviewTab />);
 
-    expect(screen.getAllByText('test-api').length).toBe(1);
+    expect(screen.getByText('test-api : 1.0.0')).toBeDefined();
   });
 
   it('should render safely if optional annotations and description are absent', () => {
@@ -219,16 +244,12 @@ describe('EntityWso2AboutCard', () => {
     delete mockEntity.metadata.description;
     render(<EntityWso2OverviewTab />);
 
-    expect(screen.getByText('Display Name')).toBeDefined();
     expect(screen.getByText('Test API Title')).toBeDefined();
 
     // Check that optional fields are not rendered
     expect(screen.queryByText('Lifecycle')).toBeNull();
     expect(screen.queryByText('Context')).toBeNull();
-    expect(screen.queryByText('Version')).toBeNull();
     expect(screen.queryByText('Gateway')).toBeNull();
-
-    expect(screen.queryByText('Description')).toBeNull();
   });
 
   it('should display values from explicit WSO2 annotations', () => {
@@ -241,8 +262,7 @@ describe('EntityWso2AboutCard', () => {
     mockEntity.metadata.description = 'Description from catalog metadata';
     render(<EntityWso2OverviewTab />);
 
-    expect(screen.getByText('Version')).toBeDefined();
-    expect(screen.getByText('1.2.3')).toBeDefined();
+    expect(screen.getByText('Test API Title : 1.2.3')).toBeDefined();
     expect(screen.getByText('Context')).toBeDefined();
     expect(screen.getByText('/annotation-context')).toBeDefined();
     expect(screen.getByText('Lifecycle')).toBeDefined();
@@ -250,7 +270,6 @@ describe('EntityWso2AboutCard', () => {
     expect(screen.getByText('Provider')).toBeDefined();
     expect(screen.getByText('annotation-provider')).toBeDefined();
 
-    expect(screen.getByText('Description')).toBeDefined();
     expect(screen.getByText('Description from catalog metadata')).toBeDefined();
   });
 
@@ -276,5 +295,93 @@ describe('EntityWso2AboutCard', () => {
     };
     rerender(<EntityWso2OverviewTab />);
     expect(screen.queryByText('Security Scheme')).toBeNull();
+  });
+});
+
+describe('API Portal card', () => {
+  const gatewayEntity: any = {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'API',
+    metadata: {
+      name: 'orders-api',
+      namespace: 'wso2-gateways',
+      annotations: {
+        'wso2.com/api-discovery-type': 'openchoreo-gateway',
+      },
+    },
+  };
+
+  beforeEach(() => {
+    mockEntity = gatewayEntity;
+    mockConfigApi.getOptionalString.mockReturnValue(undefined);
+    mockConfigApi.getOptionalBoolean.mockReturnValue(undefined);
+  });
+
+  it('is not shown for an on-prem (non-gateway-discovered) API', () => {
+    mockEntity = {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'API',
+      metadata: { name: 'onprem-api', annotations: {} },
+    };
+    render(<EntityWso2OverviewTab />);
+    expect(screen.queryByText('API Portal')).toBeNull();
+  });
+
+  it('disables Publish and shows the reason when the API Portal integration is disabled', async () => {
+    mockWso2Api.getApiPortalInfo.mockResolvedValue({
+      enabled: false,
+      capabilities: {
+        publish: false,
+        reason: 'The API Portal integration is not enabled',
+      },
+    });
+    render(<EntityWso2OverviewTab />);
+
+    expect(await screen.findByText('API Portal')).toBeInTheDocument();
+    expect(
+      await screen.findByText('The API Portal integration is not enabled'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Publish to API Portal/ }),
+    ).toBeDisabled();
+  });
+
+  it('enables Publish and opens the token dialog once the API Portal accepts publishing', async () => {
+    mockWso2Api.getApiPortalInfo.mockResolvedValue({
+      enabled: true,
+      capabilities: { publish: true },
+    });
+    mockConfigApi.getOptionalString.mockReturnValue(
+      'https://devportal.example.com',
+    );
+    render(<EntityWso2OverviewTab />);
+
+    const publishButton = await screen.findByRole('button', {
+      name: /Publish to API Portal/,
+    });
+    await waitFor(() => expect(publishButton).toBeEnabled());
+
+    fireEvent.click(publishButton);
+    expect(
+      screen.getByRole('heading', { name: 'Publish to API Portal' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('This will publish the API to https://devportal.example.com.'),
+    ).toBeInTheDocument();
+  });
+
+  it('links the Open API Portal button to the configured base URL', async () => {
+    mockConfigApi.getOptionalString.mockReturnValue(
+      'https://devportal.example.com',
+    );
+    render(<EntityWso2OverviewTab />);
+
+    const openButton = await screen.findByRole('link', {
+      name: /Open API Portal/,
+    });
+    expect(openButton).toHaveAttribute(
+      'href',
+      'https://devportal.example.com',
+    );
   });
 });

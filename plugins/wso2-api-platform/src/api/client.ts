@@ -31,11 +31,15 @@ import {
   Wso2ApiRevisionsResponse,
   Wso2ApiPlatformApi,
   Wso2ApiPlatformRuntimeConfig,
+  Wso2ApiPortalInfo,
+  Wso2ApiPortalPublishResult,
   Wso2DefinitionDiffResponse,
   Wso2GatewaySummary,
   Wso2GenerateApiKeyOptions,
   Wso2PolicyDiffResponse,
 } from './types';
+
+const PORTAL_TOKEN_HEADER = 'x-api-portal-access-token';
 
 /**
  * Client for interacting with the WSO2 API Manager backend.
@@ -62,6 +66,7 @@ export class Wso2ApiPlatformClient implements Wso2ApiPlatformApi {
       method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
       body?: any;
       token?: string;
+      portalToken?: string;
       query?: URLSearchParams;
     },
   ): Promise<T> {
@@ -79,6 +84,10 @@ export class Wso2ApiPlatformClient implements Wso2ApiPlatformApi {
 
     if (options?.token) {
       headers['X-WSO2-Access-Token'] = options.token;
+    }
+
+    if (options?.portalToken) {
+      headers[PORTAL_TOKEN_HEADER] = options.portalToken;
     }
 
     if (options?.method === 'POST' || options?.method === 'PUT') {
@@ -150,6 +159,13 @@ export class Wso2ApiPlatformClient implements Wso2ApiPlatformApi {
     const namespace = encodeURIComponent(entityRef.namespace || 'default');
     const name = encodeURIComponent(entityRef.name);
     return `/entities/${kind}/${namespace}/${name}/policies`;
+  }
+
+  private entityApiPortalPath(entityRef: CompoundEntityRef): string {
+    const kind = encodeURIComponent(entityRef.kind.toLowerCase());
+    const namespace = encodeURIComponent(entityRef.namespace || 'default');
+    const name = encodeURIComponent(entityRef.name);
+    return `/entities/${kind}/${namespace}/${name}/api-portal`;
   }
 
   async generateApiKey(
@@ -346,6 +362,22 @@ export class Wso2ApiPlatformClient implements Wso2ApiPlatformApi {
     return this.request<Wso2PolicyDiffResponse>(
       `${this.entityPoliciesPath(entityRef)}/diff`,
       { method: 'POST', body: input },
+    );
+  }
+
+  async getApiPortalInfo(
+    entityRef: CompoundEntityRef,
+  ): Promise<Wso2ApiPortalInfo> {
+    return this.request<Wso2ApiPortalInfo>(this.entityApiPortalPath(entityRef));
+  }
+
+  async publishToApiPortal(
+    entityRef: CompoundEntityRef,
+    accessToken: string,
+  ): Promise<Wso2ApiPortalPublishResult> {
+    return this.request<Wso2ApiPortalPublishResult>(
+      `${this.entityApiPortalPath(entityRef)}/publish`,
+      { method: 'POST', portalToken: accessToken },
     );
   }
 }

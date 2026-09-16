@@ -56,6 +56,10 @@ export type {
   Wso2PolicyFlowDiff,
   Wso2ApiPolicyDiff,
   Wso2PolicyDiffResponse,
+  Wso2ApiPortalCapabilities,
+  Wso2ApiPortalInfo,
+  Wso2ApiPortalSkippedDocument,
+  Wso2ApiPortalPublishResult,
 } from './types';
 
 export * from './policyHub';
