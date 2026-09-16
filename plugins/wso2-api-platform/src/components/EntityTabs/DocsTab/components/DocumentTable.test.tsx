@@ -59,12 +59,26 @@ describe('Wso2DocumentTable', () => {
         documents={documents}
         onPreview={jest.fn()}
         onDownload={jest.fn()}
+        showSourceType
       />,
     );
 
     expect(screen.queryByText('Actions')).toBeNull();
+    expect(screen.getByText('MARKDOWN (Previewable)')).toBeDefined();
     expect(screen.queryByLabelText(/Edit metadata/)).toBeNull();
     expect(screen.queryByLabelText(/^Delete /)).toBeNull();
+  });
+
+  it('hides the Source column when source types are not applicable', () => {
+    render(
+      <Wso2DocumentTable
+        documents={documents}
+        onPreview={jest.fn()}
+        onDownload={jest.fn()}
+      />,
+    );
+
+    expect(screen.queryByText('MARKDOWN (Previewable)')).toBeNull();
   });
 
   it('renders no Actions column when the store reports no write capabilities', () => {

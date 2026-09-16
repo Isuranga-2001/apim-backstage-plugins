@@ -96,7 +96,7 @@ export const entityWso2DocsContent: ExtensionDefinition =
     name: 'wso2-docs',
     params: {
       path: '/docs',
-      title: 'Docs',
+      title: 'Documents',
       group: 'wso2-docs',
       filter: isWso2ApiEntityExceptService,
       loader: () =>

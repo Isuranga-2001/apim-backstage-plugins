@@ -33,6 +33,7 @@ export const Wso2DocumentTable = (options: {
   documents: Wso2ApiDocument[];
   onPreview: (doc: Wso2ApiDocument) => void;
   onDownload: (doc: Wso2ApiDocument) => void;
+  showSourceType?: boolean;
   capabilities?: Wso2ApiDocumentCapabilities;
   onEditMetadata?: (doc: Wso2ApiDocument) => void;
   onDelete?: (doc: Wso2ApiDocument) => void;
@@ -41,6 +42,7 @@ export const Wso2DocumentTable = (options: {
     documents,
     onPreview,
     onDownload,
+    showSourceType = false,
     capabilities,
     onEditMetadata,
     onDelete,
@@ -82,7 +84,11 @@ export const Wso2DocumentTable = (options: {
         <Chip size="small" label={rowData.type} style={getApiTypeChipStyle()} />
       ),
     },
-    {
+    { title: 'Summary', field: 'summary' },
+  ];
+
+  if (showSourceType) {
+    columns.splice(2, 0, {
       title: 'Source',
       field: 'sourceType',
       render: (rowData: Wso2ApiDocument) => {
@@ -94,9 +100,8 @@ export const Wso2DocumentTable = (options: {
           </Typography>
         );
       },
-    },
-    { title: 'Summary', field: 'summary' },
-  ];
+    });
+  }
 
   if (capabilities?.updateMetadata || capabilities?.delete) {
     columns.push({
@@ -154,7 +159,7 @@ export const Wso2DocumentTable = (options: {
 
   return (
     <Table
-      options={{ paging: documents.length > 5, search: false }}
+      options={{ paging: documents.length > 5, search: false, toolbar: false }}
       columns={columns}
       data={documents}
     />

@@ -53,7 +53,7 @@ export const DocumentMetadataForm = (options: {
 
   return (
     <Grid container spacing={2}>
-      <Grid item xs={12}>
+      <Grid item xs={12} sm={6}>
         <TextField
           id="document-metadata-name"
           label="Name"
@@ -65,7 +65,7 @@ export const DocumentMetadataForm = (options: {
           disabled={disabled}
         />
       </Grid>
-      <Grid item xs={12}>
+      <Grid item xs={12} sm={6}>
         <TextField
           id="document-metadata-type"
           select

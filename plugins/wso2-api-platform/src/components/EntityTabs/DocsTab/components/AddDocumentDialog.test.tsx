@@ -118,7 +118,7 @@ describe('AddDocumentDialog', () => {
     );
   });
 
-  it('disables every source type but Markdown, since this dialog is gateway-only', () => {
+  it('has no source type selector, since this dialog is gateway-only and markdown-only', () => {
     render(
       <AddDocumentDialog
         entity={entity}
@@ -128,26 +128,11 @@ describe('AddDocumentDialog', () => {
       />,
     );
 
-    expect(screen.getByText('Markdown').closest('button')).toBeEnabled();
-    expect(screen.getByText('Text').closest('button')).toBeDisabled();
-    expect(screen.getByText('URL').closest('button')).toBeDisabled();
-    expect(screen.getByText('File').closest('button')).toBeDisabled();
-  });
-
-  it('ignores clicks on the disabled URL/File toggle buttons', () => {
-    render(
-      <AddDocumentDialog
-        entity={entity}
-        open
-        onClose={jest.fn()}
-        onCreated={jest.fn()}
-      />,
-    );
-
-    fireEvent.click(screen.getByText('URL'));
-    expect(screen.queryByLabelText(/^Source URL/)).toBeNull();
-
-    fireEvent.click(screen.getByText('File'));
-    expect(screen.queryByTestId('file-content-input')).toBeNull();
+    expect(screen.queryByText('Markdown')).toBeNull();
+    expect(screen.queryByText('Text')).toBeNull();
+    expect(screen.queryByText('URL')).toBeNull();
+    expect(screen.queryByText('File')).toBeNull();
+    // The markdown editor is shown directly, with no toggle needed to reach it.
+    expect(screen.getByLabelText('markdown-editor')).toBeInTheDocument();
   });
 });

@@ -149,6 +149,7 @@ export const EntityWso2DocumentsCard = (
             documents={documents}
             onPreview={handlePreview}
             onDownload={handleDownload}
+            showSourceType={false}
             capabilities={capabilities}
             onEditMetadata={setEditingDoc}
             onDelete={setDeletingDoc}
@@ -217,6 +218,7 @@ export const EntityWso2DocumentsCard = (
               documents={documents}
               onPreview={handlePreview}
               onDownload={handleDownload}
+              showSourceType
             />
           )}
         </>

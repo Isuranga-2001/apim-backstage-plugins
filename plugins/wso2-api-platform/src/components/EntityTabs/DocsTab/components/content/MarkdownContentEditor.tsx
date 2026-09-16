@@ -64,7 +64,7 @@ export const MarkdownContentEditor = (options: {
         variant="caption"
         color={overLimit ? 'error' : 'textSecondary'}
       >
-        {sizeBytes.toLocaleString()} / {maxSizeBytes.toLocaleString()} bytes
+        {sizeBytes.toLocaleString()} / {maxSizeBytes.toLocaleString()}
       </Typography>
     </Box>
   );

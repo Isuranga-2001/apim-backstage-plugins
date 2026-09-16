@@ -54,31 +54,35 @@ export const DocumentContentEditor = (options: {
   const isDisallowed = (sourceType: Wso2ApiDocumentSourceType) =>
     !!allowedSourceTypes && !allowedSourceTypes.includes(sourceType);
 
+  const hasChoice = !allowedSourceTypes || allowedSourceTypes.length > 1;
+
   return (
     <Box>
-      <ToggleButtonGroup
-        exclusive
-        size="small"
-        value={value.sourceType}
-        onChange={(_, sourceType) => {
-          if (sourceType) {
-            onChange({ ...value, sourceType });
-          }
-        }}
-      >
-        <ToggleButton value="INLINE" disabled={isDisallowed('INLINE')}>
-          Text
-        </ToggleButton>
-        <ToggleButton value="MARKDOWN" disabled={isDisallowed('MARKDOWN')}>
-          Markdown
-        </ToggleButton>
-        <ToggleButton value="URL" disabled={isDisallowed('URL')}>
-          URL
-        </ToggleButton>
-        <ToggleButton value="FILE" disabled={isDisallowed('FILE')}>
-          File
-        </ToggleButton>
-      </ToggleButtonGroup>
+      {hasChoice && (
+        <ToggleButtonGroup
+          exclusive
+          size="small"
+          value={value.sourceType}
+          onChange={(_, sourceType) => {
+            if (sourceType) {
+              onChange({ ...value, sourceType });
+            }
+          }}
+        >
+          <ToggleButton value="INLINE" disabled={isDisallowed('INLINE')}>
+            Text
+          </ToggleButton>
+          <ToggleButton value="MARKDOWN" disabled={isDisallowed('MARKDOWN')}>
+            Markdown
+          </ToggleButton>
+          <ToggleButton value="URL" disabled={isDisallowed('URL')}>
+            URL
+          </ToggleButton>
+          <ToggleButton value="FILE" disabled={isDisallowed('FILE')}>
+            File
+          </ToggleButton>
+        </ToggleButtonGroup>
+      )}
       <Box mt={2}>
         {value.sourceType === 'MARKDOWN' && (
           <MarkdownContentEditor
