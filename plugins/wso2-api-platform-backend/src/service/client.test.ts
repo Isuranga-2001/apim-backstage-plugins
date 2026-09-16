@@ -91,9 +91,9 @@ describe('client and Wso2ApiPlatformClient', () => {
       expect(result.tls.rejectUnauthorized).toBe(false);
       expect(result.apiManager.enabled).toBe(true);
       expect(result.platformGateway.enabled).toBe(true);
-      expect(result.selfHostedGateways.length).toBe(1);
-      expect(result.selfHostedGateways[0].name).toBe('Production Gateway');
-      expect(result.selfHostedGateways[0].managementApiAuth).toBe(
+      expect(result.platformGateways.length).toBe(1);
+      expect(result.platformGateways[0].name).toBe('Production Gateway');
+      expect(result.platformGateways[0].managementApiAuth).toBe(
         `Basic ${Buffer.from('admin:password123').toString('base64')}`,
       );
     });
@@ -131,7 +131,7 @@ describe('client and Wso2ApiPlatformClient', () => {
       const result = readWso2ApiPlatformConfig(config);
       expect(result.apiManager.enabled).toBe(false);
       expect(result.platformGateway.enabled).toBe(false);
-      expect(result.selfHostedGateways).toEqual([]);
+      expect(result.platformGateways).toEqual([]);
     });
 
     it('should successfully read config with defaults and selfHostedGateway credentials', () => {
@@ -162,11 +162,11 @@ describe('client and Wso2ApiPlatformClient', () => {
       const result = readWso2ApiPlatformConfig(config);
 
       expect(result.tls.rejectUnauthorized).toBe(true);
-      expect(result.selfHostedGateways.length).toBe(1);
-      expect(result.selfHostedGateways[0].managementApiAuth).toBe(
+      expect(result.platformGateways.length).toBe(1);
+      expect(result.platformGateways[0].managementApiAuth).toBe(
         `Basic ${Buffer.from('admin:password123').toString('base64')}`,
       );
-      expect(result.selfHostedGateways[0].environmentType).toBe('PRODUCTION');
+      expect(result.platformGateways[0].environmentType).toBe('PRODUCTION');
     });
   });
 
@@ -180,6 +180,7 @@ describe('client and Wso2ApiPlatformClient', () => {
       },
       platformGateway: {
         enabled: false,
+        enableWriteOperations: false,
       },
       baseUrl: 'https://apim.wso2.com',
       publisherBasePath: '/api/am/publisher/v3',
@@ -196,7 +197,7 @@ describe('client and Wso2ApiPlatformClient', () => {
       tls: {
         rejectUnauthorized: false,
       },
-      selfHostedGateways: [],
+      platformGateways: [],
     };
 
     beforeEach(() => {

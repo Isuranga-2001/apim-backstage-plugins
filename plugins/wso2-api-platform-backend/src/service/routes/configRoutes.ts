@@ -33,7 +33,10 @@ export function registerConfigRoutes(
         },
         platformGateway: {
           enabled: Boolean(clientConfig.platformGateway?.enabled),
-          gatewayCount: clientConfig.selfHostedGateways.length,
+          enableWriteOperations: Boolean(
+            clientConfig.platformGateway?.enableWriteOperations,
+          ),
+          gatewayCount: clientConfig.platformGateways.length,
         },
         apiPortal: {
           enabled: Boolean(apiPortalConfig?.enabled),

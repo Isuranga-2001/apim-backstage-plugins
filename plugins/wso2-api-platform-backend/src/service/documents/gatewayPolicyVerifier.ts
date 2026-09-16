@@ -22,8 +22,8 @@ import { Wso2ApiPlatformClient } from '../client';
 import { ApiRef } from './types';
 import {
   fetchDiscoveredArtifact,
-  resolveOpenChoreoGateway,
-} from './openchoreoDefinitionVerifier';
+  resolvePlatformGateway,
+} from './gatewayDefinitionVerifier';
 import {
   RestApiArtifact,
   Wso2ApiPolicyArtifact,
@@ -32,17 +32,24 @@ import {
   mapPoliciesToRestApiArtifact,
 } from './restApiArtifactMapper';
 
-/** UPDATE preview: returns the diff for the frontend's confirm step. No ADD-time gate exists here — policies only ever edit an already-discovered API. */
-export async function previewOpenChoreoPolicyUpdate(
+function isGatewayDiscovered(sourceKind: ApiRef['sourceKind']): boolean {
+  return sourceKind === 'gateway';
+}
+
+/** Returns the policy diff when gateway writes are enabled. */
+export async function previewGatewayPolicyUpdate(
   client: Wso2ApiPlatformClient,
   apiRef: Pick<ApiRef, 'sourceKind' | 'gatewayId' | 'apiId'>,
   input: Wso2ApiPolicyArtifact,
   logger: LoggerService,
 ): Promise<Wso2ApiPolicyDiff | undefined> {
-  if (apiRef.sourceKind !== 'openchoreo') {
+  if (
+    !isGatewayDiscovered(apiRef.sourceKind) ||
+    !client.getConfig().platformGateway.enableWriteOperations
+  ) {
     return undefined;
   }
-  const gateway = resolveOpenChoreoGateway(client, apiRef, logger);
+  const gateway = resolvePlatformGateway(client, apiRef, logger);
   if (!gateway) {
     return undefined;
   }
@@ -52,17 +59,20 @@ export async function previewOpenChoreoPolicyUpdate(
   return diffPolicyArtifacts(previous, next);
 }
 
-/** UPDATE commit: re-fetches fresh and pushes the merged artifact via `PUT {managementApiUrl}/{apiId}`, returning it so the route can respond without a second gateway round-trip. */
-export async function applyOpenChoreoPolicyUpdate(
+/** Pushes the merged policy and returns it. */
+export async function applyGatewayPolicyUpdate(
   client: Wso2ApiPlatformClient,
   apiRef: Pick<ApiRef, 'sourceKind' | 'gatewayId' | 'apiId'>,
   input: Wso2ApiPolicyArtifact,
   logger: LoggerService,
 ): Promise<RestApiArtifact | undefined> {
-  if (apiRef.sourceKind !== 'openchoreo') {
+  if (
+    !isGatewayDiscovered(apiRef.sourceKind) ||
+    !client.getConfig().platformGateway.enableWriteOperations
+  ) {
     return undefined;
   }
-  const gateway = resolveOpenChoreoGateway(client, apiRef, logger);
+  const gateway = resolvePlatformGateway(client, apiRef, logger);
   if (!gateway) {
     return undefined;
   }
@@ -79,7 +89,7 @@ export async function applyOpenChoreoPolicyUpdate(
     );
   } catch (e: any) {
     throw new ConflictError(
-      `Failed to apply the policy update to the OpenChoreo gateway for ` +
+      `Failed to apply the policy update to the API Platform gateway for ` +
         `API '${apiRef.apiId}': ${e.message}`,
     );
   }

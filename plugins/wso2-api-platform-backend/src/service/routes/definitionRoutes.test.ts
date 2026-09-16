@@ -71,7 +71,7 @@ const GATEWAY_ENTITY = {
     name: 'orders-api',
     namespace: 'wso2-gateways',
     annotations: {
-      'wso2.com/api-discovery-type': 'self-hosted-gateway',
+      'wso2.com/api-discovery-type': 'api-platform-gateway',
       'wso2-gateway.com/api-id': 'gw-api-1',
       'wso2-gateway.com/api-endpoints': JSON.stringify([
         { environmentName: 'dev' },
@@ -81,14 +81,14 @@ const GATEWAY_ENTITY = {
   spec: {},
 };
 
-const OPENCHOREO_ENTITY = {
+const PAYMENT_API_ENTITY = {
   apiVersion: 'backstage.io/v1alpha1',
   kind: 'API',
   metadata: {
     name: 'payment-api',
     namespace: 'wso2-gateways',
     annotations: {
-      'wso2.com/api-discovery-type': 'openchoreo-gateway',
+      'wso2.com/api-discovery-type': 'api-platform-gateway',
       'wso2-gateway.com/api-id': 'payment-api-service-v1.0',
       'wso2-gateway.com/api-endpoints': JSON.stringify([
         { environmentName: 'oc-dev' },
@@ -98,17 +98,16 @@ const OPENCHOREO_ENTITY = {
   spec: {},
 };
 
-const OPENCHOREO_GATEWAY_CONFIG = {
+const PAYMENT_API_GATEWAY_CONFIG = {
   apiManager: { enabled: false },
-  platformGateway: { enabled: true },
-  selfHostedGateways: [
+  platformGateway: { enabled: true, enableWriteOperations: true },
+  platformGateways: [
     {
       name: 'oc-dev',
       urls: [],
       managementApiUrl: 'http://localhost:9095/rest-apis',
       managementApiAuth: undefined,
       environmentType: 'PRODUCTION',
-      integration: 'openchoreo',
     },
   ],
 };
@@ -215,8 +214,8 @@ describe('definition routes', () => {
     Object.values(mockClientInstance).forEach(mock => mock.mockReset());
     mockClientInstance.getConfig.mockReturnValue({
       apiManager: { enabled: false },
-      platformGateway: { enabled: false },
-      selfHostedGateways: [],
+      platformGateway: { enabled: false, enableWriteOperations: false },
+      platformGateways: [],
     });
 
     const mockConfig = new ConfigReader({
@@ -235,7 +234,7 @@ describe('definition routes', () => {
     mockCatalog = {
       getEntityByRef: jest.fn().mockImplementation((ref: string) => {
         if (ref === 'api:wso2-gateways/orders-api') return GATEWAY_ENTITY;
-        if (ref === 'api:wso2-gateways/payment-api') return OPENCHOREO_ENTITY;
+        if (ref === 'api:wso2-gateways/payment-api') return PAYMENT_API_ENTITY;
         if (ref === 'api:default/orders-api') return APIM_ENTITY;
         if (ref === 'api:default/plain-api') return NON_WSO2_ENTITY;
         return undefined;
@@ -261,7 +260,7 @@ describe('definition routes', () => {
   }
 
   const GATEWAY_PATH = '/entities/api/wso2-gateways/orders-api/definition';
-  const OPENCHOREO_PATH = '/entities/api/wso2-gateways/payment-api/definition';
+  const PAYMENT_API_PATH = '/entities/api/wso2-gateways/payment-api/definition';
   const APIM_PATH = '/entities/api/default/orders-api/definition';
 
   beforeEach(async () => {
@@ -391,14 +390,14 @@ describe('definition routes', () => {
     expect(res.status).toBe(401);
   });
 
-  describe('OpenChoreo definition verification', () => {
+  describe('API Platform gateway definition verification', () => {
     it('allows an upload whose info.title/version match the discovered API', async () => {
-      mockClientInstance.getConfig.mockReturnValue(OPENCHOREO_GATEWAY_CONFIG);
+      mockClientInstance.getConfig.mockReturnValue(PAYMENT_API_GATEWAY_CONFIG);
       mockClientInstance.getGatewayApiDetail.mockResolvedValue(
         DISCOVERED_RESTAPI_CR,
       );
 
-      const res = await request(app).put(OPENCHOREO_PATH).send({
+      const res = await request(app).put(PAYMENT_API_PATH).send({
         fileName: 'openapi.yaml',
         content: MATCHING_OPENCHOREO_DEFINITION,
       });
@@ -412,12 +411,12 @@ describe('definition routes', () => {
     });
 
     it('returns 409 when the uploaded definition does not match the discovered API', async () => {
-      mockClientInstance.getConfig.mockReturnValue(OPENCHOREO_GATEWAY_CONFIG);
+      mockClientInstance.getConfig.mockReturnValue(PAYMENT_API_GATEWAY_CONFIG);
       mockClientInstance.getGatewayApiDetail.mockResolvedValue(
         DISCOVERED_RESTAPI_CR,
       );
 
-      const res = await request(app).put(OPENCHOREO_PATH).send({
+      const res = await request(app).put(PAYMENT_API_PATH).send({
         fileName: 'openapi.yaml',
         content:
           'openapi: 3.0.0\ninfo:\n  title: Unrelated Service\n  version: 9.9.9\npaths: {}\n',
@@ -426,13 +425,13 @@ describe('definition routes', () => {
       expect(res.status).toBe(409);
     });
 
-    it('returns 409 when the OpenChoreo gateway cannot be reached for verification', async () => {
-      mockClientInstance.getConfig.mockReturnValue(OPENCHOREO_GATEWAY_CONFIG);
+    it('returns 409 when the API Platform gateway cannot be reached for verification', async () => {
+      mockClientInstance.getConfig.mockReturnValue(PAYMENT_API_GATEWAY_CONFIG);
       mockClientInstance.getGatewayApiDetail.mockRejectedValue(
         new Error('ECONNREFUSED'),
       );
 
-      const res = await request(app).put(OPENCHOREO_PATH).send({
+      const res = await request(app).put(PAYMENT_API_PATH).send({
         fileName: 'openapi.yaml',
         content: MATCHING_OPENCHOREO_DEFINITION,
       });
@@ -442,16 +441,16 @@ describe('definition routes', () => {
 
     it('skips verification (fails open) when the gateway has no discovery URL configured', async () => {
       mockClientInstance.getConfig.mockReturnValue({
-        ...OPENCHOREO_GATEWAY_CONFIG,
-        selfHostedGateways: [
+        ...PAYMENT_API_GATEWAY_CONFIG,
+        platformGateways: [
           {
-            ...OPENCHOREO_GATEWAY_CONFIG.selfHostedGateways[0],
+            ...PAYMENT_API_GATEWAY_CONFIG.platformGateways[0],
             managementApiUrl: undefined,
           },
         ],
       });
 
-      const res = await request(app).put(OPENCHOREO_PATH).send({
+      const res = await request(app).put(PAYMENT_API_PATH).send({
         fileName: 'openapi.yaml',
         content: MATCHING_OPENCHOREO_DEFINITION,
       });
@@ -460,7 +459,7 @@ describe('definition routes', () => {
       expect(mockClientInstance.getGatewayApiDetail).not.toHaveBeenCalled();
     });
 
-    it('does not verify self-hosted (non-OpenChoreo) gateway uploads', async () => {
+    it('does not verify uploads when no gateway is configured for the environment', async () => {
       const res = await request(app)
         .put(GATEWAY_PATH)
         .send({ fileName: 'openapi.yaml', content: 'openapi: 3.0.0' });
@@ -469,13 +468,35 @@ describe('definition routes', () => {
       expect(mockClientInstance.getGatewayApiDetail).not.toHaveBeenCalled();
     });
 
+    it('does not push to (or verify against) the gateway when enableWriteOperations is false', async () => {
+      mockClientInstance.getConfig.mockReturnValue({
+        ...PAYMENT_API_GATEWAY_CONFIG,
+        platformGateway: {
+          ...PAYMENT_API_GATEWAY_CONFIG.platformGateway,
+          enableWriteOperations: false,
+        },
+      });
+      mockClientInstance.getGatewayApiDetail.mockResolvedValue(
+        DISCOVERED_RESTAPI_CR,
+      );
+
+      const res = await request(app).put(PAYMENT_API_PATH).send({
+        fileName: 'openapi.yaml',
+        content:
+          'openapi: 3.0.0\ninfo:\n  title: Unrelated Service\n  version: 9.9.9\npaths: {}\n',
+      });
+
+      expect(res.status).toBe(200);
+      expect(mockClientInstance.getGatewayApiDetail).not.toHaveBeenCalled();
+    });
+
     it('returns 409 when the uploaded definition operations do not match the discovered API', async () => {
-      mockClientInstance.getConfig.mockReturnValue(OPENCHOREO_GATEWAY_CONFIG);
+      mockClientInstance.getConfig.mockReturnValue(PAYMENT_API_GATEWAY_CONFIG);
       mockClientInstance.getGatewayApiDetail.mockResolvedValue(
         DISCOVERED_RESTAPI_CR_WITH_OPERATIONS,
       );
 
-      const res = await request(app).put(OPENCHOREO_PATH).send({
+      const res = await request(app).put(PAYMENT_API_PATH).send({
         fileName: 'openapi.yaml',
         content: MISSING_OPERATION_DEFINITION,
       });
@@ -484,22 +505,22 @@ describe('definition routes', () => {
     });
   });
 
-  describe('OpenChoreo definition update (map -> diff -> push to gateway)', () => {
+  describe('API Platform gateway definition update (map -> diff -> push to gateway)', () => {
     it('on a subsequent update, pushes the merged artifact to the gateway instead of rejecting a mismatch', async () => {
-      mockClientInstance.getConfig.mockReturnValue(OPENCHOREO_GATEWAY_CONFIG);
+      mockClientInstance.getConfig.mockReturnValue(PAYMENT_API_GATEWAY_CONFIG);
       mockClientInstance.getGatewayApiDetail.mockResolvedValue(
         DISCOVERED_RESTAPI_CR_WITH_OPERATIONS,
       );
       mockClientInstance.updateGatewayRestApi.mockResolvedValue({ ok: true });
 
-      const firstPut = await request(app).put(OPENCHOREO_PATH).send({
+      const firstPut = await request(app).put(PAYMENT_API_PATH).send({
         fileName: 'openapi.yaml',
         content: MATCHING_OPERATIONS_DEFINITION,
       });
       expect(firstPut.status).toBe(200);
       expect(mockClientInstance.updateGatewayRestApi).not.toHaveBeenCalled();
 
-      const secondPut = await request(app).put(OPENCHOREO_PATH).send({
+      const secondPut = await request(app).put(PAYMENT_API_PATH).send({
         fileName: 'openapi.yaml',
         content: EXTRA_OPERATION_DEFINITION,
       });
@@ -522,12 +543,12 @@ describe('definition routes', () => {
     });
 
     it('returns 409 when the gateway rejects a subsequent update', async () => {
-      mockClientInstance.getConfig.mockReturnValue(OPENCHOREO_GATEWAY_CONFIG);
+      mockClientInstance.getConfig.mockReturnValue(PAYMENT_API_GATEWAY_CONFIG);
       mockClientInstance.getGatewayApiDetail.mockResolvedValue(
         DISCOVERED_RESTAPI_CR_WITH_OPERATIONS,
       );
 
-      await request(app).put(OPENCHOREO_PATH).send({
+      await request(app).put(PAYMENT_API_PATH).send({
         fileName: 'openapi.yaml',
         content: MATCHING_OPERATIONS_DEFINITION,
       });
@@ -539,7 +560,7 @@ describe('definition routes', () => {
         ),
       );
 
-      const res = await request(app).put(OPENCHOREO_PATH).send({
+      const res = await request(app).put(PAYMENT_API_PATH).send({
         fileName: 'openapi.yaml',
         content: EXTRA_OPERATION_DEFINITION,
       });
@@ -552,7 +573,7 @@ describe('definition routes', () => {
     const DIFF_PATH = '/entities/api/wso2-gateways/payment-api/definition/diff';
 
     it('returns the diff for a changed definition', async () => {
-      mockClientInstance.getConfig.mockReturnValue(OPENCHOREO_GATEWAY_CONFIG);
+      mockClientInstance.getConfig.mockReturnValue(PAYMENT_API_GATEWAY_CONFIG);
       mockClientInstance.getGatewayApiDetail.mockResolvedValue(
         DISCOVERED_RESTAPI_CR_WITH_OPERATIONS,
       );
@@ -570,7 +591,7 @@ describe('definition routes', () => {
     });
 
     it('reports no changes for an identical definition', async () => {
-      mockClientInstance.getConfig.mockReturnValue(OPENCHOREO_GATEWAY_CONFIG);
+      mockClientInstance.getConfig.mockReturnValue(PAYMENT_API_GATEWAY_CONFIG);
       mockClientInstance.getGatewayApiDetail.mockResolvedValue(
         DISCOVERED_RESTAPI_CR_WITH_OPERATIONS,
       );
@@ -584,12 +605,12 @@ describe('definition routes', () => {
     });
 
     it('reports a description change only against the previously saved description, not the (description-less) gateway response', async () => {
-      mockClientInstance.getConfig.mockReturnValue(OPENCHOREO_GATEWAY_CONFIG);
+      mockClientInstance.getConfig.mockReturnValue(PAYMENT_API_GATEWAY_CONFIG);
       mockClientInstance.getGatewayApiDetail.mockResolvedValue(
         DISCOVERED_RESTAPI_CR_WITH_OPERATIONS,
       );
 
-      await request(app).put(OPENCHOREO_PATH).send({
+      await request(app).put(PAYMENT_API_PATH).send({
         fileName: 'openapi.yaml',
         content: DEFINITION_WITH_DESCRIPTION,
       });
@@ -614,7 +635,7 @@ describe('definition routes', () => {
       });
     });
 
-    it('returns diff: null for a non-OpenChoreo (self-hosted) entity', async () => {
+    it('returns diff: null for an entity with no gateway configured for its environment', async () => {
       const res = await request(app)
         .post('/entities/api/wso2-gateways/orders-api/definition/diff')
         .send({

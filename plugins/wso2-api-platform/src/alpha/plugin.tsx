@@ -42,15 +42,9 @@ const isWso2ApiEntity = (entity?: Entity): boolean =>
       entity.metadata.annotations?.['wso2-gateway.com/api-id'],
   );
 
-const GATEWAY_DISCOVERY_TYPES = new Set([
-  'self-hosted-gateway',
-  'openchoreo-gateway',
-]);
-
-const isSelfHostedGatewayEntity = (entity?: Entity): boolean =>
-  GATEWAY_DISCOVERY_TYPES.has(
-    entity?.metadata.annotations?.['wso2.com/api-discovery-type'] ?? '',
-  );
+const isApiPlatformGatewayEntity = (entity?: Entity): boolean =>
+  entity?.metadata.annotations?.['wso2.com/api-discovery-type'] ===
+  'api-platform-gateway';
 
 const isApiPlatformEntity = (entity?: Entity): boolean =>
   !!entity?.metadata.annotations?.['wso2.com/platform-gateway-endpoints'];
@@ -114,7 +108,7 @@ export const entityWso2McpToolingContent: ExtensionDefinition =
       title: 'Tools',
       group: 'wso2-tools',
       filter: e =>
-        isWso2ApiEntity(e) && !isSelfHostedGatewayEntity(e) && isMcpEntity(e!),
+        isWso2ApiEntity(e) && !isApiPlatformGatewayEntity(e) && isMcpEntity(e!),
       loader: () =>
         import('../components/EntityTabs/DefinitionTab').then(m => (
           <m.EntityWso2McpToolsTab />

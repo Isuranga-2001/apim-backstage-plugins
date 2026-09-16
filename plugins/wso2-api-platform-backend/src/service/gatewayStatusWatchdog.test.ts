@@ -34,7 +34,7 @@ describe('startGatewayStatusWatchdog', () => {
     startGatewayStatusWatchdog({
       scheduler,
       config,
-      client: { getConfig: () => ({ selfHostedGateways: [] }) } as any,
+      client: { getConfig: () => ({ platformGateways: [] }) } as any,
       logger: mockServices.logger.mock(),
     });
 
@@ -64,7 +64,7 @@ describe('startGatewayStatusWatchdog', () => {
       }),
     } as any;
     const client = {
-      getConfig: () => ({ selfHostedGateways: [{ name: 'gw-1' }] }),
+      getConfig: () => ({ platformGateways: [{ name: 'gw-1' }] }),
     } as any;
 
     jest.spyOn(Date, 'now').mockReturnValue(1_000);
@@ -110,7 +110,7 @@ describe('startGatewayStatusWatchdog', () => {
       }),
     } as any;
     const client = {
-      getConfig: () => ({ selfHostedGateways: [{ name: 'gw-1' }] }),
+      getConfig: () => ({ platformGateways: [{ name: 'gw-1' }] }),
     } as any;
 
     jest.spyOn(Date, 'now').mockReturnValue(1_000);

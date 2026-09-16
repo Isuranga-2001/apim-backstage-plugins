@@ -46,7 +46,7 @@ const CONFIG: ApiPortalConfig = {
 };
 
 const API_REF: ApiRef = {
-  sourceKind: 'openchoreo',
+  sourceKind: 'gateway',
   gatewayId: 'oc-dev',
   apiId: 'payment-api-service-v1.0',
   entityRef: 'api:wso2-gateways/payment-api',
@@ -80,10 +80,9 @@ const DEFINITION = {
 function buildClient(overrides: { getGatewayApiDetail?: jest.Mock } = {}) {
   return {
     getConfig: jest.fn().mockReturnValue({
-      selfHostedGateways: [
+      platformGateways: [
         {
           name: 'oc-dev',
-          integration: 'openchoreo',
           managementApiUrl: 'http://localhost:9095/rest-apis',
           managementApiAuth: undefined,
         },
@@ -141,10 +140,10 @@ function buildPortalClient() {
 const logger = mockServices.logger.mock();
 
 describe('preparePublish', () => {
-  it('rejects a non-openchoreo apiRef', async () => {
+  it('rejects a non-gateway apiRef', async () => {
     await expect(
       preparePublish({
-        apiRef: { ...API_REF, sourceKind: 'self-hosted' },
+        apiRef: { ...API_REF, sourceKind: 'apim' },
         entity: ENTITY,
         client: buildClient(),
         definitionStore: buildDefinitionStore(),

@@ -25,11 +25,9 @@ const DISCOVERY_TYPE_ANNOTATION = 'wso2.com/api-discovery-type';
 const GATEWAY_API_ENDPOINTS_ANNOTATION = 'wso2-gateway.com/api-endpoints';
 const POLL_INTERVAL_MS = 15000;
 
-function extractOpenChoreoGatewayId(
-  entity: Entity | undefined,
-): string | undefined {
+function extractGatewayId(entity: Entity | undefined): string | undefined {
   const annotations = entity?.metadata.annotations ?? {};
-  if (annotations[DISCOVERY_TYPE_ANNOTATION] !== 'openchoreo-gateway') {
+  if (annotations[DISCOVERY_TYPE_ANNOTATION] !== 'api-platform-gateway') {
     return undefined;
   }
   try {
@@ -51,7 +49,7 @@ export type GatewayStatus = {
 /** Polls the entity gateway's active status. */
 export function useGatewayStatus(entity: Entity | undefined): GatewayStatus {
   const wso2Api = useApi(wso2ApiPlatformApiRef);
-  const gatewayId = extractOpenChoreoGatewayId(entity);
+  const gatewayId = extractGatewayId(entity);
   const [active, setActive] = useState(false);
 
   useEffect(() => {

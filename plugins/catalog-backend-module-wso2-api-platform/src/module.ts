@@ -53,8 +53,6 @@ export const catalogModuleWso2ApiPlatform = createBackendModule({
         catalog.addEntityProvider(provider);
         apiCatalogSyncTrigger.runNow = () => provider.run();
 
-        // Applies definition-derived descriptions to gateway/OpenChoreo API
-        // entities, which the discovery response itself never carries.
         catalog.addProcessor(new DefinitionDescriptionProcessor());
 
         // Schedule the provider to run periodically

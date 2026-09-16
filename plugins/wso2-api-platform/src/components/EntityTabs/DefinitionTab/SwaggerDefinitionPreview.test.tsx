@@ -132,9 +132,9 @@ describe('SwaggerDefinitionPreview', () => {
     advance(300);
 
     expect(
-      screen.getByTestId('swagger-ui').getAttribute(
-        'data-supported-submit-methods',
-      ),
+      screen
+        .getByTestId('swagger-ui')
+        .getAttribute('data-supported-submit-methods'),
     ).toBe('[]');
   });
 

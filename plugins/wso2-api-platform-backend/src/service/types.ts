@@ -69,6 +69,8 @@ export type Wso2ApiPlatformConfig = {
   };
   platformGateway: {
     enabled: boolean;
+    /** Master switch for gateway writes. */
+    enableWriteOperations: boolean;
   };
   baseUrl: string;
   publisherBasePath: string;
@@ -84,7 +86,7 @@ export type Wso2ApiPlatformConfig = {
   tls: {
     rejectUnauthorized: boolean;
   };
-  selfHostedGateways: Array<{
+  platformGateways: Array<{
     name: string;
     runtimeUrls: string[];
     managementApiUrl?: string;
@@ -92,7 +94,6 @@ export type Wso2ApiPlatformConfig = {
     environmentType: string;
     description?: string;
     organizationId?: string;
-    integration: 'self-hosted' | 'openchoreo';
   }>;
 };
 

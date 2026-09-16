@@ -64,7 +64,7 @@ const GATEWAY_ENTITY = {
     name: 'orders-api',
     namespace: 'wso2-gateways',
     annotations: {
-      'wso2.com/api-discovery-type': 'self-hosted-gateway',
+      'wso2.com/api-discovery-type': 'api-platform-gateway',
       'wso2-gateway.com/api-id': 'gw-api-1',
       'wso2-gateway.com/api-endpoints': JSON.stringify([
         { environmentName: 'dev' },
@@ -85,14 +85,14 @@ const APIM_ENTITY = {
   spec: {},
 };
 
-const OPENCHOREO_ENTITY = {
+const PAYMENT_API_ENTITY = {
   apiVersion: 'backstage.io/v1alpha1',
   kind: 'API',
   metadata: {
     name: 'payment-api',
     namespace: 'wso2-gateways',
     annotations: {
-      'wso2.com/api-discovery-type': 'openchoreo-gateway',
+      'wso2.com/api-discovery-type': 'api-platform-gateway',
       'wso2-gateway.com/api-id': 'payment-api-service-v1.0',
       'wso2-gateway.com/api-endpoints': JSON.stringify([
         { environmentName: 'oc-dev' },
@@ -120,7 +120,7 @@ describe('document routes', () => {
     mockClientInstance.getConfig.mockReturnValue({
       apiManager: { enabled: false },
       platformGateway: { enabled: false },
-      selfHostedGateways: [],
+      platformGateways: [],
     });
 
     const mockConfig = new ConfigReader({
@@ -138,7 +138,7 @@ describe('document routes', () => {
     };
     mockCatalog = {
       getEntityByRef: jest.fn().mockImplementation((ref: string) => {
-        if (ref === 'api:wso2-gateways/payment-api') return OPENCHOREO_ENTITY;
+        if (ref === 'api:wso2-gateways/payment-api') return PAYMENT_API_ENTITY;
         if (ref.includes('wso2-gateways')) return GATEWAY_ENTITY;
         if (ref === 'api:default/orders-api') return APIM_ENTITY;
         if (ref === 'api:default/plain-api') return NON_WSO2_ENTITY;
@@ -232,7 +232,7 @@ describe('document routes', () => {
     expect(afterDelete.body.count).toBe(0);
   });
 
-  it('rejects a FILE document for a self-hosted-gateway API with a markdown-only message', async () => {
+  it('rejects a FILE document for a gateway-discovered API with a markdown-only message', async () => {
     const res = await request(app)
       .post(GATEWAY_PATH)
       .field(
@@ -246,21 +246,7 @@ describe('document routes', () => {
     );
   });
 
-  it('rejects a FILE document for an OpenChoreo API with a markdown-only message', async () => {
-    const res = await request(app)
-      .post('/entities/api/wso2-gateways/payment-api/documents')
-      .field(
-        'metadata',
-        JSON.stringify({ name: 'Spec', type: 'SAMPLES', sourceType: 'FILE' }),
-      )
-      .attach('file', Buffer.from('binary content'), 'spec.txt');
-    expect(res.status).toBe(400);
-    expect(res.body.error?.message ?? res.text).toMatch(
-      /Gateway-discovered APIs support markdown documents only/,
-    );
-  });
-
-  it('accepts a MARKDOWN document for an OpenChoreo API and reports allowedSourceTypes in capabilities', async () => {
+  it('accepts a MARKDOWN document for a gateway-discovered API and reports allowedSourceTypes in capabilities', async () => {
     const createRes = await request(app)
       .post('/entities/api/wso2-gateways/payment-api/documents')
       .send({

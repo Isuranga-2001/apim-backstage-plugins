@@ -153,7 +153,7 @@ describe('EntityWso2DocumentsCard', () => {
     mockEntity.metadata.namespace = 'wso2-gateways';
     delete mockEntity.metadata.annotations['wso2.com/api-id'];
     mockEntity.metadata.annotations['wso2.com/api-discovery-type'] =
-      'self-hosted-gateway';
+      'api-platform-gateway';
     mockEntity.metadata.annotations['wso2-gateway.com/api-id'] = 'gw-api-1';
     mockEntity.metadata.annotations['wso2-gateway.com/api-endpoints'] =
       JSON.stringify([{ environmentName: 'dev' }]);
@@ -174,7 +174,7 @@ describe('EntityWso2DocumentsCard', () => {
     mockEntity.metadata.namespace = 'wso2-gateways';
     delete mockEntity.metadata.annotations['wso2.com/api-id'];
     mockEntity.metadata.annotations['wso2.com/api-discovery-type'] =
-      'openchoreo-gateway';
+      'api-platform-gateway';
     mockEntity.metadata.annotations['wso2-gateway.com/api-id'] = 'gw-api-2';
     mockWso2Api.listDocuments.mockResolvedValue({
       count: 0,
@@ -200,7 +200,7 @@ describe('EntityWso2DocumentsCard', () => {
     mockEntity.metadata.namespace = 'wso2-gateways';
     delete mockEntity.metadata.annotations['wso2.com/api-id'];
     mockEntity.metadata.annotations['wso2.com/api-discovery-type'] =
-      'self-hosted-gateway';
+      'api-platform-gateway';
     mockEntity.metadata.annotations['wso2-gateway.com/api-id'] = 'gw-api-1';
 
     render(<EntityWso2DocumentsCard />);
@@ -216,7 +216,7 @@ describe('EntityWso2DocumentsCard', () => {
     mockEntity.metadata.namespace = 'wso2-gateways';
     delete mockEntity.metadata.annotations['wso2.com/api-id'];
     mockEntity.metadata.annotations['wso2.com/api-discovery-type'] =
-      'self-hosted-gateway';
+      'api-platform-gateway';
     mockEntity.metadata.annotations['wso2-gateway.com/api-id'] = 'gw-api-1';
 
     render(<EntityWso2DocumentsCard />);

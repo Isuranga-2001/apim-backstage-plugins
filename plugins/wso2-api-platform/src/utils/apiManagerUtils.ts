@@ -155,8 +155,7 @@ export function normalizeGatewayType(type?: string): string {
     t === 'default'
   )
     return 'WSO2';
-  if (t === 'self hosted' || t === 'self-hosted') return 'Self Hosted';
-  if (t === 'openchoreo') return 'OpenChoreo';
+  if (t === 'api platform') return 'API Platform';
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
 

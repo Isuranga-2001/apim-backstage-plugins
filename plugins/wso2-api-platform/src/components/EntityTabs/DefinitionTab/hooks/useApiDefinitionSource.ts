@@ -32,9 +32,7 @@ export function useApiDefinitionSource(entity: Entity): {
   const configApi = useApi(configApiRef);
   const annotations = entity.metadata.annotations ?? {};
   const discoveryType = annotations[DISCOVERY_TYPE_ANNOTATION];
-  const isGatewayDiscovered =
-    discoveryType === 'self-hosted-gateway' ||
-    discoveryType === 'openchoreo-gateway';
+  const isGatewayDiscovered = discoveryType === 'api-platform-gateway';
 
   if (isGatewayDiscovered) {
     const storageEnabled =

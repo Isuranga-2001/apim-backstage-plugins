@@ -229,7 +229,6 @@ Expected Exception:
               'gw-user:gw-password',
             ).toString('base64')}`,
             organizationId: 'tenant-1',
-            integration: 'self-hosted',
           },
         ],
       });

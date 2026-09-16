@@ -29,11 +29,8 @@ export function mapDiscoveredApiToEntity(api: any): ApiEntity {
   const context = api.context || spec.context || '/';
   const normalizedName = normalizeEntityName(`${displayName}-${version}`);
   const discoveryNamespace = 'wso2-gateways';
-  const isOpenChoreo = api.integration === 'openchoreo';
-  const gatewayLabel = isOpenChoreo ? 'OpenChoreo' : 'Self Hosted';
-  const discoveryType = isOpenChoreo
-    ? 'openchoreo-gateway'
-    : 'self-hosted-gateway';
+  const gatewayLabel = 'API Platform';
+  const discoveryType = 'api-platform-gateway';
 
   return {
     apiVersion: 'backstage.io/v1alpha1',

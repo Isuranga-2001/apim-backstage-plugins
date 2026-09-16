@@ -73,11 +73,7 @@ function toApiDocument(
   };
 }
 
-/**
- * The write-capable store backing self-hosted and OpenChoreo gateway APIs.
- * On-prem/APIM documents never reach this class — they are routed to
- * ApimPublisherDocumentStore by ApiDocumentStoreResolver.
- */
+/** Database-backed document store for gateway APIs. */
 export class DatabaseApiDocumentStore implements ApiDocumentStore {
   readonly capabilities: ApiDocumentCapabilities = {
     read: true,

@@ -55,12 +55,7 @@ function extractGatewayId(endpointsAnnotation: string | undefined): string {
   }
 }
 
-/**
- * Maps a catalog entity to the store that owns its documents. Uses
- * `wso2.com/api-discovery-type` (not `wso2.com/api-gateway`, which is only a
- * display label) to distinguish self-hosted/OpenChoreo gateway APIs from
- * on-prem APIM APIs.
- */
+/** Maps a catalog entity to its document store. */
 export class ApiDocumentStoreResolver {
   constructor(
     private readonly catalog: CatalogService,
@@ -87,18 +82,14 @@ export class ApiDocumentStoreResolver {
     const annotations = entity.metadata.annotations ?? {};
     const discoveryType = annotations[DISCOVERY_TYPE_ANNOTATION];
 
-    if (
-      discoveryType === 'self-hosted-gateway' ||
-      discoveryType === 'openchoreo-gateway'
-    ) {
+    if (discoveryType === 'api-platform-gateway') {
       const apiId = annotations[GATEWAY_API_ID_ANNOTATION];
       if (!apiId) {
         throw new NotFoundError(
           `Entity '${entityRef}' is missing '${GATEWAY_API_ID_ANNOTATION}'`,
         );
       }
-      const sourceKind: ApiSourceKind =
-        discoveryType === 'openchoreo-gateway' ? 'openchoreo' : 'self-hosted';
+      const sourceKind: ApiSourceKind = 'gateway';
       return {
         apiRef: {
           sourceKind,

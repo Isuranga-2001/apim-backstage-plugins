@@ -18,12 +18,8 @@
 
 import type { ReadableStream as WebReadableStream } from 'stream/web';
 
-/**
- * Which underlying store owns an API's documents. `apim` is the existing
- * on-prem Publisher-backed, read-only path; `self-hosted` and `openchoreo`
- * are backed by this plugin's own database.
- */
-export type ApiSourceKind = 'self-hosted' | 'openchoreo' | 'apim';
+/** Identifies the document store for an API. */
+export type ApiSourceKind = 'gateway' | 'apim';
 
 export type ApiDocumentType =
   | 'HOWTO'

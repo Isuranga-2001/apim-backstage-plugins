@@ -56,6 +56,8 @@ export interface ApiDefinitionViewerProps {
   /** Disables definition editing actions. */
   disabled?: boolean;
   disabledReason?: string;
+  /** Shows the save wait dialog. */
+  showSavingWaitDialog?: boolean;
 }
 
 /** Every toolbar button (regular and toggle) shares this height so they line up. */
@@ -114,7 +116,10 @@ const actionButtonStyle = (chrome: EditorChromeTheme) => ({
   height: TOOLBAR_BUTTON_HEIGHT,
 });
 
-const themeToggleButtonStyle = (chrome: EditorChromeTheme, active: boolean) => ({
+const themeToggleButtonStyle = (
+  chrome: EditorChromeTheme,
+  active: boolean,
+) => ({
   color: active ? chrome.activeButtonColor : chrome.buttonColor,
   borderColor: active ? chrome.activeButtonBorder : chrome.buttonBorder,
   backgroundColor: active ? chrome.activeButtonBg : 'transparent',
@@ -130,6 +135,7 @@ export const ApiDefinitionViewer = ({
   onPreviewDiff,
   disabled,
   disabledReason,
+  showSavingWaitDialog = true,
 }: ApiDefinitionViewerProps) => {
   const classes = useStyles();
 
@@ -240,6 +246,10 @@ export const ApiDefinitionViewer = ({
       setLocalValue(editedValue);
       setIsEditing(false);
       setDiffResult(undefined);
+      if (!showSavingWaitDialog) {
+        setConfirmOpen(false);
+        setSaving(false);
+      }
     } catch (e) {
       setSaving(false);
     }
@@ -400,7 +410,10 @@ export const ApiDefinitionViewer = ({
                 id="swagger-theme-dark-btn"
                 value="vs-dark"
                 aria-label="Dark theme"
-                style={themeToggleButtonStyle(chrome, editorTheme === 'vs-dark')}
+                style={themeToggleButtonStyle(
+                  chrome,
+                  editorTheme === 'vs-dark',
+                )}
               >
                 <Brightness4Icon fontSize="small" />
               </ToggleButton>
@@ -421,9 +434,7 @@ export const ApiDefinitionViewer = ({
 
       {/* The editor itself, with a live Swagger preview alongside it while editing */}
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        <div
-          style={{ flex: '1 1 400px', minWidth: 0, height: editorHeight }}
-        >
+        <div style={{ flex: '1 1 400px', minWidth: 0, height: editorHeight }}>
           <Editor
             language={lang.toLowerCase()}
             theme={editorTheme}
@@ -462,10 +473,12 @@ export const ApiDefinitionViewer = ({
         fullWidth
       >
         <DialogTitle>
-          {saving ? 'Applying Changes' : 'Save Definition'}
+          {saving && showSavingWaitDialog
+            ? 'Applying Changes'
+            : 'Save Definition'}
         </DialogTitle>
         <DialogContent>
-          {saving ? (
+          {saving && showSavingWaitDialog ? (
             <Box
               display="flex"
               flexDirection="column"
@@ -483,7 +496,10 @@ export const ApiDefinitionViewer = ({
             </Box>
           ) : onPreviewDiff ? (
             <>
-              <DefinitionDiffSummary diff={diffResult} />
+              <DefinitionDiffSummary
+                diff={diffResult}
+                pushesToGateway={showSavingWaitDialog}
+              />
               <DialogContentText>
                 Are you sure you want to save these changes?
               </DialogContentText>
@@ -494,14 +510,16 @@ export const ApiDefinitionViewer = ({
             </DialogContentText>
           )}
         </DialogContent>
-        {!saving && (
+        {!(saving && showSavingWaitDialog) && (
           <DialogActions>
-            <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
+            <Button onClick={() => setConfirmOpen(false)} disabled={saving}>
+              Cancel
+            </Button>
             <Button
               variant="contained"
               color="primary"
               onClick={handleConfirmSave}
-              disabled={diffResult?.hasChanges === false}
+              disabled={saving || diffResult?.hasChanges === false}
             >
               Save
             </Button>

@@ -16,11 +16,17 @@
  * under the License.
  */
 
-export interface PlatformGateway {
-  environmentName: string;
-  environmentType: string;
-  runtimeUrls: string[];
-  managementApiUrl?: string;
-  managementApiAuth?: string;
-  organizationId?: string;
+import { ConfigApi } from '@backstage/core-plugin-api';
+
+/** Master switch for gateway writes. */
+export const GATEWAY_WRITE_OPERATIONS_ENABLED_DEFAULT = false;
+
+const GATEWAY_WRITE_OPERATIONS_CONFIG_KEY =
+  'wso2ApiPlatformGateway.enableWriteOperations';
+
+export function isGatewayWriteOperationsEnabled(configApi: ConfigApi): boolean {
+  return (
+    configApi.getOptionalBoolean(GATEWAY_WRITE_OPERATIONS_CONFIG_KEY) ??
+    GATEWAY_WRITE_OPERATIONS_ENABLED_DEFAULT
+  );
 }

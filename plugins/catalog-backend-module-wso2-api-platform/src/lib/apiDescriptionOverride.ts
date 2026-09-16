@@ -21,16 +21,7 @@ import { CatalogProcessor } from '@backstage/plugin-catalog-node';
 
 const DISCOVERY_TYPE_ANNOTATION = 'wso2.com/api-discovery-type';
 
-/**
- * Bridges API definition descriptions into gateway/OpenChoreo catalog
- * entities. Those entities are built from gateway discovery responses (which
- * never carry a description), while the description lives in the
- * wso2-api-platform-backend plugin's definition store — a separate package
- * this module cannot depend on without a circular dependency. The definition
- * routes populate this tracker whenever a definition is read or written;
- * DefinitionDescriptionProcessor reads it back while (re)processing the
- * corresponding entity.
- */
+/** Tracks descriptions for gateway-discovered catalog entities. */
 export const apiDescriptionOverrideTracker = {
   descriptions: new Map<string, string>(),
   set(entityRef: string, description: string | undefined): void {
@@ -48,13 +39,7 @@ export const apiDescriptionOverrideTracker = {
   },
 };
 
-/**
- * Applies the tracked description to gateway/OpenChoreo API entities. Runs on
- * every entity (re)processing pass — the periodic full discovery sync and a
- * single-entity `catalog.refreshEntity()` alike — so an uploaded definition's
- * description stays applied to the entity built from the gateway's
- * (description-less) discovery response.
- */
+/** Applies tracked descriptions to gateway-discovered API entities. */
 export class DefinitionDescriptionProcessor implements CatalogProcessor {
   getProcessorName(): string {
     return 'DefinitionDescriptionProcessor';
@@ -64,9 +49,7 @@ export class DefinitionDescriptionProcessor implements CatalogProcessor {
     const discoveryType =
       entity.metadata.annotations?.[DISCOVERY_TYPE_ANNOTATION];
     const isGatewayDiscovered =
-      entity.kind === 'API' &&
-      (discoveryType === 'self-hosted-gateway' ||
-        discoveryType === 'openchoreo-gateway');
+      entity.kind === 'API' && discoveryType === 'api-platform-gateway';
 
     const description =
       isGatewayDiscovered &&

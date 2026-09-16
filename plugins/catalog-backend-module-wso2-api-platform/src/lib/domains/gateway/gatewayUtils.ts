@@ -137,7 +137,6 @@ export async function discoverWSO2PlatformGatewayApis(
               environmentName: gw.environmentName,
               environmentType: gw.environmentType,
               gatewayUrls: gw.runtimeUrls,
-              integration: gw.integration,
               fullConfig: gatewayApiDetails.configuration,
             };
 

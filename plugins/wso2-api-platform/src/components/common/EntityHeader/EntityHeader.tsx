@@ -34,6 +34,7 @@ import { useRouteRef, useRouteRefParams } from '@backstage/core-plugin-api';
 import { getWso2EntityHeaderType } from '../../../utils';
 import { rootRouteRef } from '../../../routes';
 import { useGatewayStatus } from '../useGatewayStatus';
+import { useGatewayWriteOperationsEnabled } from '../useGatewayWriteAccess';
 
 const getFallbackTitle = (
   namespace?: string,
@@ -86,6 +87,7 @@ export const EntityHeader = (): JSX.Element => {
   const headerType = entity ? getWso2EntityHeaderType(entity) : kind;
   const platformRoute = useRouteRef(rootRouteRef);
   const gatewayStatus = useGatewayStatus(entity);
+  const gatewayWriteOperationsEnabled = useGatewayWriteOperationsEnabled();
 
   const version =
     entity?.metadata.annotations?.['wso2.com/api-version'] ||
@@ -125,7 +127,7 @@ export const EntityHeader = (): JSX.Element => {
               {entity ? `${displayName} : ${version}` : fallbackTitle}
             </Box>
             {entity && <FavoriteEntity entity={entity} />}
-            {gatewayStatus.applicable && (
+            {gatewayStatus.applicable && gatewayWriteOperationsEnabled && (
               <GatewayStatusBadge active={gatewayStatus.active} />
             )}
           </Box>

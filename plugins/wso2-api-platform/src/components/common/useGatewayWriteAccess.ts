@@ -16,11 +16,11 @@
  * under the License.
  */
 
-export interface PlatformGateway {
-  environmentName: string;
-  environmentType: string;
-  runtimeUrls: string[];
-  managementApiUrl?: string;
-  managementApiAuth?: string;
-  organizationId?: string;
+import { configApiRef, useApi } from '@backstage/core-plugin-api';
+import { isGatewayWriteOperationsEnabled } from '../../utils/gatewayWriteAccess';
+
+/** Returns whether gateway writes are enabled. */
+export function useGatewayWriteOperationsEnabled(): boolean {
+  const configApi = useApi(configApiRef);
+  return isGatewayWriteOperationsEnabled(configApi);
 }

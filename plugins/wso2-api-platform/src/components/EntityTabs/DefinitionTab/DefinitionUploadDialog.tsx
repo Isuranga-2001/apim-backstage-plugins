@@ -55,8 +55,16 @@ export const DefinitionUploadDialog = (options: {
   hasExistingDefinition: boolean;
   onClose: () => void;
   onSaved: () => void;
+  savePushesToGateway: boolean;
 }) => {
-  const { entity, open, hasExistingDefinition, onClose, onSaved } = options;
+  const {
+    entity,
+    open,
+    hasExistingDefinition,
+    onClose,
+    onSaved,
+    savePushesToGateway,
+  } = options;
   const configApi = useApi(configApiRef);
   const navigate = useNavigate();
   const homeRoute = useRouteRef(rootRouteRef);
@@ -119,7 +127,11 @@ export const DefinitionUploadDialog = (options: {
     try {
       await upsertDefinition(file.name, content);
       onSaved();
-      navigate(homeRoute());
+      if (savePushesToGateway) {
+        navigate(homeRoute());
+      } else {
+        setApplying(false);
+      }
     } catch (e) {
       setApplying(false);
       setError(e instanceof Error ? e.message : 'Failed to save definition.');
@@ -167,7 +179,8 @@ export const DefinitionUploadDialog = (options: {
   } else if (hasExistingDefinition) {
     dialogTitle = 'Upload Definition';
   }
-  if (applying) {
+  const showApplyingWaitScreen = applying && savePushesToGateway;
+  if (showApplyingWaitScreen) {
     dialogTitle = 'Applying Changes';
   }
 
@@ -182,7 +195,7 @@ export const DefinitionUploadDialog = (options: {
       >
         <DialogTitle>{dialogTitle}</DialogTitle>
         <DialogContent>
-          {applying ? (
+          {showApplyingWaitScreen ? (
             <Box
               display="flex"
               flexDirection="column"
@@ -206,7 +219,10 @@ export const DefinitionUploadDialog = (options: {
                 </Box>
               )}
               {isReviewing ? (
-                <DefinitionDiffSummary diff={diffResult} />
+                <DefinitionDiffSummary
+                  diff={diffResult}
+                  pushesToGateway={savePushesToGateway}
+                />
               ) : (
                 <>
                   <input
@@ -244,30 +260,32 @@ export const DefinitionUploadDialog = (options: {
             </>
           )}
         </DialogContent>
-        {!applying && (
+        {!showApplyingWaitScreen && (
           <DialogActions>
             {isReviewing ? (
               <>
-                <Button onClick={handleBackToFilePicker}>Back</Button>
+                <Button onClick={handleBackToFilePicker} disabled={applying}>
+                  Back
+                </Button>
                 <Button
                   variant="contained"
                   color="primary"
                   onClick={handleConfirmReplace}
-                  disabled={diffResult?.hasChanges === false}
+                  disabled={applying || diffResult?.hasChanges === false}
                 >
                   Confirm & Save
                 </Button>
               </>
             ) : (
               <>
-                <Button onClick={onClose} disabled={previewing}>
+                <Button onClick={onClose} disabled={previewing || applying}>
                   Cancel
                 </Button>
                 <Button
                   variant="contained"
                   color="primary"
                   onClick={handleSubmit}
-                  disabled={previewing}
+                  disabled={previewing || applying}
                 >
                   {previewing ? <CircularProgress size={20} /> : 'Save'}
                 </Button>

@@ -17,40 +17,67 @@ const entityWith = (annotations: Record<string, string>) =>
     metadata: { annotations },
   } as any);
 
+function mockConfig(overrides: Record<string, boolean | undefined> = {}) {
+  (useApi as jest.Mock).mockReturnValue({
+    getOptionalBoolean: jest.fn((key: string) => overrides[key]),
+  });
+}
+
 describe('usePolicyAccessMode', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (useApi as jest.Mock).mockReturnValue({
-      getOptionalBoolean: jest.fn().mockReturnValue(undefined),
-    });
+    mockConfig();
     (useGatewayStatus as jest.Mock).mockReturnValue({
       applicable: false,
       active: true,
     });
   });
 
-  it('is editable for an OpenChoreo-gateway API with storage enabled by default', () => {
+  it('is read-only by default for an API Platform gateway API, even with storage enabled', () => {
+    mockConfig({ 'wso2ApiPlatform.storage.enabled': true });
     (useGatewayStatus as jest.Mock).mockReturnValue({
       applicable: true,
       active: true,
     });
     const { result } = renderHook(() =>
       usePolicyAccessMode(
-        entityWith({ 'wso2.com/api-discovery-type': 'openchoreo-gateway' }),
+        entityWith({ 'wso2.com/api-discovery-type': 'api-platform-gateway' }),
+      ),
+    );
+    expect(result.current.mode).toBe('read-only');
+    expect(result.current.isGatewayDiscovered).toBe(true);
+  });
+
+  it('is editable once wso2ApiPlatformGateway.enableWriteOperations is turned on', () => {
+    mockConfig({
+      'wso2ApiPlatform.storage.enabled': true,
+      'wso2ApiPlatformGateway.enableWriteOperations': true,
+    });
+    (useGatewayStatus as jest.Mock).mockReturnValue({
+      applicable: true,
+      active: true,
+    });
+    const { result } = renderHook(() =>
+      usePolicyAccessMode(
+        entityWith({ 'wso2.com/api-discovery-type': 'api-platform-gateway' }),
       ),
     );
     expect(result.current.mode).toBe('editable');
     expect(result.current.editingDisabledReason).toBeUndefined();
   });
 
-  it('is editable but disabled when the OpenChoreo gateway is inactive', () => {
+  it('is editable but disabled when the gateway is inactive', () => {
+    mockConfig({
+      'wso2ApiPlatform.storage.enabled': true,
+      'wso2ApiPlatformGateway.enableWriteOperations': true,
+    });
     (useGatewayStatus as jest.Mock).mockReturnValue({
       applicable: true,
       active: false,
     });
     const { result } = renderHook(() =>
       usePolicyAccessMode(
-        entityWith({ 'wso2.com/api-discovery-type': 'openchoreo-gateway' }),
+        entityWith({ 'wso2.com/api-discovery-type': 'api-platform-gateway' }),
       ),
     );
     expect(result.current.mode).toBe('editable');
@@ -59,22 +86,14 @@ describe('usePolicyAccessMode', () => {
     );
   });
 
-  it('is read-only when definition storage is disabled', () => {
-    (useApi as jest.Mock).mockReturnValue({
-      getOptionalBoolean: jest.fn().mockReturnValue(false),
+  it('is read-only when definition storage is disabled, even with writes enabled', () => {
+    mockConfig({
+      'wso2ApiPlatform.storage.enabled': false,
+      'wso2ApiPlatformGateway.enableWriteOperations': true,
     });
     const { result } = renderHook(() =>
       usePolicyAccessMode(
-        entityWith({ 'wso2.com/api-discovery-type': 'openchoreo-gateway' }),
-      ),
-    );
-    expect(result.current.mode).toBe('read-only');
-  });
-
-  it('is read-only for a self-hosted-gateway API', () => {
-    const { result } = renderHook(() =>
-      usePolicyAccessMode(
-        entityWith({ 'wso2.com/api-discovery-type': 'self-hosted-gateway' }),
+        entityWith({ 'wso2.com/api-discovery-type': 'api-platform-gateway' }),
       ),
     );
     expect(result.current.mode).toBe('read-only');
@@ -83,5 +102,6 @@ describe('usePolicyAccessMode', () => {
   it('is read-only when there is no discovery-type annotation', () => {
     const { result } = renderHook(() => usePolicyAccessMode(entityWith({})));
     expect(result.current.mode).toBe('read-only');
+    expect(result.current.isGatewayDiscovered).toBe(false);
   });
 });

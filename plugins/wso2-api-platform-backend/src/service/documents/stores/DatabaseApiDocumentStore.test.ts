@@ -25,7 +25,7 @@ import { ApiRef } from '../types';
 import { DatabaseApiDocumentStore } from './DatabaseApiDocumentStore';
 
 const REF: ApiRef = {
-  sourceKind: 'openchoreo',
+  sourceKind: 'gateway',
   gatewayId: 'env-1',
   apiId: 'api-1',
   entityRef: 'api:wso2-gateways/orders-api',

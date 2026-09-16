@@ -26,12 +26,7 @@ import {
   UpdateDocumentMetadataInput,
 } from '../types';
 
-/**
- * The document provider abstraction. `DatabaseApiDocumentStore` implements
- * it for self-hosted/OpenChoreo gateway APIs (full CRUD); a future
- * `ApimPublisherDocumentStore` write implementation lights up the identical
- * UI for on-prem APIM with no frontend or schema change.
- */
+/** Document provider abstraction. */
 export interface ApiDocumentStore {
   readonly capabilities: ApiDocumentCapabilities;
 

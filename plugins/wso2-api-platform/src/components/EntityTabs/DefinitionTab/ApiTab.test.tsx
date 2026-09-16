@@ -87,7 +87,7 @@ const GATEWAY_ENTITY = {
     name: 'orders-api',
     namespace: 'wso2-gateways',
     annotations: {
-      'wso2.com/api-discovery-type': 'self-hosted-gateway',
+      'wso2.com/api-discovery-type': 'api-platform-gateway',
       'wso2-gateway.com/api-id': 'gw-api-1',
     },
   },

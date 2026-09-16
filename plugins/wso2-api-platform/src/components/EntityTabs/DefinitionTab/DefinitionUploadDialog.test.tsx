@@ -29,13 +29,20 @@ function renderDialog(props: {
   hasExistingDefinition: boolean;
   onClose: () => void;
   onSaved: () => void;
+  savePushesToGateway?: boolean;
 }) {
+  const { savePushesToGateway = true, ...rest } = props;
   return render(
     <MemoryRouter initialEntries={[ENTITY_PATH]}>
       <Routes>
         <Route
           path={ENTITY_PATH}
-          element={<DefinitionUploadDialog {...props} />}
+          element={
+            <DefinitionUploadDialog
+              {...rest}
+              savePushesToGateway={savePushesToGateway}
+            />
+          }
         />
         <Route path="/wso2-api-platform" element={<div>Home Page</div>} />
       </Routes>
@@ -262,6 +269,35 @@ describe('DefinitionUploadDialog', () => {
     expect(await screen.findByText('Home Page')).toBeDefined();
   });
 
+  it('does not show the "Applying Changes" wait screen or navigate home when the save does not push to the gateway', async () => {
+    mockWso2Api.upsertDefinition.mockResolvedValue({
+      definition: { content: 'openapi: 3.0.0', format: 'YAML' },
+      capabilities: { read: true, write: true },
+    });
+    const onSaved = jest.fn();
+
+    renderDialog({
+      entity,
+      open: true,
+      hasExistingDefinition: false,
+      onClose: jest.fn(),
+      onSaved,
+      savePushesToGateway: false,
+    });
+
+    const file = new File(['openapi: 3.0.0'], 'openapi.yaml', {
+      type: 'application/yaml',
+    });
+    fireEvent.change(screen.getByTestId('definition-file-input'), {
+      target: { files: [file] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    expect(screen.queryByText('Applying Changes')).toBeNull();
+    expect(screen.queryByText('Home Page')).toBeNull();
+  });
+
   it('rejects a file larger than the configured limit', async () => {
     mockConfigApi.getOptionalNumber.mockReturnValue(0.001);
     renderDialog({
@@ -355,6 +391,45 @@ describe('DefinitionUploadDialog', () => {
         { kind: 'API', namespace: 'wso2-gateways', name: 'orders-api' },
         { fileName: 'openapi.yaml', content: 'openapi: 3.0.0' },
       );
+    });
+
+    it('replaces the definition without navigating home when the save does not push to the gateway', async () => {
+      mockWso2Api.previewDefinitionDiff.mockResolvedValue({
+        diff: {
+          addedOperations: [{ method: 'GET', path: '/books' }],
+          removedOperations: [],
+          hasChanges: true,
+        },
+      });
+      mockWso2Api.upsertDefinition.mockResolvedValue({
+        definition: { content: 'openapi: 3.0.0', format: 'YAML' },
+        capabilities: { read: true, write: true },
+      });
+      const onSaved = jest.fn();
+
+      renderDialog({
+        entity: entity,
+        open: true,
+        hasExistingDefinition: true,
+        onClose: jest.fn(),
+        onSaved: onSaved,
+        savePushesToGateway: false,
+      });
+
+      const file = new File(['openapi: 3.0.0'], 'openapi.yaml', {
+        type: 'application/yaml',
+      });
+      fireEvent.change(screen.getByTestId('definition-file-input'), {
+        target: { files: [file] },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+      await screen.findByText('Review Changes');
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm & Save' }));
+
+      await waitFor(() => expect(onSaved).toHaveBeenCalled());
+      expect(screen.queryByText('Applying Changes')).toBeNull();
+      expect(screen.queryByText('Home Page')).toBeNull();
     });
 
     it('returns to the file picker without saving when the user clicks Back', async () => {

@@ -44,10 +44,10 @@ describe('ApiDefinitionStoreResolver', () => {
     );
   }
 
-  it('routes self-hosted-gateway entities to the database store', async () => {
+  it('routes api-platform-gateway entities to the database store', async () => {
     const resolver = resolverWith(
       makeEntity({
-        'wso2.com/api-discovery-type': 'self-hosted-gateway',
+        'wso2.com/api-discovery-type': 'api-platform-gateway',
         'wso2-gateway.com/api-id': 'gw-api-1',
         'wso2-gateway.com/api-endpoints': JSON.stringify([
           { environmentName: 'dev' },
@@ -62,17 +62,17 @@ describe('ApiDefinitionStoreResolver', () => {
 
     expect(store).toBe(databaseStore);
     expect(apiRef).toEqual({
-      sourceKind: 'self-hosted',
+      sourceKind: 'gateway',
       gatewayId: 'dev',
       apiId: 'gw-api-1',
       entityRef: 'api:wso2-gateways/orders-api',
     });
   });
 
-  it('routes openchoreo-gateway entities to the database store with sourceKind openchoreo', async () => {
+  it('routes api-platform-gateway entities with sourceKind gateway and empty gatewayId when endpoints are missing', async () => {
     const resolver = resolverWith(
       makeEntity({
-        'wso2.com/api-discovery-type': 'openchoreo-gateway',
+        'wso2.com/api-discovery-type': 'api-platform-gateway',
         'wso2-gateway.com/api-id': 'gw-api-2',
       }),
     );
@@ -83,7 +83,7 @@ describe('ApiDefinitionStoreResolver', () => {
     );
 
     expect(store).toBe(databaseStore);
-    expect(apiRef.sourceKind).toBe('openchoreo');
+    expect(apiRef.sourceKind).toBe('gateway');
     expect(apiRef.gatewayId).toBe('');
   });
 

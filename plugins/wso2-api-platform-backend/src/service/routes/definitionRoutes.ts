@@ -35,10 +35,14 @@ import {
   parseUpsertDefinitionInput,
 } from '../documents/validation';
 import {
-  applyOpenChoreoDefinitionUpdate,
-  assertMatchesDiscoveredOpenChoreoApi,
-  previewOpenChoreoDefinitionUpdate,
-} from '../documents/openchoreoDefinitionVerifier';
+  applyGatewayDefinitionUpdate,
+  assertMatchesDiscoveredGatewayApi,
+  previewGatewayDefinitionUpdate,
+} from '../documents/gatewayDefinitionVerifier';
+import {
+  diffDefinitionAgainstStored,
+  restoreImmutableDefinitionFields,
+} from '../documents/restApiArtifactMapper';
 
 const DEFINITION_PATH = '/entities/:kind/:namespace/:name/definition';
 const DEFINITION_DIFF_PATH = '/entities/:kind/:namespace/:name/definition/diff';
@@ -117,28 +121,23 @@ export function registerDefinitionRoutes(
 
     const input = parseUpsertDefinitionInput(req.body);
     assertDefinitionSizeWithinLimit(input.content, definitionStorage);
-    const description = extractDefinitionDescription(input.content);
 
     const existing = await store.get(apiRef);
+    const content = restoreImmutableDefinitionFields(
+      existing?.content,
+      input.content,
+    );
+    const description = extractDefinitionDescription(content);
+
     if (existing) {
-      await applyOpenChoreoDefinitionUpdate(
-        client,
-        apiRef,
-        input.content,
-        logger,
-      );
+      await applyGatewayDefinitionUpdate(client, apiRef, content, logger);
     } else {
-      await assertMatchesDiscoveredOpenChoreoApi(
-        client,
-        apiRef,
-        input.content,
-        logger,
-      );
+      await assertMatchesDiscoveredGatewayApi(client, apiRef, content, logger);
     }
 
     const definition = await store.upsert(
       apiRef,
-      { ...input, description },
+      { ...input, content, description },
       actorFor(credentials),
     );
     apiDescriptionOverrideTracker.set(apiRef.entityRef, description);
@@ -169,10 +168,24 @@ export function registerDefinitionRoutes(
 
     const input = parsePreviewDefinitionInput(req.body);
     const existing = await store.get(apiRef);
-    const diff = await previewOpenChoreoDefinitionUpdate(
+
+    if (!client.getConfig().platformGateway.enableWriteOperations) {
+      const diff = diffDefinitionAgainstStored(
+        existing?.content,
+        input.content,
+      );
+      res.json({ diff: diff ?? null });
+      return;
+    }
+
+    const content = restoreImmutableDefinitionFields(
+      existing?.content,
+      input.content,
+    );
+    const diff = await previewGatewayDefinitionUpdate(
       client,
       apiRef,
-      input.content,
+      content,
       logger,
       existing?.description,
     );

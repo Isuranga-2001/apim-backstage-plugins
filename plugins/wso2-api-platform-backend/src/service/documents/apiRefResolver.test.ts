@@ -38,35 +38,10 @@ describe('resolveApiRef', () => {
     } as unknown as Pick<CatalogService, 'getEntityByRef'>;
   }
 
-  it('resolves a self-hosted-gateway entity to sourceKind self-hosted', async () => {
+  it('resolves an api-platform-gateway entity to sourceKind gateway', async () => {
     const catalog = catalogWith(
       makeEntity({
-        'wso2.com/api-discovery-type': 'self-hosted-gateway',
-        'wso2-gateway.com/api-id': 'gw-api-1',
-        'wso2-gateway.com/api-endpoints': JSON.stringify([
-          { environmentName: 'dev' },
-        ]),
-      }),
-    );
-
-    const apiRef = await resolveApiRef(
-      catalog,
-      { kind: 'api', namespace: 'wso2-gateways', name: 'orders-api' },
-      credentials,
-    );
-
-    expect(apiRef).toEqual({
-      sourceKind: 'self-hosted',
-      gatewayId: 'dev',
-      apiId: 'gw-api-1',
-      entityRef: 'api:wso2-gateways/orders-api',
-    });
-  });
-
-  it('resolves an openchoreo-gateway entity to sourceKind openchoreo', async () => {
-    const catalog = catalogWith(
-      makeEntity({
-        'wso2.com/api-discovery-type': 'openchoreo-gateway',
+        'wso2.com/api-discovery-type': 'api-platform-gateway',
         'wso2-gateway.com/api-id': 'gw-api-2',
         'wso2-gateway.com/api-endpoints': JSON.stringify([
           { environmentName: 'oc-dev' },
@@ -81,7 +56,7 @@ describe('resolveApiRef', () => {
     );
 
     expect(apiRef).toEqual({
-      sourceKind: 'openchoreo',
+      sourceKind: 'gateway',
       gatewayId: 'oc-dev',
       apiId: 'gw-api-2',
       entityRef: 'api:wso2-gateways/orders-api',
@@ -91,7 +66,7 @@ describe('resolveApiRef', () => {
   it('defaults gatewayId to empty string when the endpoints annotation is missing or unparsable', async () => {
     const catalog = catalogWith(
       makeEntity({
-        'wso2.com/api-discovery-type': 'openchoreo-gateway',
+        'wso2.com/api-discovery-type': 'api-platform-gateway',
         'wso2-gateway.com/api-id': 'gw-api-2',
         'wso2-gateway.com/api-endpoints': 'not-json',
       }),
@@ -108,7 +83,7 @@ describe('resolveApiRef', () => {
 
   it('throws NotFoundError when the gateway API id annotation is missing', async () => {
     const catalog = catalogWith(
-      makeEntity({ 'wso2.com/api-discovery-type': 'openchoreo-gateway' }),
+      makeEntity({ 'wso2.com/api-discovery-type': 'api-platform-gateway' }),
     );
 
     await expect(

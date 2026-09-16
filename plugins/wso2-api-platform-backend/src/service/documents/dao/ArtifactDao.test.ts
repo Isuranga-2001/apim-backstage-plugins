@@ -24,7 +24,7 @@ import { applyDatabaseMigrations } from './migrations';
 import { ApiRef } from '../types';
 
 const REF: ApiRef = {
-  sourceKind: 'self-hosted',
+  sourceKind: 'gateway',
   gatewayId: 'env-1',
   apiId: 'gateway-api-1',
   entityRef: 'api:wso2-gateways/orders-api',
@@ -154,7 +154,7 @@ describe.each(databases.eachSupportedId())('ArtifactDao (%s)', dbId => {
     await dao.create(
       {
         ...base,
-        source_kind: 'self-hosted',
+        source_kind: 'gateway',
         gateway_id: 'env-1',
         api_id: 'api-a',
         entity_ref: null,
@@ -166,7 +166,7 @@ describe.each(databases.eachSupportedId())('ArtifactDao (%s)', dbId => {
       dao.create(
         {
           ...base,
-          source_kind: 'self-hosted',
+          source_kind: 'gateway',
           gateway_id: 'env-1',
           api_id: 'api-b',
           entity_ref: null,

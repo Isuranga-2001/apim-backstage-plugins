@@ -307,7 +307,7 @@ describe('API Portal card', () => {
       name: 'orders-api',
       namespace: 'wso2-gateways',
       annotations: {
-        'wso2.com/api-discovery-type': 'openchoreo-gateway',
+        'wso2.com/api-discovery-type': 'api-platform-gateway',
       },
     },
   };

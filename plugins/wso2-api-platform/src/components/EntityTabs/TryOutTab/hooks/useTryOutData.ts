@@ -69,29 +69,25 @@ export const useTryOutData = (options: {
   const { entity, apiId, isApiPlatform } = options;
   const apiClient = useApi(wso2ApiPlatformApiRef);
 
-  const isOpenChoreoGateway =
+  const isApiPlatformGateway =
     entity.metadata.annotations?.[DISCOVERY_TYPE_ANNOTATION] ===
-    'openchoreo-gateway';
+    'api-platform-gateway';
 
   const entityRef = useMemo(() => getCompoundEntityRef(entity), [entity]);
 
-  // OpenChoreo-discovered APIs only carry a bare operations list (method +
-  // path) on the entity itself. A real, executable OpenAPI document - the
-  // same one shown/edited on the Definition tab - lives in the plugin's
-  // definition store once someone has uploaded/verified one there.
   const storedDefinitionState = useAsync(async () => {
-    if (!isOpenChoreoGateway) return null;
+    if (!isApiPlatformGateway) return null;
     try {
       const res = await apiClient.getDefinition(entityRef);
       return res.definition;
     } catch (e) {
       return null;
     }
-  }, [apiClient, entityRef, isOpenChoreoGateway]);
+  }, [apiClient, entityRef, isApiPlatformGateway]);
 
   const storedOpenApiSpec = useMemo(() => {
     const content = storedDefinitionState.value?.content;
-    if (!isOpenChoreoGateway || !content) return undefined;
+    if (!isApiPlatformGateway || !content) return undefined;
     try {
       const doc = yaml.load(content) as any;
       if (doc && typeof doc === 'object' && (doc.openapi || doc.swagger)) {
@@ -101,7 +97,7 @@ export const useTryOutData = (options: {
       /* ignore - not a parseable OpenAPI/Swagger document */
     }
     return undefined;
-  }, [storedDefinitionState.value, isOpenChoreoGateway]);
+  }, [storedDefinitionState.value, isApiPlatformGateway]);
 
   const details = useMemo(() => {
     const annotations = entity.metadata.annotations || {};
@@ -395,7 +391,7 @@ export const useTryOutData = (options: {
     definition: definitionState.value,
     isDefinitionLoading:
       definitionState.loading ||
-      (isOpenChoreoGateway && storedDefinitionState.loading),
+      (isApiPlatformGateway && storedDefinitionState.loading),
     hasOperationsOnly,
     gatewayOperations,
     gatewayApiPolicies,

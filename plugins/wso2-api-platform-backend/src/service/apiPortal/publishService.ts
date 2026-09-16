@@ -23,8 +23,8 @@ import JSZip from 'jszip';
 import { Wso2ApiPlatformClient } from '../client';
 import {
   fetchDiscoveredArtifact,
-  resolveOpenChoreoGateway,
-} from '../documents/openchoreoDefinitionVerifier';
+  resolvePlatformGateway,
+} from '../documents/gatewayDefinitionVerifier';
 import {
   RestApiArtifact,
   parseDefinitionInfo,
@@ -202,16 +202,16 @@ export async function preparePublish(opts: {
     logger,
   } = opts;
 
-  if (apiRef.sourceKind !== 'openchoreo') {
+  if (apiRef.sourceKind !== 'gateway') {
     throw new NotAllowedError(
-      'Publishing to the API Portal is available for OpenChoreo APIs only',
+      'Publishing to the API Portal is available for API Platform gateway-discovered APIs only',
     );
   }
 
-  const gateway = resolveOpenChoreoGateway(client, apiRef, logger);
+  const gateway = resolvePlatformGateway(client, apiRef, logger);
   if (!gateway) {
     throw new ConflictError(
-      `No OpenChoreo gateway discovery URL configured for gateway '${apiRef.gatewayId}' — cannot verify the API before publishing it to the API Portal`,
+      `No API Platform gateway discovery URL configured for gateway '${apiRef.gatewayId}' — cannot verify the API before publishing it to the API Portal`,
     );
   }
   const artifact = await fetchDiscoveredArtifact(client, gateway, apiRef.apiId);
@@ -288,7 +288,7 @@ export async function publishApiToPortal(opts: {
   if (existing?.refId && existing.refId !== apiRef.apiId) {
     throw new ConflictError(
       `API Portal handle '${prepared.metadata.id}' is already registered to a ` +
-        `different OpenChoreo API (referenceId '${existing.refId}') — refusing to overwrite it.`,
+        `different API Platform gateway API (referenceId '${existing.refId}') — refusing to overwrite it.`,
     );
   }
 

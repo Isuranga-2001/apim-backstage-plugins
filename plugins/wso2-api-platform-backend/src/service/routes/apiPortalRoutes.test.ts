@@ -65,14 +65,14 @@ jest.mock('../client', () => {
   };
 });
 
-const OPENCHOREO_ENTITY = {
+const PAYMENT_API_ENTITY = {
   apiVersion: 'backstage.io/v1alpha1',
   kind: 'API',
   metadata: {
     name: 'payment-api',
     namespace: 'wso2-gateways',
     annotations: {
-      'wso2.com/api-discovery-type': 'openchoreo-gateway',
+      'wso2.com/api-discovery-type': 'api-platform-gateway',
       'wso2-gateway.com/api-id': 'payment-api-service-v1.0',
       'wso2-gateway.com/api-endpoints': JSON.stringify([
         { environmentName: 'oc-dev' },
@@ -89,7 +89,7 @@ const SELF_HOSTED_ENTITY = {
     name: 'orders-api',
     namespace: 'wso2-gateways',
     annotations: {
-      'wso2.com/api-discovery-type': 'self-hosted-gateway',
+      'wso2.com/api-discovery-type': 'api-platform-gateway',
       'wso2-gateway.com/api-id': 'gw-api-1',
       'wso2-gateway.com/api-endpoints': JSON.stringify([
         { environmentName: 'dev' },
@@ -99,25 +99,24 @@ const SELF_HOSTED_ENTITY = {
   spec: {},
 };
 
-const OPENCHOREO_GATEWAY_CONFIG = {
+const PAYMENT_API_GATEWAY_CONFIG = {
   apiManager: { enabled: false },
-  platformGateway: { enabled: true },
-  selfHostedGateways: [
+  platformGateway: { enabled: true, enableWriteOperations: false },
+  platformGateways: [
     {
       name: 'oc-dev',
       urls: [],
       managementApiUrl: 'http://localhost:9095/rest-apis',
       managementApiAuth: undefined,
       environmentType: 'PRODUCTION',
-      integration: 'openchoreo',
     },
   ],
 };
 
 const NO_GATEWAY_CONFIG = {
   apiManager: { enabled: false },
-  platformGateway: { enabled: false },
-  selfHostedGateways: [],
+  platformGateway: { enabled: false, enableWriteOperations: false },
+  platformGateways: [],
 };
 
 const DISCOVERED_RESTAPI_CR = {
@@ -176,7 +175,7 @@ describe('api-portal routes', () => {
     };
     mockCatalog = {
       getEntityByRef: jest.fn().mockImplementation((ref: string) => {
-        if (ref === 'api:wso2-gateways/payment-api') return OPENCHOREO_ENTITY;
+        if (ref === 'api:wso2-gateways/payment-api') return PAYMENT_API_ENTITY;
         if (ref === 'api:wso2-gateways/orders-api') return SELF_HOSTED_ENTITY;
         return undefined;
       }),
@@ -198,24 +197,29 @@ describe('api-portal routes', () => {
     app.use(mockErrorHandler());
   }
 
-  const OPENCHOREO_PATH = '/entities/api/wso2-gateways/payment-api/api-portal';
+  const PAYMENT_API_PATH = '/entities/api/wso2-gateways/payment-api/api-portal';
   const SELF_HOSTED_PATH = '/entities/api/wso2-gateways/orders-api/api-portal';
 
   describe('GET .../api-portal — capability reasons', () => {
-    it('reports publish:false with a reason for a non-openchoreo API', async () => {
+    it('reaches the same next-stage check for a self-hosted-origin gateway API as for an OpenChoreo-origin one — no dedicated OpenChoreo-only gate any more', async () => {
       await buildApp();
+      mockClientInstance.getConfig.mockReturnValue({
+        ...PAYMENT_API_GATEWAY_CONFIG,
+        platformGateways: [
+          { ...PAYMENT_API_GATEWAY_CONFIG.platformGateways[0], name: 'dev' },
+        ],
+      });
       const res = await request(app).get(SELF_HOSTED_PATH);
       expect(res.status).toBe(200);
       expect(res.body.capabilities).toEqual({
         publish: false,
-        reason:
-          'Publishing to the API Portal is available for OpenChoreo APIs only',
+        reason: 'Attach an API definition before publishing to the API Portal',
       });
     });
 
     it('reports publish:false when the API Portal integration is disabled', async () => {
       await buildApp({ enabled: false });
-      const res = await request(app).get(OPENCHOREO_PATH);
+      const res = await request(app).get(PAYMENT_API_PATH);
       expect(res.status).toBe(200);
       expect(res.body.enabled).toBe(false);
       expect(res.body.capabilities).toEqual({
@@ -224,20 +228,20 @@ describe('api-portal routes', () => {
       });
     });
 
-    it('reports publish:false when no OpenChoreo gateway discovery URL is configured', async () => {
+    it('reports publish:false when no API Platform gateway discovery URL is configured', async () => {
       await buildApp();
-      const res = await request(app).get(OPENCHOREO_PATH);
+      const res = await request(app).get(PAYMENT_API_PATH);
       expect(res.status).toBe(200);
       expect(res.body.capabilities.publish).toBe(false);
       expect(res.body.capabilities.reason).toMatch(
-        /No OpenChoreo gateway discovery URL is configured/,
+        /No API Platform gateway discovery URL is configured/,
       );
     });
 
     it('reports publish:false when no definition has been attached yet', async () => {
       await buildApp();
-      mockClientInstance.getConfig.mockReturnValue(OPENCHOREO_GATEWAY_CONFIG);
-      const res = await request(app).get(OPENCHOREO_PATH);
+      mockClientInstance.getConfig.mockReturnValue(PAYMENT_API_GATEWAY_CONFIG);
+      const res = await request(app).get(PAYMENT_API_PATH);
       expect(res.status).toBe(200);
       expect(res.body.capabilities).toEqual({
         publish: false,
@@ -247,7 +251,7 @@ describe('api-portal routes', () => {
 
     it('reports publish:true once a definition is attached and the gateway is configured', async () => {
       await buildApp();
-      mockClientInstance.getConfig.mockReturnValue(OPENCHOREO_GATEWAY_CONFIG);
+      mockClientInstance.getConfig.mockReturnValue(PAYMENT_API_GATEWAY_CONFIG);
       mockClientInstance.getGatewayApiDetail.mockResolvedValue(
         DISCOVERED_RESTAPI_CR,
       );
@@ -258,7 +262,7 @@ describe('api-portal routes', () => {
           content: MATCHING_OPENCHOREO_DEFINITION,
         });
 
-      const res = await request(app).get(OPENCHOREO_PATH);
+      const res = await request(app).get(PAYMENT_API_PATH);
       expect(res.status).toBe(200);
       expect(res.body.capabilities).toEqual({ publish: true });
       expect(mockFetch).not.toHaveBeenCalled();
@@ -267,7 +271,7 @@ describe('api-portal routes', () => {
 
   describe('POST .../api-portal/publish — forwarded Platform API token', () => {
     async function seedDefinition() {
-      mockClientInstance.getConfig.mockReturnValue(OPENCHOREO_GATEWAY_CONFIG);
+      mockClientInstance.getConfig.mockReturnValue(PAYMENT_API_GATEWAY_CONFIG);
       mockClientInstance.getGatewayApiDetail.mockResolvedValue(
         DISCOVERED_RESTAPI_CR,
       );
@@ -300,7 +304,7 @@ describe('api-portal routes', () => {
       mockPortalReachableAndPublishable();
 
       const res = await request(app)
-        .post(`${OPENCHOREO_PATH}/publish`)
+        .post(`${PAYMENT_API_PATH}/publish`)
         .set(PORTAL_TOKEN_HEADER, 'user-supplied-token')
         .send({});
 
@@ -324,7 +328,7 @@ describe('api-portal routes', () => {
       mockPortalReachableAndPublishable();
 
       const res = await request(app)
-        .post(`${OPENCHOREO_PATH}/publish`)
+        .post(`${PAYMENT_API_PATH}/publish`)
         .send({});
 
       expect(res.status).toBe(401);
@@ -342,7 +346,7 @@ describe('api-portal routes', () => {
       });
 
       const res = await request(app)
-        .post(`${OPENCHOREO_PATH}/publish`)
+        .post(`${PAYMENT_API_PATH}/publish`)
         .set(PORTAL_TOKEN_HEADER, 'user-supplied-token')
         .send({});
 
@@ -356,7 +360,7 @@ describe('api-portal routes', () => {
   describe('POST .../api-portal/preview — makes no portal call', () => {
     it('returns the metadata payload and document plan without calling the API Portal', async () => {
       await buildApp();
-      mockClientInstance.getConfig.mockReturnValue(OPENCHOREO_GATEWAY_CONFIG);
+      mockClientInstance.getConfig.mockReturnValue(PAYMENT_API_GATEWAY_CONFIG);
       mockClientInstance.getGatewayApiDetail.mockResolvedValue(
         DISCOVERED_RESTAPI_CR,
       );
@@ -368,7 +372,7 @@ describe('api-portal routes', () => {
         });
 
       const res = await request(app)
-        .post(`${OPENCHOREO_PATH}/preview`)
+        .post(`${PAYMENT_API_PATH}/preview`)
         .send({});
 
       expect(res.status).toBe(200);
@@ -383,12 +387,12 @@ describe('api-portal routes', () => {
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
-    it('rejects a preview for a non-openchoreo API', async () => {
+    it('rejects a preview for a self-hosted-origin gateway API with no gateway configured for its environment', async () => {
       await buildApp();
       const res = await request(app)
         .post(`${SELF_HOSTED_PATH}/preview`)
         .send({});
-      expect(res.status).toBe(403);
+      expect(res.status).toBe(409);
     });
   });
 });

@@ -28,7 +28,7 @@ const GATEWAY_API_ENDPOINTS_ANNOTATION = 'wso2-gateway.com/api-endpoints';
 
 /**
  * Decides which Docs tab data source an entity should use:
- * - 'store': self-hosted/OpenChoreo gateway APIs, backed by this plugin's
+ * - 'store': API Platform gateway-discovered APIs, backed by this plugin's
  *   own document store (unless disabled via wso2ApiPlatform.storage.enabled).
  * - 'annotation': on-prem APIM APIs — existing path, unchanged.
  * - 'unsupported': neither (also covers storage.enabled=false), renders
@@ -40,9 +40,7 @@ export function useApiDocumentSource(entity: Entity): {
   const configApi = useApi(configApiRef);
   const annotations = entity.metadata.annotations ?? {};
   const discoveryType = annotations[DISCOVERY_TYPE_ANNOTATION];
-  const isGatewayDiscovered =
-    discoveryType === 'self-hosted-gateway' ||
-    discoveryType === 'openchoreo-gateway';
+  const isGatewayDiscovered = discoveryType === 'api-platform-gateway';
 
   if (isGatewayDiscovered) {
     const storageEnabled =

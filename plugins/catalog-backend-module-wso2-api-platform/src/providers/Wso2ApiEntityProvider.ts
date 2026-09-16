@@ -164,10 +164,6 @@ export class Wso2ApiEntityProvider implements EntityProvider {
             ).toString('base64')}`
           : undefined,
       organizationId: gw.getOptionalString('organizationId'),
-      integration:
-        gw.getOptionalString('integration') === 'openchoreo'
-          ? 'openchoreo'
-          : 'self-hosted',
     }));
   }
 

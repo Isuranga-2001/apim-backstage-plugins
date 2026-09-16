@@ -19,6 +19,7 @@
 import { Entity } from '@backstage/catalog-model';
 import { configApiRef, useApi } from '@backstage/core-plugin-api';
 import { useGatewayStatus } from '../../../common/useGatewayStatus';
+import { isGatewayWriteOperationsEnabled } from '../../../../utils/gatewayWriteAccess';
 
 const DISCOVERY_TYPE_ANNOTATION = 'wso2.com/api-discovery-type';
 
@@ -27,33 +28,32 @@ export type PolicyAccessMode = 'editable' | 'read-only';
 export type PolicyAccessInfo = {
   mode: PolicyAccessMode;
   editingDisabledReason?: string;
+  /** Whether this API was discovered from a gateway. */
+  isGatewayDiscovered: boolean;
 };
 
-/**
- * Decides whether the Policies tab renders the editable policy workspace or
- * the read-only viewer. Only OpenChoreo-gateway APIs (with definition storage
- * enabled) are editable; self-hosted-gateway and on-prem/Publisher APIs are
- * always read-only, unlike DefinitionTab's `useApiDefinitionSource`, which
- * treats both gateway types as potentially writable.
- */
+/** Returns the Policies tab access mode. */
 export function usePolicyAccessMode(entity: Entity): PolicyAccessInfo {
   const configApi = useApi(configApiRef);
   const gatewayStatus = useGatewayStatus(entity);
 
   const annotations = entity.metadata.annotations ?? {};
   const discoveryType = annotations[DISCOVERY_TYPE_ANNOTATION];
-  const isOpenChoreoGateway = discoveryType === 'openchoreo-gateway';
+  const isGatewayDiscovered = discoveryType === 'api-platform-gateway';
 
   const storageEnabled =
     configApi.getOptionalBoolean('wso2ApiPlatform.storage.enabled') ?? true;
+  const writeOperationsEnabled = isGatewayWriteOperationsEnabled(configApi);
 
   const mode: PolicyAccessMode =
-    isOpenChoreoGateway && storageEnabled ? 'editable' : 'read-only';
+    isGatewayDiscovered && storageEnabled && writeOperationsEnabled
+      ? 'editable'
+      : 'read-only';
 
   const editingDisabledReason =
     mode === 'editable' && gatewayStatus.applicable && !gatewayStatus.active
       ? 'Gateway is currently inactive'
       : undefined;
 
-  return { mode, editingDisabledReason };
+  return { mode, editingDisabledReason, isGatewayDiscovered };
 }

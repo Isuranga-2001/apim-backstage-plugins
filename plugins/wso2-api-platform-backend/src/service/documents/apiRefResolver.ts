@@ -65,18 +65,14 @@ export async function resolveApiRef(
   const annotations = entity.metadata.annotations ?? {};
   const discoveryType = annotations[DISCOVERY_TYPE_ANNOTATION];
 
-  if (
-    discoveryType === 'self-hosted-gateway' ||
-    discoveryType === 'openchoreo-gateway'
-  ) {
+  if (discoveryType === 'api-platform-gateway') {
     const apiId = annotations[GATEWAY_API_ID_ANNOTATION];
     if (!apiId) {
       throw new NotFoundError(
         `Entity '${entityRef}' is missing '${GATEWAY_API_ID_ANNOTATION}'`,
       );
     }
-    const sourceKind: ApiSourceKind =
-      discoveryType === 'openchoreo-gateway' ? 'openchoreo' : 'self-hosted';
+    const sourceKind: ApiSourceKind = 'gateway';
     return {
       sourceKind,
       gatewayId: extractGatewayId(annotations[GATEWAY_ENDPOINTS_ANNOTATION]),

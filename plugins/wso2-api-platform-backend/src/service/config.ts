@@ -85,8 +85,13 @@ export function readWso2ApiPlatformConfig(
     getOptionalConfigArray(config, 'wso2ApiPlatformGateway.gateways') ?? [];
   const platformGatewayEnabled =
     getOptionalBoolean(config, 'wso2ApiPlatformGateway.enabled') ?? false;
+  const platformGatewayEnableWriteOperations =
+    getOptionalBoolean(
+      config,
+      'wso2ApiPlatformGateway.enableWriteOperations',
+    ) ?? false;
 
-  const selfHostedGateways = platformGatewayEnabled
+  const platformGateways = platformGatewayEnabled
     ? platformGatewayConfigs.map(gw => {
         const managementApiUsername = gw.getOptionalString(
           'managementApiUsername',
@@ -109,10 +114,6 @@ export function readWso2ApiPlatformConfig(
             gw.getOptionalString('environmentType') || 'PRODUCTION',
           description: gw.getOptionalString('description'),
           organizationId: gw.getOptionalString('organizationId'),
-          integration:
-            gw.getOptionalString('integration') === 'openchoreo'
-              ? ('openchoreo' as const)
-              : ('self-hosted' as const),
         };
       })
     : [];
@@ -123,6 +124,7 @@ export function readWso2ApiPlatformConfig(
     },
     platformGateway: {
       enabled: platformGatewayEnabled,
+      enableWriteOperations: platformGatewayEnableWriteOperations,
     },
     baseUrl,
     publisherBasePath,
@@ -138,6 +140,6 @@ export function readWso2ApiPlatformConfig(
     tls: {
       rejectUnauthorized: tlsRejectUnauthorized,
     },
-    selfHostedGateways,
+    platformGateways,
   };
 }

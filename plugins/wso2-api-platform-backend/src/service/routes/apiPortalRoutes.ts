@@ -19,7 +19,7 @@
 import express from 'express';
 import { AuthenticationError } from '@backstage/errors';
 import { resolveApiRef } from '../documents/apiRefResolver';
-import { resolveOpenChoreoGateway } from '../documents/openchoreoDefinitionVerifier';
+import { resolvePlatformGateway } from '../documents/gatewayDefinitionVerifier';
 import {
   preparePublish,
   publishApiToPortal,
@@ -91,17 +91,17 @@ export function registerApiPortalRoutes(
         reason: 'The API Portal integration is not enabled',
       };
     }
-    if (apiRef.sourceKind !== 'openchoreo') {
+    if (apiRef.sourceKind !== 'gateway') {
       return {
         publish: false,
         reason:
-          'Publishing to the API Portal is available for OpenChoreo APIs only',
+          'Publishing to the API Portal is available for API Platform gateway-discovered APIs only',
       };
     }
-    if (!resolveOpenChoreoGateway(client, apiRef, logger)) {
+    if (!resolvePlatformGateway(client, apiRef, logger)) {
       return {
         publish: false,
-        reason: `No OpenChoreo gateway discovery URL is configured for gateway '${apiRef.gatewayId}'`,
+        reason: `No API Platform gateway discovery URL is configured for gateway '${apiRef.gatewayId}'`,
       };
     }
     const definition = await definitionStore.get(apiRef);

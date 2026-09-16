@@ -184,9 +184,7 @@ wso2ApiPlatform:
 
     grantType: client_credentials
   catalogSyncTimeoutSeconds: 60
-  # Document attachments for APIs discovered from self-hosted gateways and
-  # OpenChoreo, backed by the plugin's own database (SQLite by default via
-  # backend.database above). Read-only for on-prem APIM in this release.
+  # Document attachments for gateway-discovered APIs.
   storage:
     enabled: true
     documents:
@@ -229,15 +227,17 @@ wso2ApiPlatform:
 
 wso2ApiPlatformGateway:
   enabled: true
+  # Keep gateway write operations disabled.
+  enableWriteOperations: false
   gateways:
-    - name: Self-Hosted-1
+    - name: API-Platform-1
       environmentType: Development
       runtimeUrls:
         - ${WSO2_GATEWAY_SELF_HOSTED_URL}
       managementApiUrl: ${WSO2_GATEWAY_MANAGEMENT_API_URL}
       managementApiUsername: ${WSO2_GATEWAY_MANAGEMENT_API_USERNAME}
       managementApiPassword: ${WSO2_GATEWAY_MANAGEMENT_API_PASSWORD}
-      description: 'Gateways in wso2 API platform environment (config_dump discovery)'
+      description: 'Gateways in the WSO2 API Platform environment (config_dump discovery)'
 devTools:
   scheduledTasks:
     plugins:

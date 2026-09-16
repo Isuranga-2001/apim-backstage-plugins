@@ -65,9 +65,9 @@ const EntityWso2TryOutTabContent = () => {
     !!entity.metadata.annotations?.['wso2.com/platform-gateway-endpoints'];
   const isSelfHostedGateway =
     !!entity.metadata.annotations?.['wso2-gateway.com/api-endpoints'];
-  const isOpenChoreoGateway =
+  const isApiPlatformGateway =
     entity.metadata.annotations?.[DISCOVERY_TYPE_ANNOTATION] ===
-    'openchoreo-gateway';
+    'api-platform-gateway';
 
   const isDiscovered =
     entity.metadata.annotations?.['wso2.com/is-discovered'] === 'true';
@@ -243,7 +243,7 @@ const EntityWso2TryOutTabContent = () => {
             isKeyLoading={isKeyLoading}
           />
         )}
-      {isOpenChoreoGateway && isDeployed && apiKeyAuthPolicy && (
+      {isApiPlatformGateway && isDeployed && apiKeyAuthPolicy && (
         <Box display="flex" justifyContent="center" width="100%" my={2}>
           <TextField
             label={
@@ -264,7 +264,7 @@ const EntityWso2TryOutTabContent = () => {
   );
 
   const renderTryItOutSection = () => {
-    if (isOpenChoreoGateway && hasLiveOpenApiSpec) {
+    if (isApiPlatformGateway && hasLiveOpenApiSpec) {
       return (
         <div className={classes.root}>
           {renderAuthSection()}

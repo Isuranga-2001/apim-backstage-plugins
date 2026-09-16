@@ -44,23 +44,16 @@ describe('apiDescriptionOverride', () => {
     apiDescriptionOverrideTracker.reset();
   });
 
-  it('applies a tracked description to gateway/OpenChoreo API entities, and clears it back out', async () => {
+  it('applies a tracked description to gateway API entities, and clears it back out', async () => {
     apiDescriptionOverrideTracker.set(
       'api:wso2-gateways/orders-api',
       'Orders API from its definition',
     );
 
     const gatewayResult = await processor.postProcessEntity!(
-      apiEntity('self-hosted-gateway'),
+      apiEntity('api-platform-gateway'),
     );
     expect(gatewayResult.metadata.description).toBe(
-      'Orders API from its definition',
-    );
-
-    const openchoreoResult = await processor.postProcessEntity!(
-      apiEntity('openchoreo-gateway'),
-    );
-    expect(openchoreoResult.metadata.description).toBe(
       'Orders API from its definition',
     );
 
@@ -70,9 +63,9 @@ describe('apiDescriptionOverride', () => {
     ).toBeUndefined();
   });
 
-  it('leaves the entity untouched unless there is a tracked description for a gateway/OpenChoreo API entity', async () => {
+  it('leaves the entity untouched unless there is a tracked description for a gateway API entity', async () => {
     const untracked = await processor.postProcessEntity!(
-      apiEntity('self-hosted-gateway'),
+      apiEntity('api-platform-gateway'),
     );
 
     apiDescriptionOverrideTracker.set('api:wso2-gateways/orders-api', 'Orders');
@@ -80,7 +73,7 @@ describe('apiDescriptionOverride', () => {
       apiEntity(),
     );
     const nonApiKind = await processor.postProcessEntity!({
-      ...apiEntity('self-hosted-gateway'),
+      ...apiEntity('api-platform-gateway'),
       kind: 'Component',
     });
 

@@ -113,7 +113,7 @@ export function startGatewayStatusWatchdog(options: {
   schedule.run({
     id: WATCHDOG_TASK_ID,
     fn: async () => {
-      for (const gw of client.getConfig().selfHostedGateways) {
+      for (const gw of client.getConfig().platformGateways) {
         gatewayStatusTracker.markStaleIfNeeded(gw.name, maxAgeMs);
       }
     },

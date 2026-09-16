@@ -62,7 +62,8 @@ export const EntityWso2ApiPoliciesTab = (): React.JSX.Element | null => {
 
   const skipKeyGeneration = isApiPlatform || isSelfHostedGateway || isMcp;
 
-  const { mode, editingDisabledReason } = usePolicyAccessMode(entity);
+  const { mode, editingDisabledReason, isGatewayDiscovered } =
+    usePolicyAccessMode(entity);
 
   const {
     details,
@@ -85,7 +86,7 @@ export const EntityWso2ApiPoliciesTab = (): React.JSX.Element | null => {
     error: artifactError,
     refresh: refreshArtifact,
   } = usePolicyArtifact(entity, {
-    skip: mode !== 'editable' || !apiId || isService,
+    skip: !isGatewayDiscovered || !apiId || isService,
   });
 
   const {
@@ -100,7 +101,7 @@ export const EntityWso2ApiPoliciesTab = (): React.JSX.Element | null => {
   const [artifactVersion, setArtifactVersion] = useState(0);
 
   const { initialModel } = usePolicyEditorModel(
-    mode === 'editable'
+    isGatewayDiscovered
       ? {
           gatewayApiPolicies: liveArtifact?.apiPolicies,
           gatewayOperations: liveArtifact?.operations,
@@ -119,7 +120,7 @@ export const EntityWso2ApiPoliciesTab = (): React.JSX.Element | null => {
   const isPublisherApi = !skipKeyGeneration;
   const isEditable = mode === 'editable';
 
-  const hasPolicyDetails = isEditable
+  const hasPolicyDetails = isGatewayDiscovered
     ? Boolean(
         liveArtifact?.apiPolicies &&
           (Array.isArray(liveArtifact.apiPolicies)
@@ -127,28 +128,75 @@ export const EntityWso2ApiPoliciesTab = (): React.JSX.Element | null => {
             : Object.keys(liveArtifact.apiPolicies as object).length > 0),
       )
     : Boolean(details?.apiPolicies);
-  const hasOperationPolicies = isEditable
+  const hasOperationPolicies = isGatewayDiscovered
     ? Boolean(liveArtifact?.operations && liveArtifact.operations.length > 0)
     : Boolean(
         (details?.operations && details.operations.length > 0) ||
           (gatewayOperations && gatewayOperations.length > 0),
       );
   const hasGatewayApiPolicies =
-    !isEditable &&
+    !isGatewayDiscovered &&
     Boolean(
       gatewayApiPolicies &&
         ((gatewayApiPolicies as any).request?.length > 0 ||
           (gatewayApiPolicies as any).response?.length > 0 ||
           (gatewayApiPolicies as any).fault?.length > 0),
     );
-  const showPublisherPoliciesTab = isEditable
+  const showPublisherPoliciesTab = isGatewayDiscovered
     ? !isMcp && Boolean(liveArtifact)
     : !isMcp &&
       (isPublisherApi || skipKeyGeneration) &&
       (hasPolicyDetails || hasOperationPolicies || hasGatewayApiPolicies);
 
   const isLoading =
-    isDefinitionLoading || (mode === 'editable' && isArtifactLoading);
+    isDefinitionLoading || (isGatewayDiscovered && isArtifactLoading);
+
+  let policiesContent: React.JSX.Element;
+  if (!showPublisherPoliciesTab) {
+    policiesContent = (
+      <EmptyState
+        title="No Policies"
+        missing="info"
+        description="This API does not have policies available."
+      />
+    );
+  } else if (isEditable) {
+    policiesContent = (
+      <PolicyEditorView
+        key={artifactVersion}
+        apiType={apiType}
+        initialModel={initialModel}
+        editingDisabledReason={editingDisabledReason}
+        onPreviewDiff={artifact => previewDiff(artifact)}
+        onSaveClick={async artifact => {
+          await upsertPolicies(artifact);
+          await refreshArtifact();
+          setArtifactVersion(v => v + 1);
+        }}
+        submitting={submitting}
+        previewing={previewing}
+        snackbar={snackbar}
+        onCloseSnackbar={closeSnackbar}
+      />
+    );
+  } else if (isGatewayDiscovered) {
+    policiesContent = (
+      <Wso2PublisherPoliciesList
+        gatewayOperations={liveArtifact?.operations}
+        gatewayApiPolicies={liveArtifact?.apiPolicies}
+        apiType={apiType}
+      />
+    );
+  } else {
+    policiesContent = (
+      <Wso2PublisherPoliciesList
+        details={details}
+        gatewayOperations={gatewayOperations}
+        gatewayApiPolicies={gatewayApiPolicies}
+        apiType={apiType}
+      />
+    );
+  }
 
   return (
     <InfoCard>
@@ -214,7 +262,7 @@ export const EntityWso2ApiPoliciesTab = (): React.JSX.Element | null => {
 
       {!isLoading &&
         !isPlaceholder &&
-        !isEditable &&
+        !isGatewayDiscovered &&
         definition === null &&
         !isMcp && (
           <EmptyState
@@ -224,7 +272,7 @@ export const EntityWso2ApiPoliciesTab = (): React.JSX.Element | null => {
           />
         )}
 
-      {isEditable && artifactError && !isLoading && (
+      {isGatewayDiscovered && artifactError && !isLoading && (
         <EmptyState
           title="Failed to load policies"
           missing="data"
@@ -232,45 +280,11 @@ export const EntityWso2ApiPoliciesTab = (): React.JSX.Element | null => {
         />
       )}
 
-      {((isEditable ? Boolean(liveArtifact) : Boolean(definition)) || isMcp) &&
+      {((isGatewayDiscovered ? Boolean(liveArtifact) : Boolean(definition)) ||
+        isMcp) &&
         !isPlaceholder &&
-        !(isEditable && artifactError) && (
-          <>
-            {showPublisherPoliciesTab ? (
-              isEditable ? (
-                <PolicyEditorView
-                  key={artifactVersion}
-                  apiType={apiType}
-                  initialModel={initialModel}
-                  editingDisabledReason={editingDisabledReason}
-                  onPreviewDiff={artifact => previewDiff(artifact)}
-                  onSaveClick={async artifact => {
-                    await upsertPolicies(artifact);
-                    await refreshArtifact();
-                    setArtifactVersion(v => v + 1);
-                  }}
-                  submitting={submitting}
-                  previewing={previewing}
-                  snackbar={snackbar}
-                  onCloseSnackbar={closeSnackbar}
-                />
-              ) : (
-                <Wso2PublisherPoliciesList
-                  details={details}
-                  gatewayOperations={gatewayOperations}
-                  gatewayApiPolicies={gatewayApiPolicies}
-                  apiType={apiType}
-                />
-              )
-            ) : (
-              <EmptyState
-                title="No Policies"
-                missing="info"
-                description="This API does not have policies available."
-              />
-            )}
-          </>
-        )}
+        !(isGatewayDiscovered && artifactError) &&
+        policiesContent}
     </InfoCard>
   );
 };

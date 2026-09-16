@@ -96,6 +96,7 @@ describe('EntityWso2ApiPoliciesTab', () => {
     (usePolicyAccessMode as jest.Mock).mockReturnValue({
       mode: 'read-only',
       editingDisabledReason: undefined,
+      isGatewayDiscovered: false,
     });
     (usePolicyArtifact as jest.Mock).mockReturnValue({
       artifact: null,
@@ -239,13 +240,13 @@ describe('EntityWso2ApiPoliciesTab', () => {
     expect(screen.getByText('Discovered API')).toBeInTheDocument();
   });
 
-  it('renders the policy editor for editable (OpenChoreo) APIs', () => {
+  it('renders the policy editor for editable (API Platform gateway) APIs', () => {
     (useEntity as jest.Mock).mockReturnValue({
       entity: {
         metadata: {
           annotations: {
             'wso2.com/api-id': '123',
-            'wso2.com/api-discovery-type': 'openchoreo-gateway',
+            'wso2.com/api-discovery-type': 'api-platform-gateway',
           },
         },
         spec: { type: 'api' },
@@ -255,6 +256,7 @@ describe('EntityWso2ApiPoliciesTab', () => {
     (usePolicyAccessMode as jest.Mock).mockReturnValue({
       mode: 'editable',
       editingDisabledReason: undefined,
+      isGatewayDiscovered: true,
     });
 
     (useWso2ApiPolicies as jest.Mock).mockReturnValue({
@@ -287,7 +289,7 @@ describe('EntityWso2ApiPoliciesTab', () => {
         metadata: {
           annotations: {
             'wso2.com/api-id': '123',
-            'wso2.com/api-discovery-type': 'openchoreo-gateway',
+            'wso2.com/api-discovery-type': 'api-platform-gateway',
           },
         },
         spec: { type: 'api' },
@@ -297,6 +299,7 @@ describe('EntityWso2ApiPoliciesTab', () => {
     (usePolicyAccessMode as jest.Mock).mockReturnValue({
       mode: 'editable',
       editingDisabledReason: undefined,
+      isGatewayDiscovered: true,
     });
 
     (useWso2ApiPolicies as jest.Mock).mockReturnValue({

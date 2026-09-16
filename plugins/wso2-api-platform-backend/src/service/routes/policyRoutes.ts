@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import { NotFoundError } from '@backstage/errors';
+import { NotAllowedError, NotFoundError } from '@backstage/errors';
 import express from 'express';
 import { RouteContext } from './types';
 import { refreshCatalogEntityAdvisory } from './artifactRouteHelpers';
@@ -27,13 +27,13 @@ import {
 import { resolveApiRef } from '../documents/apiRefResolver';
 import {
   fetchDiscoveredArtifact,
-  resolveOpenChoreoGateway,
-} from '../documents/openchoreoDefinitionVerifier';
+  resolvePlatformGateway,
+} from '../documents/gatewayDefinitionVerifier';
 import { toPolicyArtifact } from '../documents/restApiArtifactMapper';
 import {
-  applyOpenChoreoPolicyUpdate,
-  previewOpenChoreoPolicyUpdate,
-} from '../documents/openchoreoPolicyVerifier';
+  applyGatewayPolicyUpdate,
+  previewGatewayPolicyUpdate,
+} from '../documents/gatewayPolicyVerifier';
 
 const POLICIES_PATH = '/entities/:kind/:namespace/:name/policies';
 const POLICIES_DIFF_PATH = '/entities/:kind/:namespace/:name/policies/diff';
@@ -64,17 +64,25 @@ export function registerPolicyRoutes(
     return { credentials, apiRef };
   }
 
-  router.get(POLICIES_PATH, async (req, res) => {
-    const { apiRef } = await resolve(req);
-    if (apiRef.sourceKind !== 'openchoreo') {
-      throw new NotFoundError(
-        `Entity '${apiRef.entityRef}' does not have a plugin-managed OpenChoreo policy artifact`,
+  function assertWriteOperationsEnabled() {
+    if (!client.getConfig().platformGateway.enableWriteOperations) {
+      throw new NotAllowedError(
+        'Gateway write operations are disabled (wso2ApiPlatformGateway.enableWriteOperations=false); policies are read-only',
       );
     }
-    const gateway = resolveOpenChoreoGateway(client, apiRef, logger);
+  }
+
+  router.get(POLICIES_PATH, async (req, res) => {
+    const { apiRef } = await resolve(req);
+    if (apiRef.sourceKind !== 'gateway') {
+      throw new NotFoundError(
+        `Entity '${apiRef.entityRef}' does not have a plugin-managed API Platform policy artifact`,
+      );
+    }
+    const gateway = resolvePlatformGateway(client, apiRef, logger);
     if (!gateway) {
       throw new NotFoundError(
-        `No OpenChoreo gateway discovery URL configured for gateway '${apiRef.gatewayId}'`,
+        `No API Platform gateway discovery URL configured for gateway '${apiRef.gatewayId}'`,
       );
     }
     const artifact = await fetchDiscoveredArtifact(
@@ -87,15 +95,11 @@ export function registerPolicyRoutes(
 
   router.put(POLICIES_PATH, async (req, res) => {
     const { apiRef, credentials } = await resolve(req);
+    assertWriteOperationsEnabled();
     const input = parseUpsertPolicyInput(req.body);
     assertPolicySizeWithinLimit(input, policyStorage);
 
-    const next = await applyOpenChoreoPolicyUpdate(
-      client,
-      apiRef,
-      input,
-      logger,
-    );
+    const next = await applyGatewayPolicyUpdate(client, apiRef, input, logger);
     if (next) {
       await refreshCatalogEntityAdvisory(
         catalog,
@@ -105,19 +109,17 @@ export function registerPolicyRoutes(
       );
       res.json({ policies: toPolicyArtifact(next) });
     } else {
-      // Defensive: unreachable from the frontend in normal use, since
-      // editable mode is openchoreo-only. Echo the input back so the
-      // response shape stays well-typed.
       res.json({ policies: input });
     }
   });
 
   router.post(POLICIES_DIFF_PATH, async (req, res) => {
     const { apiRef } = await resolve(req);
+    assertWriteOperationsEnabled();
     const input = parseUpsertPolicyInput(req.body);
     assertPolicySizeWithinLimit(input, policyStorage);
 
-    const diff = await previewOpenChoreoPolicyUpdate(
+    const diff = await previewGatewayPolicyUpdate(
       client,
       apiRef,
       input,

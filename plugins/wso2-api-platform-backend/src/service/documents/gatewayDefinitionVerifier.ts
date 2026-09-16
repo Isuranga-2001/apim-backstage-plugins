@@ -30,26 +30,28 @@ import {
   parseDefinitionInfo,
 } from './restApiArtifactMapper';
 
-export type OpenChoreoGateway = {
+export type PlatformGatewayConnection = {
   managementApiUrl: string;
   managementApiAuth?: string;
 };
 
-/** Resolves the configured OpenChoreo gateway, or undefined (fail open) if none has a discovery URL. */
-export function resolveOpenChoreoGateway(
+function isGatewayDiscovered(sourceKind: ApiRef['sourceKind']): boolean {
+  return sourceKind === 'gateway';
+}
+
+/** Resolves the configured gateway, if available. */
+export function resolvePlatformGateway(
   client: Wso2ApiPlatformClient,
   apiRef: Pick<ApiRef, 'gatewayId' | 'apiId'>,
   logger: LoggerService,
-): OpenChoreoGateway | undefined {
+): PlatformGatewayConnection | undefined {
   const gateway = client
     .getConfig()
-    .selfHostedGateways.find(
-      gw => gw.name === apiRef.gatewayId && gw.integration === 'openchoreo',
-    );
+    .platformGateways.find(gw => gw.name === apiRef.gatewayId);
 
   if (!gateway?.managementApiUrl) {
     logger.warn(
-      `[OpenChoreo-Verify] No discovery URL configured for gateway ` +
+      `[Gateway-Verify] No management API URL configured for gateway ` +
         `'${apiRef.gatewayId}'; skipping definition verification for API ` +
         `'${apiRef.apiId}'.`,
     );
@@ -64,7 +66,7 @@ export function resolveOpenChoreoGateway(
 /** Fetches and adapts the currently-discovered API into a `RestApiArtifact`. Fails closed on any error. */
 export async function fetchDiscoveredArtifact(
   client: Wso2ApiPlatformClient,
-  gateway: OpenChoreoGateway,
+  gateway: PlatformGatewayConnection,
   apiId: string,
 ): Promise<RestApiArtifact> {
   let raw: unknown;
@@ -76,7 +78,7 @@ export async function fetchDiscoveredArtifact(
     );
   } catch (e: any) {
     throw new ConflictError(
-      `Could not reach the OpenChoreo gateway to verify API '${apiId}' at ` +
+      `Could not reach the API Platform gateway to verify API '${apiId}' at ` +
         `${gateway.managementApiUrl}/${apiId}: ${e.message}`,
     );
   }
@@ -84,7 +86,7 @@ export async function fetchDiscoveredArtifact(
   const artifact = adaptRawRestApiArtifact(raw);
   if (!artifact) {
     throw new ConflictError(
-      `Received an unrecognized response from the OpenChoreo gateway for ` +
+      `Received an unrecognized response from the API Platform gateway for ` +
         `API '${apiId}'; cannot verify or apply the uploaded definition.`,
     );
   }
@@ -135,30 +137,35 @@ function describeMismatch(args: {
   }
   if (args.addedOperations.length > 0) {
     parts.push(
-      `operations not present on the discovered API: ` +
-        formatOperations(args.addedOperations),
+      `operations not present on the discovered API: ${formatOperations(
+        args.addedOperations,
+      )}`,
     );
   }
   if (args.removedOperations.length > 0) {
     parts.push(
-      `operations missing from the definition: ` +
-        formatOperations(args.removedOperations),
+      `operations missing from the definition: ${formatOperations(
+        args.removedOperations,
+      )}`,
     );
   }
   return parts.join('; ');
 }
 
-/** ADD-time gate: rejects a new definition unless it matches the live gateway state. Only for `sourceKind === 'openchoreo'`. */
-export async function assertMatchesDiscoveredOpenChoreoApi(
+/** Validates a definition against the live gateway when writes are enabled. */
+export async function assertMatchesDiscoveredGatewayApi(
   client: Wso2ApiPlatformClient,
   apiRef: Pick<ApiRef, 'sourceKind' | 'gatewayId' | 'apiId'>,
   content: string,
   logger: LoggerService,
 ): Promise<void> {
-  if (apiRef.sourceKind !== 'openchoreo') {
+  if (
+    !isGatewayDiscovered(apiRef.sourceKind) ||
+    !client.getConfig().platformGateway.enableWriteOperations
+  ) {
     return;
   }
-  const gateway = resolveOpenChoreoGateway(client, apiRef, logger);
+  const gateway = resolvePlatformGateway(client, apiRef, logger);
   if (!gateway) {
     return;
   }
@@ -185,7 +192,7 @@ export async function assertMatchesDiscoveredOpenChoreoApi(
     diff.removedOperations.length > 0
   ) {
     throw new ConflictError(
-      `Uploaded definition does not match the discovered OpenChoreo API: ${describeMismatch(
+      `Uploaded definition does not match the discovered API Platform gateway API: ${describeMismatch(
         {
           titleMismatch,
           versionMismatch,
@@ -198,17 +205,20 @@ export async function assertMatchesDiscoveredOpenChoreoApi(
 }
 
 /** UPDATE preview: returns the diff for the frontend's confirm step. */
-export async function previewOpenChoreoDefinitionUpdate(
+export async function previewGatewayDefinitionUpdate(
   client: Wso2ApiPlatformClient,
   apiRef: Pick<ApiRef, 'sourceKind' | 'gatewayId' | 'apiId'>,
   content: string,
   logger: LoggerService,
   previousDescription?: string,
 ): Promise<RestApiArtifactDiff | undefined> {
-  if (apiRef.sourceKind !== 'openchoreo') {
+  if (
+    !isGatewayDiscovered(apiRef.sourceKind) ||
+    !client.getConfig().platformGateway.enableWriteOperations
+  ) {
     return undefined;
   }
-  const gateway = resolveOpenChoreoGateway(client, apiRef, logger);
+  const gateway = resolvePlatformGateway(client, apiRef, logger);
   if (!gateway) {
     return undefined;
   }
@@ -226,16 +236,19 @@ export async function previewOpenChoreoDefinitionUpdate(
 }
 
 /** UPDATE commit: re-fetches fresh and pushes the mapped artifact via `PUT {managementApiUrl}/{apiId}`. */
-export async function applyOpenChoreoDefinitionUpdate(
+export async function applyGatewayDefinitionUpdate(
   client: Wso2ApiPlatformClient,
   apiRef: Pick<ApiRef, 'sourceKind' | 'gatewayId' | 'apiId'>,
   content: string,
   logger: LoggerService,
 ): Promise<void> {
-  if (apiRef.sourceKind !== 'openchoreo') {
+  if (
+    !isGatewayDiscovered(apiRef.sourceKind) ||
+    !client.getConfig().platformGateway.enableWriteOperations
+  ) {
     return;
   }
-  const gateway = resolveOpenChoreoGateway(client, apiRef, logger);
+  const gateway = resolvePlatformGateway(client, apiRef, logger);
   if (!gateway) {
     return;
   }
@@ -253,7 +266,7 @@ export async function applyOpenChoreoDefinitionUpdate(
     );
   } catch (e: any) {
     throw new ConflictError(
-      `Failed to apply the definition update to the OpenChoreo gateway for ` +
+      `Failed to apply the definition update to the API Platform gateway for ` +
         `API '${apiRef.apiId}': ${e.message}`,
     );
   }

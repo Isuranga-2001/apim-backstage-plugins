@@ -96,9 +96,7 @@ const EntityWso2OverviewTabContent = () => {
   const discoveryType = (entity.metadata.annotations ?? {})[
     DISCOVERY_TYPE_ANNOTATION
   ];
-  const isGatewayDiscovered =
-    discoveryType === 'self-hosted-gateway' ||
-    discoveryType === 'openchoreo-gateway';
+  const isGatewayDiscovered = discoveryType === 'api-platform-gateway';
 
   const entityRoute = useRouteRef(entityRouteRef);
   const entityUrl = entityRoute({

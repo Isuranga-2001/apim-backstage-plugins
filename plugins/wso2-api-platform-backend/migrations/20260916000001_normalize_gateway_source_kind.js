@@ -16,11 +16,11 @@
  * under the License.
  */
 
-export interface PlatformGateway {
-  environmentName: string;
-  environmentType: string;
-  runtimeUrls: string[];
-  managementApiUrl?: string;
-  managementApiAuth?: string;
-  organizationId?: string;
-}
+/** Normalizes legacy source kinds to `gateway`. */
+exports.up = async function up(knex) {
+  await knex('wso2_artifacts')
+    .whereIn('source_kind', ['self-hosted', 'openchoreo'])
+    .update({ source_kind: 'gateway' });
+};
+
+exports.down = async function down(_knex) {};

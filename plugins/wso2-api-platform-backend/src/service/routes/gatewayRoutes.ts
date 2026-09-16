@@ -55,8 +55,8 @@ export function registerGatewayRoutes(
         }
       }
 
-      if (config.platformGateway?.enabled && config.selfHostedGateways) {
-        const gwPromises = config.selfHostedGateways.map(async gw => {
+      if (config.platformGateway?.enabled && config.platformGateways) {
+        const gwPromises = config.platformGateways.map(async gw => {
           let status = 'Online';
           if (gw.managementApiUrl) {
             try {
@@ -68,13 +68,11 @@ export function registerGatewayRoutes(
               status = 'Offline';
             }
           }
-          const gatewayType =
-            gw.integration === 'openchoreo' ? 'OpenChoreo' : 'Self Hosted';
           return {
             name: gw.name,
             type: 'wso2',
-            gatewayType,
-            description: gw.description || `Self-Hosted Gateway: ${gw.name}`,
+            gatewayType: 'API Platform',
+            description: gw.description || `API Platform Gateway: ${gw.name}`,
             source: 'Config',
             urls: gw.runtimeUrls,
             status,
@@ -82,8 +80,8 @@ export function registerGatewayRoutes(
           };
         });
 
-        const selfHostedGateways = await Promise.all(gwPromises);
-        gateways.push(...selfHostedGateways);
+        const platformGateways = await Promise.all(gwPromises);
+        gateways.push(...platformGateways);
       }
 
       res.json(gateways);

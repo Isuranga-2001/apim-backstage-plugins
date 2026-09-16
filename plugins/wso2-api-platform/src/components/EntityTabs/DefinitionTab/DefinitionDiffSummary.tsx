@@ -26,6 +26,7 @@ import { Wso2RestApiArtifactDiff } from '../../../api/types';
 
 export interface DefinitionDiffSummaryProps {
   diff: Wso2RestApiArtifactDiff | null | undefined;
+  pushesToGateway?: boolean;
 }
 
 const ADDED_COLOR = '#28a745';
@@ -37,7 +38,10 @@ const operationRowStyle = (color: string) => ({
   fontSize: 13,
 });
 
-export const DefinitionDiffSummary = ({ diff }: DefinitionDiffSummaryProps) => {
+export const DefinitionDiffSummary = ({
+  diff,
+  pushesToGateway = true,
+}: DefinitionDiffSummaryProps) => {
   if (!diff) {
     return null;
   }
@@ -49,7 +53,9 @@ export const DefinitionDiffSummary = ({ diff }: DefinitionDiffSummaryProps) => {
         color="textSecondary"
         style={{ marginBottom: 8 }}
       >
-        No changes to the gateway configuration were detected.
+        {pushesToGateway
+          ? 'No changes to the gateway configuration were detected.'
+          : 'No changes were detected.'}
       </Typography>
     );
   }
@@ -57,7 +63,9 @@ export const DefinitionDiffSummary = ({ diff }: DefinitionDiffSummaryProps) => {
   return (
     <Box mb={2}>
       <Typography variant="subtitle2" gutterBottom>
-        This will change the following on the gateway:
+        {pushesToGateway
+          ? 'This will change the following on the gateway:'
+          : 'This will change the following:'}
       </Typography>
       {diff.displayNameChange && (
         <Typography variant="body2" style={{ marginBottom: 4 }}>

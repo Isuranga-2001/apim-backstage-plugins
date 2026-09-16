@@ -76,7 +76,6 @@ export interface Config {
       managementApiPassword?: string;
       environmentType?: string;
       organizationId?: string;
-      integration?: 'self-hosted' | 'openchoreo';
     }>;
   };
 }

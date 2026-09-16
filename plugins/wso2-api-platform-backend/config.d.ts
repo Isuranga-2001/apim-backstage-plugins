@@ -134,16 +134,21 @@ export interface Config {
     };
   };
   /**
-   * Configuration for self-hosted WSO2 API Platform Gateways.
+   * Configuration for the WSO2 API Platform Gateways.
    * @visibility frontend
    */
   wso2ApiPlatformGateway?: {
     /**
-     * Enables WSO2 API Platform Gateway integration.
-     * Defaults to false.
+     * Enables WSO2 API Platform Gateway integration. Defaults to false.
      * @visibility frontend
      */
     enabled?: boolean;
+    /**
+     * Master switch for pushing Definition/Policy edits to the gateway.
+     * Defaults to false.
+     * @visibility frontend
+     */
+    enableWriteOperations?: boolean;
     gateways?: Array<{
       name: string;
       runtimeUrls: string[];
@@ -156,8 +161,6 @@ export interface Config {
       environmentType?: string;
       description?: string;
       organizationId?: string;
-      /** @visibility frontend */
-      integration?: 'self-hosted' | 'openchoreo';
     }>;
   };
 }

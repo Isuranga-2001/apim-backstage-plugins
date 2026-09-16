@@ -31,7 +31,10 @@ import { useApiDefinition } from './hooks/useApiDefinition';
 import { useApiDefinitionSource } from './hooks/useApiDefinitionSource';
 import { useDefinitionMutations } from './hooks/useDefinitionMutations';
 import { useGatewayStatus } from '../../common/useGatewayStatus';
+import { useGatewayWriteOperationsEnabled } from '../../common/useGatewayWriteAccess';
 import { rootRouteRef } from '../../../routes';
+
+const DISCOVERY_TYPE_ANNOTATION = 'wso2.com/api-discovery-type';
 
 const NotAvailableBox = ({ message }: { message: string }) => (
   <Box
@@ -86,7 +89,14 @@ export const DefinitionPanel = (props: {
   const { definition, capabilities, refresh } = useApiDefinition(entity, mode);
   const { upsertDefinition, previewDiff } = useDefinitionMutations(entity);
   const gatewayStatus = useGatewayStatus(entity);
+  const gatewayWriteOperationsEnabled = useGatewayWriteOperationsEnabled();
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  const isGatewayDiscovered =
+    entity.metadata.annotations?.[DISCOVERY_TYPE_ANNOTATION] ===
+    'api-platform-gateway';
+  const savePushesToGateway =
+    isGatewayDiscovered && gatewayWriteOperationsEnabled;
 
   if (mode === 'unsupported') {
     return wrapInCard ? (
@@ -133,15 +143,24 @@ export const DefinitionPanel = (props: {
                   definition.fileName ?? 'definition.yaml',
                   content,
                 );
-                navigate(homeRoute());
+                if (savePushesToGateway) {
+                  navigate(homeRoute());
+                } else {
+                  await refresh();
+                }
               }
             : undefined
         }
         onPreviewDiff={
           capabilities.write ? content => previewDiff(content) : undefined
         }
-        disabled={gatewayStatus.applicable && !gatewayStatus.active}
+        disabled={
+          savePushesToGateway &&
+          gatewayStatus.applicable &&
+          !gatewayStatus.active
+        }
         disabledReason="Gateway is currently inactive"
+        showSavingWaitDialog={savePushesToGateway}
       />
     );
   } else if (capabilities.write) {
@@ -165,6 +184,7 @@ export const DefinitionPanel = (props: {
             setDialogOpen(false);
             refresh();
           }}
+          savePushesToGateway={savePushesToGateway}
         />
       )}
     </Box>

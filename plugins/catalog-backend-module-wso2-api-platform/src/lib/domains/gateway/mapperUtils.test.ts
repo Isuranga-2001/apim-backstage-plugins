@@ -64,13 +64,13 @@ describe('gateway/mapperUtils', () => {
           'wso2-gateway.com/api-version': '1.2.0',
           'wso2-gateway.com/api-context': 'users/1.2.0',
           'wso2.com/api-type': 'openapi',
-          'wso2.com/api-gateway': 'Self Hosted',
-          'wso2.com/api-discovery-type': 'self-hosted-gateway',
+          'wso2.com/api-gateway': 'API Platform',
+          'wso2.com/api-discovery-type': 'api-platform-gateway',
           'wso2-gateway.com/api-endpoints': JSON.stringify([
             {
               environmentName: 'gateway-1',
               environmentType: 'wso2',
-              gatewayType: 'Self Hosted',
+              gatewayType: 'API Platform',
               urls: ['https://gateway-1.wso2.com/users/1.2.0'],
             },
           ]),

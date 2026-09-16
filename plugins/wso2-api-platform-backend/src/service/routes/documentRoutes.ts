@@ -126,8 +126,7 @@ export function registerDocumentRoutes(
   function allowedSourceTypesFor(apiRef: {
     sourceKind: string;
   }): ApiDocumentSourceType[] | undefined {
-    return apiRef.sourceKind === 'self-hosted' ||
-      apiRef.sourceKind === 'openchoreo'
+    return apiRef.sourceKind === 'gateway'
       ? GATEWAY_DOCUMENT_SOURCE_TYPES
       : undefined;
   }

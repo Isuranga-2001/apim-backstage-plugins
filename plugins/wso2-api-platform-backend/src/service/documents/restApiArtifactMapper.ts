@@ -129,6 +129,91 @@ export function parseDefinitionInfo(content: string): {
   }
 }
 
+export function restoreImmutableDefinitionFields(
+  existingContent: string | undefined,
+  newContent: string,
+): string {
+  if (!existingContent) {
+    return newContent;
+  }
+  const existingInfo = parseDefinitionInfo(existingContent);
+  if (existingInfo.title === undefined && existingInfo.version === undefined) {
+    return newContent;
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = yaml.load(newContent);
+  } catch {
+    return newContent;
+  }
+  if (!parsed || typeof parsed !== 'object') {
+    return newContent;
+  }
+  const doc = parsed as Record<string, any>;
+  const info = { ...(doc.info ?? {}) };
+
+  let changed = false;
+  if (existingInfo.title !== undefined && info.title !== existingInfo.title) {
+    info.title = existingInfo.title;
+    changed = true;
+  }
+  if (
+    existingInfo.version !== undefined &&
+    info.version !== existingInfo.version
+  ) {
+    info.version = existingInfo.version;
+    changed = true;
+  }
+  if (!changed) {
+    return newContent;
+  }
+
+  const restored = { ...doc, info };
+  const looksLikeJson = newContent.trimStart().startsWith('{');
+  return looksLikeJson
+    ? JSON.stringify(restored, null, 2)
+    : yaml.dump(restored);
+}
+
+export function diffDefinitionAgainstStored(
+  existingContent: string | undefined,
+  newContent: string,
+): RestApiArtifactDiff | undefined {
+  if (!existingContent) {
+    return undefined;
+  }
+  const previous = parseDefinitionInfo(existingContent);
+  const next = parseDefinitionInfo(newContent);
+
+  const previousOperations = previous.operations ?? [];
+  const nextOperations = next.operations ?? [];
+  const previousKeys = new Set(previousOperations.map(operationKey));
+  const nextKeys = new Set(nextOperations.map(operationKey));
+
+  const addedOperations = nextOperations
+    .filter(op => !previousKeys.has(operationKey(op)))
+    .map(op => ({ method: op.method, path: op.path }));
+  const removedOperations = previousOperations
+    .filter(op => !nextKeys.has(operationKey(op)))
+    .map(op => ({ method: op.method, path: op.path }));
+
+  const descriptionChange =
+    previous.description !== next.description
+      ? { from: previous.description ?? '', to: next.description ?? '' }
+      : undefined;
+
+  return {
+    descriptionChange,
+    addedOperations,
+    removedOperations,
+    hasChanges:
+      !!descriptionChange ||
+      addedOperations.length > 0 ||
+      removedOperations.length > 0,
+  };
+}
+
 /** Maps a definition onto `previous`: only `displayName`/`version`/`operations` are derived; everything else carries over, since `PUT` is a full-replace. */
 export function mapDefinitionToRestApiArtifact(
   content: string,
