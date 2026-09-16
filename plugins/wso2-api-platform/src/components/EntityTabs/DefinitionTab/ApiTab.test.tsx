@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { EntityWso2ApiDefinitionTab } from './ApiTab';
 
@@ -61,6 +61,15 @@ jest.mock('@backstage/core-components', () => ({
       <span>{title}</span>
       <span>{description}</span>
     </div>
+  ),
+}));
+
+// swagger-ui-react (loaded by SwaggerDefinitionPreview) pulls in swagger-client,
+// which ships ESM-only code Jest's default CJS transform can't parse — mocked
+// out the same way TryOutTab.test.tsx mocks SwaggerConsole.
+jest.mock('./SwaggerDefinitionPreview', () => ({
+  SwaggerDefinitionPreview: () => (
+    <div data-testid="swagger-definition-preview" />
   ),
 }));
 
@@ -130,6 +139,23 @@ describe('EntityWso2ApiDefinitionTab', () => {
     expect(screen.getByTestId('definition-viewer').textContent).toContain(
       'openapi: 3.0.0',
     );
+  });
+
+  it('shows the live Swagger preview only once editing starts', async () => {
+    mockEntity = GATEWAY_ENTITY;
+    mockWso2Api.getDefinition.mockResolvedValue({
+      definition: { content: 'openapi: 3.0.0', format: 'YAML' },
+      capabilities: { read: true, write: true },
+    });
+
+    renderTab();
+
+    await screen.findByTestId('definition-viewer');
+    expect(screen.queryByTestId('swagger-definition-preview')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+
+    expect(screen.getByTestId('swagger-definition-preview')).toBeDefined();
   });
 
   it('renders the on-prem definition from the catalog with no Add/Update button (regression)', async () => {

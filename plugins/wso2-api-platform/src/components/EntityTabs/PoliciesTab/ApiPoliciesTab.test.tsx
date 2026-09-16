@@ -10,6 +10,10 @@ import { usePolicyMutations } from './hooks/usePolicyMutations';
 import { ThemeProvider } from '@material-ui/core/styles';
 import { lightTheme } from '@backstage/theme';
 
+jest.mock('../DefinitionTab/SwaggerDefinitionPreview', () => ({
+  SwaggerDefinitionPreview: () => null,
+}));
+
 jest.mock('@backstage/core-components', () => ({
   InfoCard: ({ children }: any) => {
     const React = require('react');

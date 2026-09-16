@@ -30,14 +30,19 @@ import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import CircularProgress from '@material-ui/core/CircularProgress';
+import ToggleButton from '@material-ui/lab/ToggleButton';
+import ToggleButtonGroup from '@material-ui/lab/ToggleButtonGroup';
 import GetAppIcon from '@material-ui/icons/GetApp';
 import AutorenewIcon from '@material-ui/icons/Autorenew';
 import EditIcon from '@material-ui/icons/Edit';
 import SaveIcon from '@material-ui/icons/Save';
 import CloudUploadIcon from '@material-ui/icons/CloudUpload';
 import CloseIcon from '@material-ui/icons/Close';
+import Brightness4Icon from '@material-ui/icons/Brightness4';
+import Brightness7Icon from '@material-ui/icons/Brightness7';
 import { useStyles } from './styles';
 import { DefinitionDiffSummary } from './DefinitionDiffSummary';
+import { SwaggerDefinitionPreview } from './SwaggerDefinitionPreview';
 import { Wso2RestApiArtifactDiff } from '../../../api/types';
 
 export interface ApiDefinitionViewerProps {
@@ -53,11 +58,69 @@ export interface ApiDefinitionViewerProps {
   disabledReason?: string;
 }
 
-const editorActionButtonStyle = {
-  color: '#d4d4d4',
-  borderColor: '#555',
-  textTransform: 'none' as const,
+/** Every toolbar button (regular and toggle) shares this height so they line up. */
+const TOOLBAR_BUTTON_HEIGHT = 30;
+
+type EditorChromeTheme = {
+  containerBg: string;
+  containerBorder: string;
+  headerBg: string;
+  headerBorder: string;
+  langColor: string;
+  statusBg: string;
+  statusColor: string;
+  buttonColor: string;
+  buttonBorder: string;
+  activeButtonColor: string;
+  activeButtonBorder: string;
+  activeButtonBg: string;
 };
+
+const EDITOR_CHROME_THEMES: Record<'vs-dark' | 'vs', EditorChromeTheme> = {
+  'vs-dark': {
+    containerBg: '#1e1e1e',
+    containerBorder: '1px solid #3c3c3c',
+    headerBg: '#2d2d2d',
+    headerBorder: '1px solid #3c3c3c',
+    langColor: '#9d9d9d',
+    statusBg: '#007acc',
+    statusColor: '#fff',
+    buttonColor: '#d4d4d4',
+    buttonBorder: '#555',
+    activeButtonColor: '#4dc3f7',
+    activeButtonBorder: '#0e639c',
+    activeButtonBg: '#0e639c33',
+  },
+  vs: {
+    containerBg: '#ffffff',
+    containerBorder: '1px solid #d4d4d4',
+    headerBg: '#f3f3f3',
+    headerBorder: '1px solid #d4d4d4',
+    langColor: '#616161',
+    statusBg: '#2c6fbb',
+    statusColor: '#fff',
+    buttonColor: '#3c3c3c',
+    buttonBorder: '#bbb',
+    activeButtonColor: '#0e639c',
+    activeButtonBorder: '#0e639c',
+    activeButtonBg: '#0e639c1a',
+  },
+};
+
+const actionButtonStyle = (chrome: EditorChromeTheme) => ({
+  color: chrome.buttonColor,
+  borderColor: chrome.buttonBorder,
+  textTransform: 'none' as const,
+  height: TOOLBAR_BUTTON_HEIGHT,
+});
+
+const themeToggleButtonStyle = (chrome: EditorChromeTheme, active: boolean) => ({
+  color: active ? chrome.activeButtonColor : chrome.buttonColor,
+  borderColor: active ? chrome.activeButtonBorder : chrome.buttonBorder,
+  backgroundColor: active ? chrome.activeButtonBg : 'transparent',
+  height: TOOLBAR_BUTTON_HEIGHT,
+  padding: '0 8px',
+});
 
 export const ApiDefinitionViewer = ({
   value,
@@ -80,6 +143,9 @@ export const ApiDefinitionViewer = ({
   const [diffResult, setDiffResult] = useState<
     Wso2RestApiArtifactDiff | null | undefined
   >(undefined);
+  const [swaggerPreviewError, setSwaggerPreviewError] = useState(false);
+  const [editorTheme, setEditorTheme] = useState<'vs-dark' | 'vs'>('vs-dark');
+  const chrome = EDITOR_CHROME_THEMES[editorTheme];
 
   // Detect if the original value looks like XML
   const isXml = language === 'xml' || value?.trimStart().startsWith('<');
@@ -123,6 +189,15 @@ export const ApiDefinitionViewer = ({
     lang = 'JSON';
   }
 
+  const editorHeight = Math.max(
+    400,
+    Math.min(
+      800,
+      ((isEditing ? editedValue : localValue) || '').split('\n').length * 19 +
+        40,
+    ),
+  );
+
   const handleDownload = () => {
     const ext = lang === 'GRAPHQL' ? 'graphql' : lang.toLowerCase();
     const blob = new Blob([localValue], { type: 'text/plain' });
@@ -139,6 +214,7 @@ export const ApiDefinitionViewer = ({
   const handleEditToggle = async () => {
     if (!isEditing) {
       setEditedValue(localValue);
+      setSwaggerPreviewError(false);
       setIsEditing(true);
       return;
     }
@@ -173,14 +249,30 @@ export const ApiDefinitionViewer = ({
     setEditedValue(localValue);
     setIsEditing(false);
     setDiffResult(undefined);
+    setSwaggerPreviewError(false);
   };
 
   return (
-    <div className={classes.editorContainer}>
+    <div
+      className={classes.editorContainer}
+      style={{
+        backgroundColor: chrome.containerBg,
+        border: chrome.containerBorder,
+      }}
+    >
       {/* VS Code-style title bar */}
-      <div className={classes.editorHeader}>
+      <div
+        className={classes.editorHeader}
+        style={{
+          backgroundColor: chrome.headerBg,
+          borderBottom: chrome.headerBorder,
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Typography className={classes.editorLang}>
+          <Typography
+            className={classes.editorLang}
+            style={{ color: chrome.langColor }}
+          >
             definition.{lang.toLowerCase()}
           </Typography>
         </div>
@@ -196,7 +288,7 @@ export const ApiDefinitionViewer = ({
                 variant="outlined"
                 startIcon={<AutorenewIcon />}
                 onClick={handleFormatToggle}
-                style={editorActionButtonStyle}
+                style={actionButtonStyle(chrome)}
               >
                 Convert to {displayFormat === 'YAML' ? 'JSON' : 'YAML'}
               </Button>
@@ -212,7 +304,7 @@ export const ApiDefinitionViewer = ({
                 variant="outlined"
                 startIcon={<GetAppIcon />}
                 onClick={handleDownload}
-                style={editorActionButtonStyle}
+                style={actionButtonStyle(chrome)}
               >
                 Download
               </Button>
@@ -231,7 +323,7 @@ export const ApiDefinitionViewer = ({
                   startIcon={<CloudUploadIcon />}
                   onClick={onUpdateClick}
                   disabled={disabled}
-                  style={editorActionButtonStyle}
+                  style={actionButtonStyle(chrome)}
                 >
                   Upload
                 </Button>
@@ -248,7 +340,7 @@ export const ApiDefinitionViewer = ({
                 startIcon={<CloseIcon />}
                 onClick={handleCancelEdit}
                 disabled={saving}
-                style={editorActionButtonStyle}
+                style={actionButtonStyle(chrome)}
               >
                 Cancel
               </Button>
@@ -260,6 +352,8 @@ export const ApiDefinitionViewer = ({
               title={
                 disabled
                   ? disabledReason ?? ''
+                  : isEditing && swaggerPreviewError
+                  ? 'Fix the errors shown in the Swagger preview before saving'
                   : isEditing
                   ? 'Save definition'
                   : 'Edit definition'
@@ -280,44 +374,84 @@ export const ApiDefinitionViewer = ({
                     )
                   }
                   onClick={handleEditToggle}
-                  disabled={previewLoading || disabled}
-                  style={editorActionButtonStyle}
+                  disabled={previewLoading || disabled || swaggerPreviewError}
+                  style={actionButtonStyle(chrome)}
                 >
                   {isEditing ? 'Save' : 'Edit'}
                 </Button>
               </span>
             </Tooltip>
           )}
+
+          {/* Editor color theme toggle — always visible, independent of the action buttons above */}
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            value={editorTheme}
+            onChange={(_, next) => {
+              if (next) {
+                setEditorTheme(next);
+              }
+            }}
+            style={{ marginLeft: 4 }}
+          >
+            <Tooltip title="Dark theme">
+              <ToggleButton
+                id="swagger-theme-dark-btn"
+                value="vs-dark"
+                aria-label="Dark theme"
+                style={themeToggleButtonStyle(chrome, editorTheme === 'vs-dark')}
+              >
+                <Brightness4Icon fontSize="small" />
+              </ToggleButton>
+            </Tooltip>
+            <Tooltip title="Light theme">
+              <ToggleButton
+                id="swagger-theme-light-btn"
+                value="vs"
+                aria-label="Light theme"
+                style={themeToggleButtonStyle(chrome, editorTheme === 'vs')}
+              >
+                <Brightness7Icon fontSize="small" />
+              </ToggleButton>
+            </Tooltip>
+          </ToggleButtonGroup>
         </div>
       </div>
 
-      {/* The editor itself */}
-      <div
-        style={{
-          height: Math.max(
-            400,
-            Math.min(800, (localValue || '').split('\n').length * 19 + 40),
-          ),
-        }}
-      >
-        <Editor
-          language={lang.toLowerCase()}
-          theme="vs-dark"
-          value={isEditing ? editedValue : localValue}
-          onChange={val => {
-            if (isEditing) {
-              setEditedValue(val ?? '');
-            }
-          }}
-          options={{
-            readOnly: !isEditing,
-            minimap: { enabled: false },
-            scrollBeyondLastLine: false,
-            fontSize: 13,
-            wordWrap: 'on',
-            padding: { top: 16, bottom: 16 },
-          }}
-        />
+      {/* The editor itself, with a live Swagger preview alongside it while editing */}
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <div
+          style={{ flex: '1 1 400px', minWidth: 0, height: editorHeight }}
+        >
+          <Editor
+            language={lang.toLowerCase()}
+            theme={editorTheme}
+            value={isEditing ? editedValue : localValue}
+            onChange={val => {
+              if (isEditing) {
+                setEditedValue(val ?? '');
+              }
+            }}
+            options={{
+              readOnly: !isEditing,
+              minimap: { enabled: false },
+              scrollBeyondLastLine: false,
+              fontSize: 13,
+              wordWrap: 'on',
+              padding: { top: 16, bottom: 16 },
+            }}
+          />
+        </div>
+        {isEditing && !isXml && !isGraphql && (
+          <div style={{ flex: '1 1 400px', minWidth: 0 }}>
+            <SwaggerDefinitionPreview
+              content={editedValue}
+              height={editorHeight}
+              onValidityChange={setSwaggerPreviewError}
+            />
+          </div>
+        )}
       </div>
 
       <Dialog
@@ -378,8 +512,8 @@ export const ApiDefinitionViewer = ({
       {/* Bottom status bar like VS Code */}
       <Box
         style={{
-          backgroundColor: '#007acc',
-          color: '#fff',
+          backgroundColor: chrome.statusBg,
+          color: chrome.statusColor,
           display: 'flex',
           justifyContent: 'space-between',
           padding: '2px 12px',
