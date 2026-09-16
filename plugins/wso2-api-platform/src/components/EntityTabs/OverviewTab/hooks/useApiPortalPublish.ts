@@ -19,12 +19,15 @@
 import { useMemo, useState } from 'react';
 import { Entity, getCompoundEntityRef } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
-import { Wso2ApiPortalPublishResult, wso2ApiPlatformApiRef } from '../../../../api';
+import {
+  Wso2ApiPortalPublishResult,
+  wso2ApiPlatformApiRef,
+} from '../../../../api';
 
 type SnackbarState = {
   open: boolean;
   message: string;
-  severity: 'success' | 'error';
+  severity: 'success' | 'warning' | 'error';
 };
 
 function messageOf(e: unknown): string {
@@ -49,11 +52,19 @@ export const useApiPortalPublish = (entity: Entity) => {
     setSubmitting(true);
     try {
       const result = await wso2Api.publishToApiPortal(entityRef, accessToken);
-      setSnackbar({
-        open: true,
-        message: `API ${result.operation} on the API Portal.`,
-        severity: 'success',
-      });
+      if (result.warnings.length > 0) {
+        setSnackbar({
+          open: true,
+          message: `API ${result.operation}, but attaching documents failed. See the dialog for details.`,
+          severity: 'warning',
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: `API ${result.operation} on the API Portal.`,
+          severity: 'success',
+        });
+      }
       return result;
     } catch (e) {
       setSnackbar({ open: true, message: messageOf(e), severity: 'error' });

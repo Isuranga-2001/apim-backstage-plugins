@@ -41,12 +41,15 @@ export const PublishToApiPortalDialog = (options: {
 }) => {
   const { entity, open, onClose, onPublished } = options;
   const configApi = useApi(configApiRef);
-  const baseUrl = configApi.getOptionalString('wso2ApiPlatform.apiPortal.baseUrl');
+  const baseUrl = configApi.getOptionalString(
+    'wso2ApiPlatform.apiPortal.baseUrl',
+  );
   const { submitting, publish, snackbar, closeSnackbar } =
     useApiPortalPublish(entity);
 
   const [token, setToken] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [documentWarnings, setDocumentWarnings] = useState<string[]>([]);
 
   const handleClose = () => {
     if (submitting) {
@@ -54,6 +57,7 @@ export const PublishToApiPortalDialog = (options: {
     }
     setToken('');
     setError(null);
+    setDocumentWarnings([]);
     onClose();
   };
 
@@ -63,10 +67,16 @@ export const PublishToApiPortalDialog = (options: {
       return;
     }
     setError(null);
+    setDocumentWarnings([]);
     try {
       const result = await publish(token.trim());
       setToken('');
       onPublished(result);
+      if (result.warnings.length > 0) {
+        setDocumentWarnings(result.warnings);
+      } else {
+        onClose();
+      }
     } catch (e) {
       setError(
         e instanceof Error ? e.message : 'Failed to publish to the API Portal.',
@@ -84,12 +94,25 @@ export const PublishToApiPortalDialog = (options: {
               <Alert severity="error">{error}</Alert>
             </Box>
           )}
+          {documentWarnings.length > 0 && (
+            <Box mb={2}>
+              <Alert severity="warning">
+                The API was published, but attaching its documents failed:
+                <ul style={{ margin: '4px 0 0', paddingLeft: 20 }}>
+                  {documentWarnings.map(warning => (
+                    <li key={warning}>{warning}</li>
+                  ))}
+                </ul>
+              </Alert>
+            </Box>
+          )}
           <DialogContentText>
             {baseUrl
               ? `This will publish the API to ${baseUrl}.`
               : 'No API Portal base URL is configured.'}
           </DialogContentText>
           <TextField
+            id="api-portal-access-token"
             fullWidth
             type="password"
             label="Platform API Access Token"
@@ -101,7 +124,7 @@ export const PublishToApiPortalDialog = (options: {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose} disabled={submitting}>
-            Cancel
+            {documentWarnings.length > 0 ? 'Close' : 'Cancel'}
           </Button>
           <Button
             variant="contained"

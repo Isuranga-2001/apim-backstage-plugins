@@ -209,11 +209,11 @@ describe('ApiPortalClient', () => {
     });
   });
 
-  describe('putContent', () => {
-    it('PUTs the zip under the content field, with optional docMetadata', async () => {
+  describe('uploadAssets', () => {
+    it('POSTs the zip under the content field, with optional docMetadata', async () => {
       mockFetch.mockResolvedValue(jsonResponse(201, { message: 'ok' }));
 
-      await client.putContent(
+      await client.uploadAssets(
         'payment-api-service-v1.0',
         Buffer.from('zip-bytes'),
         'token-1',
@@ -224,12 +224,43 @@ describe('ApiPortalClient', () => {
       expect(url).toBe(
         'https://portal.example.com/api-portal/api/v0.9/apis/payment-api-service-v1.0/assets',
       );
-      expect(options?.method).toBe('PUT');
+      expect(options?.method).toBe('POST');
       const body = options?.body as FormData;
       expect(body.get('content')).toBeTruthy();
       expect(JSON.parse(body.get('docMetadata') as string)).toEqual([
         { name: 'External guide', url: 'https://example.com', type: 'LINK' },
       ]);
+    });
+  });
+
+  describe('deleteAllDocuments', () => {
+    it('DELETEs the document content type for the API', async () => {
+      mockFetch.mockResolvedValue(jsonResponse(204, undefined));
+
+      await client.deleteAllDocuments('payment-api-service-v1.0', 'token-1');
+
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe(
+        'https://portal.example.com/api-portal/api/v0.9/apis/payment-api-service-v1.0/assets?type=DOC_Other',
+      );
+      expect(options?.method).toBe('DELETE');
+      expect((options?.headers as Record<string, string>).Authorization).toBe(
+        'Bearer token-1',
+      );
+    });
+
+    it('treats a 404 (nothing to delete) as success', async () => {
+      mockFetch.mockResolvedValue(jsonResponse(404, {}));
+      await expect(
+        client.deleteAllDocuments('payment-api-service-v1.0', 'token-1'),
+      ).resolves.toBeUndefined();
+    });
+
+    it('throws on other error statuses', async () => {
+      mockFetch.mockResolvedValue(jsonResponse(500, { message: 'boom' }));
+      await expect(
+        client.deleteAllDocuments('payment-api-service-v1.0', 'token-1'),
+      ).rejects.toThrow(/boom/);
     });
   });
 });

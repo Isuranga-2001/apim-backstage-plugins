@@ -49,9 +49,10 @@ const mockWso2Api = {
   getServiceUsage: jest.fn(),
   getEntities: jest.fn(),
   getGateways: jest.fn().mockResolvedValue([]),
-  getDefinition: jest
-    .fn()
-    .mockResolvedValue({ definition: null, capabilities: { read: true, write: true } }),
+  getDefinition: jest.fn().mockResolvedValue({
+    definition: null,
+    capabilities: { read: true, write: true },
+  }),
   getApiPortalInfo: jest.fn().mockResolvedValue({
     enabled: false,
     capabilities: {
@@ -158,17 +159,17 @@ describe('EntityWso2AboutCard', () => {
     ).toBeDefined();
 
     // Quick links
-    expect(screen.getByText('View TechDocs')).toBeDefined();
+    expect(screen.getByText('API Docs')).toBeDefined();
     const techDocsLink = screen.getByRole('link', {
-      name: 'View TechDocs',
+      name: 'API Docs',
     }) as HTMLAnchorElement;
     expect(techDocsLink.getAttribute('href')).toBe(
       '/catalog/default/api/test-api/docs',
     );
 
-    expect(screen.getByText('View Policies')).toBeDefined();
+    expect(screen.getByText('Manage Policies')).toBeDefined();
     const policiesLink = screen.getByRole('link', {
-      name: 'View Policies',
+      name: 'Manage Policies',
     }) as HTMLAnchorElement;
     expect(policiesLink.getAttribute('href')).toBe(
       '/catalog/default/api/test-api/policies',
@@ -366,8 +367,50 @@ describe('API Portal card', () => {
       screen.getByRole('heading', { name: 'Publish to API Portal' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText('This will publish the API to https://devportal.example.com.'),
+      screen.getByText(
+        'This will publish the API to https://devportal.example.com.',
+      ),
     ).toBeInTheDocument();
+  });
+
+  it('keeps the dialog open and shows the warning when document attachment fails after a successful publish', async () => {
+    mockWso2Api.getApiPortalInfo.mockResolvedValue({
+      enabled: true,
+      capabilities: { publish: true },
+    });
+    mockConfigApi.getOptionalString.mockReturnValue(
+      'https://devportal.example.com',
+    );
+    mockWso2Api.publishToApiPortal.mockResolvedValue({
+      portalApiId: 'orders-api',
+      portalUrl: 'https://devportal.example.com/api-portal/apis/orders-api',
+      operation: 'created',
+      publishedAt: new Date().toISOString(),
+      documents: { published: 0, skipped: [] },
+      warnings: [
+        "Document 'a7b8d31d-48cd-44c1-b30f-1d0e754cd439' has no stored content",
+      ],
+    });
+    render(<EntityWso2OverviewTab />);
+
+    const publishButton = await screen.findByRole('button', {
+      name: /Publish to API Portal/,
+    });
+    await waitFor(() => expect(publishButton).toBeEnabled());
+    fireEvent.click(publishButton);
+
+    fireEvent.change(screen.getByLabelText(/Platform API Access Token/), {
+      target: { value: 'token-123' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Publish' }));
+
+    expect(
+      await screen.findByText(/has no stored content/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(/Platform API Access Token/),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
   });
 
   it('links the Open API Portal button to the configured base URL', async () => {
@@ -379,9 +422,6 @@ describe('API Portal card', () => {
     const openButton = await screen.findByRole('link', {
       name: /Open API Portal/,
     });
-    expect(openButton).toHaveAttribute(
-      'href',
-      'https://devportal.example.com',
-    );
+    expect(openButton).toHaveAttribute('href', 'https://devportal.example.com');
   });
 });

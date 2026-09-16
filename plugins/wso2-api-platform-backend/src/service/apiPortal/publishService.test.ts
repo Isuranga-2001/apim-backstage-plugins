@@ -133,7 +133,8 @@ function buildPortalClient() {
     getApi: jest.fn(),
     createApi: jest.fn(),
     updateApi: jest.fn(),
-    putContent: jest.fn(),
+    uploadAssets: jest.fn(),
+    deleteAllDocuments: jest.fn().mockResolvedValue(undefined),
   } as any;
 }
 
@@ -238,6 +239,10 @@ describe('publishApiToPortal', () => {
     expect(result.operation).toBe('created');
     expect(portalClient.createApi).toHaveBeenCalled();
     expect(portalClient.updateApi).not.toHaveBeenCalled();
+    expect(portalClient.deleteAllDocuments).toHaveBeenCalledWith(
+      'payment-api-service-v1.0',
+      'token-1',
+    );
   });
 
   it('updates an existing API by the same handle', async () => {
@@ -290,7 +295,7 @@ describe('publishApiToPortal', () => {
     expect(portalClient.updateApi).not.toHaveBeenCalled();
   });
 
-  it('publishes markdown documents via PUT and reports the published count', async () => {
+  it('publishes markdown documents via the assets POST and reports the published count', async () => {
     const portalClient = buildPortalClient();
     portalClient.getApi.mockResolvedValue(undefined);
     portalClient.createApi.mockResolvedValue({
@@ -312,7 +317,7 @@ describe('publishApiToPortal', () => {
       logger,
     });
 
-    expect(portalClient.putContent).toHaveBeenCalledWith(
+    expect(portalClient.uploadAssets).toHaveBeenCalledWith(
       'payment-api-service-v1.0',
       expect.any(Buffer),
       'token-1',
@@ -340,7 +345,7 @@ describe('publishApiToPortal', () => {
       logger,
     });
 
-    expect(portalClient.putContent).not.toHaveBeenCalled();
+    expect(portalClient.uploadAssets).not.toHaveBeenCalled();
     expect(result.documents.published).toBe(0);
   });
 
@@ -350,7 +355,7 @@ describe('publishApiToPortal', () => {
     portalClient.createApi.mockResolvedValue({
       id: 'payment-api-service-v1.0',
     });
-    portalClient.putContent.mockRejectedValue(new Error('portal is down'));
+    portalClient.uploadAssets.mockRejectedValue(new Error('portal is down'));
     const documentStore = buildDocumentStore([
       { documentId: 'd1', name: 'Guide', sourceType: 'MARKDOWN' },
     ]);
@@ -371,6 +376,119 @@ describe('publishApiToPortal', () => {
       expect.stringContaining('portal is down'),
     ]);
     expect(result.documents.published).toBe(0);
+  });
+
+  it('skips a document with no stored content but still attaches the others', async () => {
+    const portalClient = buildPortalClient();
+    portalClient.getApi.mockResolvedValue(undefined);
+    portalClient.createApi.mockResolvedValue({
+      id: 'payment-api-service-v1.0',
+    });
+    const documentStore = buildDocumentStore([
+      {
+        documentId: 'broken-doc',
+        name: 'Broken Guide',
+        sourceType: 'MARKDOWN',
+      },
+      { documentId: 'good-doc', name: 'Good Guide', sourceType: 'MARKDOWN' },
+    ]);
+    documentStore.getContent.mockImplementation(
+      async (_ref: unknown, documentId: string) => {
+        if (documentId === 'broken-doc') {
+          throw new Error(`Document '${documentId}' has no stored content`);
+        }
+        return {
+          kind: 'text',
+          contentType: 'text/markdown',
+          body: `content-${documentId}`,
+        };
+      },
+    );
+
+    const result = await publishApiToPortal({
+      apiRef: API_REF,
+      entity: ENTITY,
+      client: buildClient(),
+      portalClient,
+      definitionStore: buildDefinitionStore(),
+      documentStore,
+      accessToken: 'token-1',
+      config: CONFIG,
+      logger,
+    });
+
+    expect(portalClient.uploadAssets).toHaveBeenCalledWith(
+      'payment-api-service-v1.0',
+      expect.any(Buffer),
+      'token-1',
+    );
+    expect(result.documents.published).toBe(1);
+    expect(result.warnings).toEqual([
+      expect.stringContaining("Document 'Broken Guide' could not be attached"),
+    ]);
+  });
+
+  it('clears previously-published documents before re-attaching the current set', async () => {
+    const portalClient = buildPortalClient();
+    portalClient.getApi.mockResolvedValue({
+      id: 'payment-api-service-v1.0',
+      refId: API_REF.apiId,
+    });
+    portalClient.updateApi.mockResolvedValue({
+      id: 'payment-api-service-v1.0',
+    });
+    const documentStore = buildDocumentStore([
+      { documentId: 'd1', name: 'Guide', sourceType: 'MARKDOWN' },
+    ]);
+
+    await publishApiToPortal({
+      apiRef: API_REF,
+      entity: ENTITY,
+      client: buildClient(),
+      portalClient,
+      definitionStore: buildDefinitionStore(),
+      documentStore,
+      accessToken: 'token-1',
+      config: CONFIG,
+      logger,
+    });
+
+    const deleteOrder =
+      portalClient.deleteAllDocuments.mock.invocationCallOrder[0];
+    const uploadOrder = portalClient.uploadAssets.mock.invocationCallOrder[0];
+    expect(deleteOrder).toBeLessThan(uploadOrder);
+  });
+
+  it('still attaches documents after a warning when clearing existing ones fails', async () => {
+    const portalClient = buildPortalClient();
+    portalClient.getApi.mockResolvedValue(undefined);
+    portalClient.createApi.mockResolvedValue({
+      id: 'payment-api-service-v1.0',
+    });
+    portalClient.deleteAllDocuments.mockRejectedValue(
+      new Error('delete endpoint unreachable'),
+    );
+    const documentStore = buildDocumentStore([
+      { documentId: 'd1', name: 'Guide', sourceType: 'MARKDOWN' },
+    ]);
+
+    const result = await publishApiToPortal({
+      apiRef: API_REF,
+      entity: ENTITY,
+      client: buildClient(),
+      portalClient,
+      definitionStore: buildDefinitionStore(),
+      documentStore,
+      accessToken: 'token-1',
+      config: CONFIG,
+      logger,
+    });
+
+    expect(portalClient.uploadAssets).toHaveBeenCalled();
+    expect(result.documents.published).toBe(1);
+    expect(result.warnings).toEqual([
+      expect.stringContaining('delete endpoint unreachable'),
+    ]);
   });
 
   it('propagates a metadata creation failure', async () => {
@@ -557,6 +675,15 @@ describe('buildDocsZip', () => {
     expect(await zip.file('docs/api-reference.md')!.async('string')).toBe(
       '# Reference',
     );
+  });
+
+  it('adds a second top-level entry so the zip is not a single wrappable directory', async () => {
+    const bundle = await buildDocsZip([{ name: 'Guide', content: 'x' }]);
+    const zip = await JSZip.loadAsync(bundle!.zip);
+    const topLevelNames = new Set(
+      Object.keys(zip.files).map(name => name.split('/')[0]),
+    );
+    expect(topLevelNames.size).toBeGreaterThan(1);
   });
 
   it('slugifies non-alphanumeric characters and collapses repeats', async () => {

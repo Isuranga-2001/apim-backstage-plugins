@@ -131,6 +131,8 @@ export async function buildDocsZip(
     fileNames.push(fileName);
   }
 
+  zip.file('.api-portal-upload', '');
+
   const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
   return { zip: zipBuffer, fileNames };
 }
@@ -311,26 +313,51 @@ export async function publishApiToPortal(opts: {
   const warnings: string[] = [];
   let publishedCount = 0;
 
+  try {
+    await portalClient.deleteAllDocuments(portalApiId, accessToken);
+  } catch (e: any) {
+    warnings.push(
+      `Could not clear previously-published documents before re-attaching them: ${e.message}`,
+    );
+    logger.warn(
+      `[ApiPortal-Publish] Failed to clear existing documents: ${e.message}`,
+    );
+  }
+
   if (prepared.documentsToPublish.length > 0) {
-    try {
-      const publishableDocs: PublishableDocument[] = [];
-      for (const doc of prepared.documentsToPublish) {
+    const publishableDocs: PublishableDocument[] = [];
+    for (const doc of prepared.documentsToPublish) {
+      try {
         const content = await documentStore.getContent(apiRef, doc.documentId);
         publishableDocs.push({
           name: doc.name,
           content: content.kind === 'text' ? content.body : '',
         });
+      } catch (e: any) {
+        warnings.push(
+          `Document '${doc.name}' could not be attached: ${e.message}`,
+        );
+        logger.warn(
+          `[ApiPortal-Publish] Skipping document '${doc.documentId}' (${doc.name}): ${e.message}`,
+        );
       }
-      const bundle = await buildDocsZip(publishableDocs);
-      if (bundle) {
-        await portalClient.putContent(portalApiId, bundle.zip, accessToken);
-        publishedCount = publishableDocs.length;
+    }
+
+    if (publishableDocs.length > 0) {
+      try {
+        const bundle = await buildDocsZip(publishableDocs);
+        if (bundle) {
+          await portalClient.uploadAssets(portalApiId, bundle.zip, accessToken);
+          publishedCount = publishableDocs.length;
+        }
+      } catch (e: any) {
+        warnings.push(
+          `API metadata was published, but the documents failed to upload: ${e.message}`,
+        );
+        logger.warn(
+          `[ApiPortal-Publish] Documents upload failed: ${e.message}`,
+        );
       }
-    } catch (e: any) {
-      warnings.push(
-        `API metadata was published, but the documents failed to upload: ${e.message}`,
-      );
-      logger.warn(`[ApiPortal-Publish] Documents upload failed: ${e.message}`);
     }
   }
 

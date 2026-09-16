@@ -30,6 +30,7 @@ import Tooltip from '@material-ui/core/Tooltip';
 import Typography from '@material-ui/core/Typography';
 import { green, grey, red } from '@material-ui/core/colors';
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
+import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
 import DescriptionIcon from '@material-ui/icons/Description';
 import OpenInNewIcon from '@material-ui/icons/OpenInNew';
 import PolicyIcon from '@material-ui/icons/Policy';
@@ -96,7 +97,8 @@ const EntityWso2OverviewTabContent = () => {
     DISCOVERY_TYPE_ANNOTATION
   ];
   const isGatewayDiscovered =
-    discoveryType === 'self-hosted-gateway' || discoveryType === 'openchoreo-gateway';
+    discoveryType === 'self-hosted-gateway' ||
+    discoveryType === 'openchoreo-gateway';
 
   const entityRoute = useRouteRef(entityRouteRef);
   const entityUrl = entityRoute({
@@ -136,7 +138,8 @@ const EntityWso2OverviewTabContent = () => {
 
   const handleApiPortalPublished = (result: Wso2ApiPortalPublishResult) => {
     setApiPortalLastResult(result);
-    setApiPortalDialogOpen(false);
+    // The dialog itself decides whether to close — it stays open when
+    // document attachment failed, so the warning isn't lost.
   };
 
   const annotations = entity.metadata.annotations || {};
@@ -269,9 +272,7 @@ const EntityWso2OverviewTabContent = () => {
                         <FiberManualRecordIcon
                           fontSize="small"
                           style={{
-                            color: gatewayStatus.active
-                              ? green[500]
-                              : red[500],
+                            color: gatewayStatus.active ? green[500] : red[500],
                           }}
                         />
                       }
@@ -351,34 +352,47 @@ const EntityWso2OverviewTabContent = () => {
                       No API Portal base URL is configured.
                     </Typography>
                   )}
-                  {!apiPortalPublishAllowed && apiPortalPublishDisabledReason && (
-                    <Typography
-                      variant="caption"
-                      color="textSecondary"
-                      display="block"
-                      gutterBottom
-                    >
-                      {apiPortalPublishDisabledReason}
-                    </Typography>
-                  )}
+                  {!apiPortalPublishAllowed &&
+                    apiPortalPublishDisabledReason && (
+                      <Typography
+                        variant="caption"
+                        color="textSecondary"
+                        display="block"
+                        gutterBottom
+                      >
+                        {apiPortalPublishDisabledReason}
+                      </Typography>
+                    )}
                   {apiPortalLastResult && (
                     <Box
                       display="flex"
-                      alignItems="center"
+                      alignItems="flex-start"
                       mb={1}
-                      style={{ color: green[700] }}
+                      color={
+                        apiPortalLastResult.warnings.length > 0
+                          ? 'error.main'
+                          : green[700]
+                      }
                     >
-                      <CheckCircleIcon
-                        fontSize="small"
-                        style={{ marginRight: 6 }}
-                      />
+                      {apiPortalLastResult.warnings.length > 0 ? (
+                        <ErrorOutlineIcon
+                          fontSize="small"
+                          style={{ marginRight: 6, marginTop: 2 }}
+                        />
+                      ) : (
+                        <CheckCircleIcon
+                          fontSize="small"
+                          style={{ marginRight: 6, marginTop: 2 }}
+                        />
+                      )}
                       <Typography variant="caption" color="inherit">
-                        API {apiPortalLastResult.operation} on the API Portal
-                        at{' '}
+                        API {apiPortalLastResult.operation} on the API Portal at{' '}
                         {new Date(
                           apiPortalLastResult.publishedAt,
                         ).toLocaleString()}
-                        .
+                        {apiPortalLastResult.warnings.length > 0
+                          ? ', but attaching documents failed — see Publish to API Portal for details.'
+                          : '.'}
                       </Typography>
                     </Box>
                   )}

@@ -23,6 +23,8 @@ import { joinUrl } from '../urlUtils';
 import { ApiPortalConfig } from './config';
 import { PortalApiForm, PortalApiMetadataResponse } from './types';
 
+const MARKDOWN_DOCUMENT_CONTENT_TYPE = 'DOC_Other';
+
 async function extractPortalErrorMessage(response: Response): Promise<string> {
   let body: string;
   try {
@@ -121,7 +123,7 @@ export class ApiPortalClient {
     return (await response.json()) as PortalApiMetadataResponse;
   }
 
-  async putContent(
+  async uploadAssets(
     apiId: string,
     zip: Buffer,
     token: string,
@@ -140,9 +142,22 @@ export class ApiPortalClient {
     }
     const response = await this.request(
       `/apis/${encodeURIComponent(apiId)}/assets`,
-      { method: 'PUT', token, body: form },
+      { method: 'POST', token, body: form },
     );
     await this.assertOk(response, 'upload API content to the API Portal');
+  }
+
+  async deleteAllDocuments(apiId: string, token: string): Promise<void> {
+    const response = await this.request(
+      `/apis/${encodeURIComponent(apiId)}/assets?type=${encodeURIComponent(
+        MARKDOWN_DOCUMENT_CONTENT_TYPE,
+      )}`,
+      { method: 'DELETE', token },
+    );
+    if (response.status === 404) {
+      return;
+    }
+    await this.assertOk(response, 'delete existing API Portal documents');
   }
 
   private buildMetadataForm(form: PortalApiForm): FormData {
