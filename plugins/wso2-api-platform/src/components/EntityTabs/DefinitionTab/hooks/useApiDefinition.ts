@@ -31,6 +31,7 @@ const PLACEHOLDER = 'WSO2 API Document content placeholder';
 const NO_WRITE_CAPABILITIES: Wso2ApiDefinitionCapabilities = {
   read: false,
   write: false,
+  delete: false,
 };
 
 export const useApiDefinition = (
@@ -96,7 +97,7 @@ export const useApiDefinition = (
 
   return {
     definition,
-    capabilities: { read: true, write: false },
+    capabilities: { read: true, write: false, delete: false },
     loading: false,
     error: undefined,
     refresh: () => {},

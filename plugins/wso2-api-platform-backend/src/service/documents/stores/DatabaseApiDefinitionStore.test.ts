@@ -41,8 +41,12 @@ describe('DatabaseApiDefinitionStore', () => {
     store = new DatabaseApiDefinitionStore(new ArtifactDao(knex, 'definition'));
   });
 
-  it('reports read/write capabilities and no delete', () => {
-    expect(store.capabilities).toEqual({ read: true, write: true });
+  it('reports read/write/delete capabilities', () => {
+    expect(store.capabilities).toEqual({
+      read: true,
+      write: true,
+      delete: true,
+    });
   });
 
   it('returns null when no definition exists yet', async () => {
@@ -102,5 +106,21 @@ describe('DatabaseApiDefinitionStore', () => {
 
     const otherRef: ApiRef = { ...REF, apiId: 'a-different-api' };
     await expect(store.get(otherRef)).resolves.toBeNull();
+  });
+
+  it('hard-deletes a definition so it no longer exists afterwards', async () => {
+    await store.upsert(
+      REF,
+      { fileName: 'openapi.yaml', content: 'openapi: 3.0.0' },
+      ACTOR,
+    );
+
+    await store.delete(REF);
+
+    await expect(store.get(REF)).resolves.toBeNull();
+  });
+
+  it('rejects deleting a definition that does not exist', async () => {
+    await expect(store.delete(REF)).rejects.toThrow(/no.*definition.*found/i);
   });
 });

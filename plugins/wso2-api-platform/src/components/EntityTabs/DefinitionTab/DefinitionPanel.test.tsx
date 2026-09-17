@@ -77,13 +77,24 @@ jest.mock('./DefinitionUploadDialog', () => ({
   DefinitionUploadDialog: () => null,
 }));
 
+jest.mock('./DeleteDefinitionDialog', () => ({
+  DeleteDefinitionDialog: ({ onDeleted }: any) => (
+    <button onClick={onDeleted}>Confirm Delete</button>
+  ),
+}));
+
 jest.mock('./ApiDefinitionViewer', () => ({
-  ApiDefinitionViewer: ({ onSaveClick, showSavingWaitDialog }: any) => (
+  ApiDefinitionViewer: ({
+    onSaveClick,
+    onDeleteClick,
+    showSavingWaitDialog,
+  }: any) => (
     <div>
       <span data-testid="show-saving-wait-dialog">
         {String(showSavingWaitDialog)}
       </span>
       <button onClick={() => onSaveClick?.('new content')}>Save</button>
+      {onDeleteClick && <button onClick={onDeleteClick}>Delete</button>}
     </div>
   ),
 }));
@@ -112,7 +123,7 @@ describe('DefinitionPanel', () => {
     (useApiDefinitionSource as jest.Mock).mockReturnValue({ mode: 'store' });
     (useApiDefinition as jest.Mock).mockReturnValue({
       definition: { content: 'openapi: 3.0.0', fileName: 'definition.yaml' },
-      capabilities: { read: true, write: true },
+      capabilities: { read: true, write: true, delete: true },
       refresh,
     });
     (useDefinitionMutations as jest.Mock).mockReturnValue({
@@ -153,5 +164,32 @@ describe('DefinitionPanel', () => {
       expect(navigate).toHaveBeenCalledWith('/wso2-api-platform'),
     );
     expect(refresh).not.toHaveBeenCalled();
+  });
+
+  describe('deletion', () => {
+    beforeEach(() => {
+      (useGatewayWriteOperationsEnabled as jest.Mock).mockReturnValue(false);
+    });
+
+    it('shows a Delete button that opens the delete-confirmation dialog', () => {
+      render(<DefinitionPanel entity={ENTITY} />);
+
+      expect(screen.queryByText('Confirm Delete')).toBeNull();
+      fireEvent.click(screen.getByText('Delete'));
+
+      expect(screen.getByText('Confirm Delete')).toBeInTheDocument();
+    });
+
+    it('does not show a Delete button when the definition store does not allow it', () => {
+      (useApiDefinition as jest.Mock).mockReturnValue({
+        definition: { content: 'openapi: 3.0.0', fileName: 'definition.yaml' },
+        capabilities: { read: true, write: true, delete: false },
+        refresh,
+      });
+
+      render(<DefinitionPanel entity={ENTITY} />);
+
+      expect(screen.queryByText('Delete')).toBeNull();
+    });
   });
 });

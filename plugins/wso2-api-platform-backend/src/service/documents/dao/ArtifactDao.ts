@@ -245,6 +245,22 @@ export class ArtifactDao {
     });
   }
 
+  /** Deletes the one artifact matching this API's natural key (hard delete). */
+  async deleteSingleton(ref: ApiRef): Promise<void> {
+    await this.knex.transaction(async trx => {
+      const row = await trx<ArtifactRow>(ARTIFACTS_TABLE)
+        .where(this.naturalKeyWhere(ref))
+        .first();
+      if (!row) {
+        throw new NotFoundError(
+          `No ${this.artifactKind} found for API '${ref.apiId}'`,
+        );
+      }
+      await trx(CONTENT_TABLE).where({ artifact_id: row.id }).delete();
+      await trx(ARTIFACTS_TABLE).where({ id: row.id }).delete();
+    });
+  }
+
   /** Refreshes the cached entity_ref column. */
   async refreshEntityRef(documentId: string, entityRef: string): Promise<void> {
     await this.knex(ARTIFACTS_TABLE)

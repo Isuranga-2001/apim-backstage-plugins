@@ -327,6 +327,12 @@ export class Wso2ApiPlatformClient implements Wso2ApiPlatformApi {
     );
   }
 
+  async deleteDefinition(entityRef: CompoundEntityRef): Promise<void> {
+    await this.request<void>(this.entityDefinitionPath(entityRef), {
+      method: 'DELETE',
+    });
+  }
+
   async previewDefinitionDiff(
     entityRef: CompoundEntityRef,
     content: string,

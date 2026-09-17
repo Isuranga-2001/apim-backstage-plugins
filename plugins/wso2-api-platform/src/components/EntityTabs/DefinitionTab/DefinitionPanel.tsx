@@ -27,6 +27,7 @@ import Typography from '@material-ui/core/Typography';
 import AddIcon from '@material-ui/icons/Add';
 import { ApiDefinitionViewer } from './ApiDefinitionViewer';
 import { DefinitionUploadDialog } from './DefinitionUploadDialog';
+import { DeleteDefinitionDialog } from './DeleteDefinitionDialog';
 import { useApiDefinition } from './hooks/useApiDefinition';
 import { useApiDefinitionSource } from './hooks/useApiDefinitionSource';
 import { useDefinitionMutations } from './hooks/useDefinitionMutations';
@@ -91,6 +92,7 @@ export const DefinitionPanel = (props: {
   const gatewayStatus = useGatewayStatus(entity);
   const gatewayWriteOperationsEnabled = useGatewayWriteOperationsEnabled();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const isGatewayDiscovered =
     entity.metadata.annotations?.[DISCOVERY_TYPE_ANNOTATION] ===
@@ -154,6 +156,9 @@ export const DefinitionPanel = (props: {
         onPreviewDiff={
           capabilities.write ? content => previewDiff(content) : undefined
         }
+        onDeleteClick={
+          capabilities.delete ? () => setDeleteDialogOpen(true) : undefined
+        }
         disabled={
           savePushesToGateway &&
           gatewayStatus.applicable &&
@@ -185,6 +190,14 @@ export const DefinitionPanel = (props: {
             refresh();
           }}
           savePushesToGateway={savePushesToGateway}
+        />
+      )}
+      {deleteDialogOpen && (
+        <DeleteDefinitionDialog
+          entity={entity}
+          open={deleteDialogOpen}
+          onClose={() => setDeleteDialogOpen(false)}
+          onDeleted={() => window.location.reload()}
         />
       )}
     </Box>

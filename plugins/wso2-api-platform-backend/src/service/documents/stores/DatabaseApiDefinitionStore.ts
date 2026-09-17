@@ -74,6 +74,7 @@ export class DatabaseApiDefinitionStore implements ApiDefinitionStore {
   readonly capabilities: ApiDefinitionCapabilities = {
     read: true,
     write: true,
+    delete: true,
   };
 
   constructor(private readonly dao: ArtifactDao) {}
@@ -135,5 +136,9 @@ export class DatabaseApiDefinitionStore implements ApiDefinitionStore {
       file_name: content?.file_name ?? null,
       size_bytes: content?.size_bytes ?? null,
     });
+  }
+
+  async delete(ref: ApiRef): Promise<void> {
+    await this.dao.deleteSingleton(ref);
   }
 }

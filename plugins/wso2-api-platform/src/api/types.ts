@@ -221,6 +221,7 @@ export type Wso2ApiDefinition = {
 export type Wso2ApiDefinitionCapabilities = {
   read: boolean;
   write: boolean;
+  delete: boolean;
 };
 
 export type Wso2ApiDefinitionResponse = {
@@ -402,6 +403,7 @@ export interface Wso2ApiPlatformApi {
     entityRef: CompoundEntityRef,
     input: UpsertWso2ApiDefinitionRequest,
   ): Promise<Wso2ApiDefinitionResponse>;
+  deleteDefinition(entityRef: CompoundEntityRef): Promise<void>;
   previewDefinitionDiff(
     entityRef: CompoundEntityRef,
     content: string,

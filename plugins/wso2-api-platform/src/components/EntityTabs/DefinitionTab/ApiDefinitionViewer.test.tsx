@@ -111,4 +111,50 @@ describe('ApiDefinitionViewer', () => {
       expect(screen.queryByText('Save Definition')).toBeNull();
     });
   });
+
+  it('does not show a Delete button when onDeleteClick is not provided', () => {
+    render(<ApiDefinitionViewer value={VALUE} onSaveClick={jest.fn()} />);
+    expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull();
+  });
+
+  it('shows a Delete button that calls onDeleteClick when provided', () => {
+    const onDeleteClick = jest.fn();
+    render(
+      <ApiDefinitionViewer
+        value={VALUE}
+        onSaveClick={jest.fn()}
+        onDeleteClick={onDeleteClick}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(onDeleteClick).toHaveBeenCalled();
+  });
+
+  it('disables the Delete button when the viewer is disabled', () => {
+    render(
+      <ApiDefinitionViewer
+        value={VALUE}
+        onSaveClick={jest.fn()}
+        onDeleteClick={jest.fn()}
+        disabled
+        disabledReason="Gateway is currently inactive"
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
+  });
+
+  it('hides the Delete button while editing', () => {
+    render(
+      <ApiDefinitionViewer
+        value={VALUE}
+        onSaveClick={jest.fn()}
+        onDeleteClick={jest.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull();
+  });
 });

@@ -274,7 +274,7 @@ describe('definition routes', () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       definition: null,
-      capabilities: { read: true, write: true },
+      capabilities: { read: true, write: true, delete: true },
     });
   });
 
@@ -388,6 +388,85 @@ describe('definition routes', () => {
     );
     const res = await request(app).get(GATEWAY_PATH);
     expect(res.status).toBe(401);
+  });
+
+  describe('definition delete', () => {
+    it('reports capabilities.delete=true by default (enableWriteOperations is false)', async () => {
+      await request(app)
+        .put(GATEWAY_PATH)
+        .send({ fileName: 'openapi.yaml', content: 'openapi: 3.0.0' });
+
+      const res = await request(app).get(GATEWAY_PATH);
+      expect(res.body.capabilities.delete).toBe(true);
+    });
+
+    it('reports capabilities.delete=false once enableWriteOperations is true', async () => {
+      mockClientInstance.getConfig.mockReturnValue(PAYMENT_API_GATEWAY_CONFIG);
+      mockClientInstance.getGatewayApiDetail.mockResolvedValue(
+        DISCOVERED_RESTAPI_CR,
+      );
+      await request(app).put(PAYMENT_API_PATH).send({
+        fileName: 'openapi.yaml',
+        content: MATCHING_OPENCHOREO_DEFINITION,
+      });
+
+      const res = await request(app).get(PAYMENT_API_PATH);
+      expect(res.body.capabilities.delete).toBe(false);
+    });
+
+    it('hard-deletes the definition and clears the tracked description, when enableWriteOperations is false', async () => {
+      await request(app).put(GATEWAY_PATH).send({
+        fileName: 'openapi.yaml',
+        content: 'openapi: 3.0.0\ninfo:\n  description: Orders API',
+      });
+      expect(
+        apiDescriptionOverrideTracker.get('api:wso2-gateways/orders-api'),
+      ).toBe('Orders API');
+
+      const deleteRes = await request(app).delete(GATEWAY_PATH);
+      expect(deleteRes.status).toBe(204);
+      expect(mockCatalog.refreshEntity).toHaveBeenCalled();
+      expect(apiCatalogSyncTrigger.runNow).toHaveBeenCalled();
+      expect(
+        apiDescriptionOverrideTracker.get('api:wso2-gateways/orders-api'),
+      ).toBeUndefined();
+
+      const getRes = await request(app).get(GATEWAY_PATH);
+      expect(getRes.body.definition).toBeNull();
+    });
+
+    it('returns 403 when enableWriteOperations is true', async () => {
+      mockClientInstance.getConfig.mockReturnValue(PAYMENT_API_GATEWAY_CONFIG);
+      mockClientInstance.getGatewayApiDetail.mockResolvedValue(
+        DISCOVERED_RESTAPI_CR,
+      );
+      await request(app).put(PAYMENT_API_PATH).send({
+        fileName: 'openapi.yaml',
+        content: MATCHING_OPENCHOREO_DEFINITION,
+      });
+
+      const res = await request(app).delete(PAYMENT_API_PATH);
+      expect(res.status).toBe(403);
+
+      const getRes = await request(app).get(PAYMENT_API_PATH);
+      expect(getRes.body.definition).not.toBeNull();
+    });
+
+    it('returns 404 when there is no definition to delete', async () => {
+      const res = await request(app).delete(GATEWAY_PATH);
+      expect(res.status).toBe(404);
+    });
+
+    it('returns 501 when storage.enabled is false', async () => {
+      await buildApp({ enabled: false });
+      const res = await request(app).delete(GATEWAY_PATH);
+      expect(res.status).toBe(501);
+    });
+
+    it('returns 404 for an on-prem APIM entity', async () => {
+      const res = await request(app).delete(APIM_PATH);
+      expect(res.status).toBe(404);
+    });
   });
 
   describe('API Platform gateway definition verification', () => {

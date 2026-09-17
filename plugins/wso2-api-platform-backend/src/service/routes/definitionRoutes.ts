@@ -99,6 +99,19 @@ export function registerDefinitionRoutes(
     );
   }
 
+  function deleteAllowed(store: { capabilities: { delete: boolean } }) {
+    return (
+      store.capabilities.delete &&
+      !client.getConfig().platformGateway.enableWriteOperations
+    );
+  }
+
+  function capabilitiesFor(store: {
+    capabilities: { read: boolean; write: boolean; delete: boolean };
+  }) {
+    return { ...store.capabilities, delete: deleteAllowed(store) };
+  }
+
   router.get(DEFINITION_PATH, async (req, res) => {
     const { apiRef, store } = await resolve(req);
     const definition = await store.get(apiRef);
@@ -108,7 +121,7 @@ export function registerDefinitionRoutes(
       apiRef.entityRef,
       definition?.description,
     );
-    res.json({ definition, capabilities: store.capabilities });
+    res.json({ definition, capabilities: capabilitiesFor(store) });
   });
 
   router.put(DEFINITION_PATH, async (req, res) => {
@@ -155,7 +168,35 @@ export function registerDefinitionRoutes(
         `Catalog sync after definition update is advisory; ignored: ${e}`,
       );
     }
-    res.json({ definition, capabilities: store.capabilities });
+    res.json({ definition, capabilities: capabilitiesFor(store) });
+  });
+
+  router.delete(DEFINITION_PATH, async (req, res) => {
+    assertStorageEnabled();
+    const { apiRef, store, credentials } = await resolve(req);
+    if (!deleteAllowed(store)) {
+      throw new NotAllowedError(
+        'Deleting a plugin-managed definition is only allowed while gateway ' +
+          'write operations are disabled (wso2ApiPlatformGateway.enableWriteOperations=false)',
+      );
+    }
+
+    await store.delete(apiRef);
+    apiDescriptionOverrideTracker.set(apiRef.entityRef, undefined);
+    await refreshCatalogEntityAdvisory(
+      catalog,
+      apiRef.entityRef,
+      credentials,
+      logger,
+    );
+    try {
+      await apiCatalogSyncTrigger.runNow();
+    } catch (e) {
+      logger.debug(
+        `Catalog sync after definition delete is advisory; ignored: ${e}`,
+      );
+    }
+    res.status(204).send();
   });
 
   router.post(DEFINITION_DIFF_PATH, async (req, res) => {

@@ -37,6 +37,7 @@ import AutorenewIcon from '@material-ui/icons/Autorenew';
 import EditIcon from '@material-ui/icons/Edit';
 import SaveIcon from '@material-ui/icons/Save';
 import CloudUploadIcon from '@material-ui/icons/CloudUpload';
+import DeleteIcon from '@material-ui/icons/Delete';
 import CloseIcon from '@material-ui/icons/Close';
 import Brightness4Icon from '@material-ui/icons/Brightness4';
 import Brightness7Icon from '@material-ui/icons/Brightness7';
@@ -53,10 +54,9 @@ export interface ApiDefinitionViewerProps {
   onPreviewDiff?: (
     content: string,
   ) => Promise<Wso2RestApiArtifactDiff | null | undefined>;
-  /** Disables definition editing actions. */
+  onDeleteClick?: () => void;
   disabled?: boolean;
   disabledReason?: string;
-  /** Shows the save wait dialog. */
   showSavingWaitDialog?: boolean;
 }
 
@@ -133,6 +133,7 @@ export const ApiDefinitionViewer = ({
   onUpdateClick,
   onSaveClick,
   onPreviewDiff,
+  onDeleteClick,
   disabled,
   disabledReason,
   showSavingWaitDialog = true,
@@ -297,76 +298,6 @@ export const ApiDefinitionViewer = ({
           </Typography>
         </div>
         <div className={classes.editorActions}>
-          {/* Format Toggle button (hidden for XML and GraphQL) */}
-          {!isEditing && !isXml && !isGraphql && (
-            <Tooltip
-              title={`Convert to ${displayFormat === 'YAML' ? 'JSON' : 'YAML'}`}
-            >
-              <Button
-                id="swagger-format-btn"
-                size="small"
-                variant="outlined"
-                startIcon={<AutorenewIcon />}
-                onClick={handleFormatToggle}
-                style={actionButtonStyle(chrome)}
-              >
-                Convert to {displayFormat === 'YAML' ? 'JSON' : 'YAML'}
-              </Button>
-            </Tooltip>
-          )}
-
-          {/* Download button */}
-          {!isEditing && (
-            <Tooltip title="Download definition">
-              <Button
-                id="swagger-download-btn"
-                size="small"
-                variant="outlined"
-                startIcon={<GetAppIcon />}
-                onClick={handleDownload}
-                style={actionButtonStyle(chrome)}
-              >
-                Download
-              </Button>
-            </Tooltip>
-          )}
-
-          {!isEditing && onUpdateClick && (
-            <Tooltip
-              title={disabled ? disabledReason ?? '' : 'Upload definition'}
-            >
-              <span>
-                <Button
-                  id="swagger-update-btn"
-                  size="small"
-                  variant="outlined"
-                  startIcon={<CloudUploadIcon />}
-                  onClick={onUpdateClick}
-                  disabled={disabled}
-                  style={actionButtonStyle(chrome)}
-                >
-                  Upload
-                </Button>
-              </span>
-            </Tooltip>
-          )}
-
-          {isEditing && (
-            <Tooltip title="Cancel editing">
-              <Button
-                id="swagger-cancel-edit-btn"
-                size="small"
-                variant="outlined"
-                startIcon={<CloseIcon />}
-                onClick={handleCancelEdit}
-                disabled={saving}
-                style={actionButtonStyle(chrome)}
-              >
-                Cancel
-              </Button>
-            </Tooltip>
-          )}
-
           {onSaveClick && (
             <Tooltip
               title={
@@ -398,6 +329,96 @@ export const ApiDefinitionViewer = ({
                   style={actionButtonStyle(chrome)}
                 >
                   {isEditing ? 'Save' : 'Edit'}
+                </Button>
+              </span>
+            </Tooltip>
+          )}
+
+          {isEditing && (
+            <Tooltip title="Cancel editing">
+              <Button
+                id="swagger-cancel-edit-btn"
+                size="small"
+                variant="outlined"
+                startIcon={<CloseIcon />}
+                onClick={handleCancelEdit}
+                disabled={saving}
+                style={actionButtonStyle(chrome)}
+              >
+                Cancel
+              </Button>
+            </Tooltip>
+          )}
+
+          {/* Format Toggle button (hidden for XML and GraphQL) */}
+          {!isEditing && !isXml && !isGraphql && (
+            <Tooltip
+              title={`Convert to ${displayFormat === 'YAML' ? 'JSON' : 'YAML'}`}
+            >
+              <Button
+                id="swagger-format-btn"
+                size="small"
+                variant="outlined"
+                startIcon={<AutorenewIcon />}
+                onClick={handleFormatToggle}
+                style={actionButtonStyle(chrome)}
+              >
+                Convert to {displayFormat === 'YAML' ? 'JSON' : 'YAML'}
+              </Button>
+            </Tooltip>
+          )}
+
+          {/* Download button */}
+          {!isEditing && onUpdateClick && (
+            <Tooltip
+              title={disabled ? disabledReason ?? '' : 'Upload definition'}
+            >
+              <span>
+                <Button
+                  id="swagger-update-btn"
+                  size="small"
+                  variant="outlined"
+                  startIcon={<CloudUploadIcon />}
+                  onClick={onUpdateClick}
+                  disabled={disabled}
+                  style={actionButtonStyle(chrome)}
+                >
+                  Upload
+                </Button>
+              </span>
+            </Tooltip>
+          )}
+
+          {!isEditing && (
+            <Tooltip title="Download definition">
+              <Button
+                id="swagger-download-btn"
+                size="small"
+                variant="outlined"
+                startIcon={<GetAppIcon />}
+                onClick={handleDownload}
+                style={actionButtonStyle(chrome)}
+              >
+                Download
+              </Button>
+            </Tooltip>
+          )}
+
+          {!isEditing && onDeleteClick && (
+            <Tooltip
+              title={disabled ? disabledReason ?? '' : 'Delete definition'}
+            >
+              <span>
+                <Button
+                  id="swagger-delete-btn"
+                  size="small"
+                  variant="outlined"
+                  startIcon={<DeleteIcon />}
+                  onClick={onDeleteClick}
+                  disabled={disabled}
+                  style={actionButtonStyle(chrome)}
+                >
+                  Delete
                 </Button>
               </span>
             </Tooltip>

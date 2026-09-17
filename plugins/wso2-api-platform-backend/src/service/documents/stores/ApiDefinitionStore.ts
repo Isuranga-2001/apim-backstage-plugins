@@ -34,4 +34,6 @@ export interface ApiDefinitionStore {
     input: UpsertDefinitionInput,
     actor: Actor,
   ): Promise<ApiDefinition>;
+
+  delete(ref: ApiRef): Promise<void>;
 }

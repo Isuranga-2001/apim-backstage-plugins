@@ -76,6 +76,23 @@ export const useDefinitionMutations = (entity: Entity) => {
     }
   };
 
+  const deleteDefinition = async () => {
+    setSubmitting(true);
+    try {
+      await wso2Api.deleteDefinition(entityRef);
+      setSnackbar({
+        open: true,
+        message: 'Definition deleted.',
+        severity: 'success',
+      });
+    } catch (e) {
+      setSnackbar({ open: true, message: messageOf(e), severity: 'error' });
+      throw e;
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return {
     submitting,
     snackbar,
@@ -83,5 +100,6 @@ export const useDefinitionMutations = (entity: Entity) => {
     upsertDefinition,
     previewing,
     previewDiff,
+    deleteDefinition,
   };
 };

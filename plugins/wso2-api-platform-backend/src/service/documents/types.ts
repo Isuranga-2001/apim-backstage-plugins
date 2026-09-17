@@ -142,6 +142,7 @@ export type ApiDefinition = {
 export type ApiDefinitionCapabilities = {
   read: boolean;
   write: boolean;
+  delete: boolean;
 };
 
 export type UpsertDefinitionInput = {

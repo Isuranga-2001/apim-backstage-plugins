@@ -395,3 +395,72 @@ describe.each(databases.eachSupportedId())(
     });
   },
 );
+
+describe.each(databases.eachSupportedId())(
+  'ArtifactDao deleteSingleton (%s)',
+  dbId => {
+    let knex: Knex;
+    let dao: ArtifactDao;
+
+    beforeEach(async () => {
+      knex = await databases.init(dbId);
+      await applyDatabaseMigrations(knex);
+      dao = new ArtifactDao(knex, 'definition');
+    }, 60_000);
+
+    const metadata = {
+      source_kind: REF.sourceKind,
+      gateway_id: REF.gatewayId,
+      api_id: REF.apiId,
+      api_version: null,
+      entity_ref: REF.entityRef,
+      name: 'definition',
+      doc_type: 'YAML',
+      other_type_name: null,
+      summary: null,
+      source_type: 'FILE',
+      source_url: null,
+      created_by: 'user:default/alice',
+      updated_by: 'user:default/alice',
+    };
+
+    const content = {
+      storage_backend: 'database',
+      storage_ref: null,
+      mime_type: 'application/yaml',
+      file_name: 'openapi.yaml',
+      size_bytes: 10,
+      checksum: 'v1',
+      content_text: 'openapi: 3.0.0',
+      content_blob: null,
+    };
+
+    it('hard-deletes both the artifact row and its content row', async () => {
+      const created = await dao.upsertSingleton(REF, metadata, content);
+
+      await dao.deleteSingleton(REF);
+
+      await expect(dao.getSingleton(REF)).resolves.toBeUndefined();
+      await expect(dao.getContent(created.id)).resolves.toBeUndefined();
+    });
+
+    it('throws NotFoundError when there is nothing to delete', async () => {
+      await expect(dao.deleteSingleton(REF)).rejects.toThrow(NotFoundError);
+    });
+
+    it('does not affect a different API sharing the same artifact kind', async () => {
+      await dao.upsertSingleton(REF, metadata, content);
+      const otherRef: ApiRef = { ...REF, apiId: 'a-different-api' };
+      await dao.upsertSingleton(
+        otherRef,
+        { ...metadata, api_id: otherRef.apiId },
+        content,
+      );
+
+      await dao.deleteSingleton(REF);
+
+      await expect(dao.getSingleton(REF)).resolves.toBeUndefined();
+      await expect(dao.getSingleton(otherRef)).resolves.toBeDefined();
+    });
+  },
+);
