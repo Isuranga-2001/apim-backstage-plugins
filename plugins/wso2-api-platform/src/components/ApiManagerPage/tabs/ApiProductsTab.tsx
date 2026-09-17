@@ -102,8 +102,8 @@ export const ApiProductsTab = ({
               options={{
                 paging: true,
                 search: false,
-                pageSize: 20,
-                pageSizeOptions: [20, 50, 100],
+                pageSize: 5,
+                pageSizeOptions: [5, 10, 20, 50, 100],
                 toolbar: false,
               }}
               icons={tableIconsWithoutSearchClear}

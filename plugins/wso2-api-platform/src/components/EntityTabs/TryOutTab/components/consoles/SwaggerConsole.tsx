@@ -16,13 +16,7 @@
  * under the License.
  */
 
-import {
-  MutableRefObject,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { MutableRefObject, useEffect, useMemo, useRef, useState } from 'react';
 // @ts-ignore
 import SwaggerUI from 'swagger-ui-react';
 import 'swagger-ui-react/swagger-ui.css';

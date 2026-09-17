@@ -107,12 +107,12 @@ const EntityWso2OverviewTabContent = () => {
 
   const links: QuickLinkProps[] = [
     {
-      label: 'API Docs',
+      label: 'View Documents',
       icon: <DescriptionIcon fontSize="small" />,
       href: `${entityUrl}/docs`,
     },
     {
-      label: 'Manage Policies',
+      label: 'View Policies',
       icon: <PolicyIcon fontSize="small" />,
       href: `${entityUrl}/policies`,
     },

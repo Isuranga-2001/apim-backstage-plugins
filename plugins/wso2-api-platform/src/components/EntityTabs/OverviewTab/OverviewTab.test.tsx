@@ -159,17 +159,17 @@ describe('EntityWso2AboutCard', () => {
     ).toBeDefined();
 
     // Quick links
-    expect(screen.getByText('API Docs')).toBeDefined();
+    expect(screen.getByText('View Documents')).toBeDefined();
     const techDocsLink = screen.getByRole('link', {
-      name: 'API Docs',
+      name: 'View Documents',
     }) as HTMLAnchorElement;
     expect(techDocsLink.getAttribute('href')).toBe(
       '/catalog/default/api/test-api/docs',
     );
 
-    expect(screen.getByText('Manage Policies')).toBeDefined();
+    expect(screen.getByText('View Policies')).toBeDefined();
     const policiesLink = screen.getByRole('link', {
-      name: 'Manage Policies',
+      name: 'View Policies',
     }) as HTMLAnchorElement;
     expect(policiesLink.getAttribute('href')).toBe(
       '/catalog/default/api/test-api/policies',

@@ -267,6 +267,23 @@ export const Wso2ApiPlatformPage = () => {
   const apiFiltersHaveNoResults =
     apiSearchText.trim().length === 0 && filteredApis.length === 0;
 
+  const hasNonNaLifecycle = useMemo(() => {
+    const allApis = apiListState.value?.apis ?? [];
+    return allApis.some(
+      api =>
+        api.lifeCycleStatus &&
+        api.lifeCycleStatus.trim().toUpperCase() !== 'N/A',
+    );
+  }, [apiListState.value?.apis]);
+
+  const effectiveApiColumns = useMemo(
+    () =>
+      hasNonNaLifecycle
+        ? apiColumns
+        : apiColumns.filter(col => col.field !== 'lifeCycleStatus'),
+    [hasNonNaLifecycle],
+  );
+
   const isGatewayDiscoveryFailureEmptyState =
     !catalogState.loading &&
     offlineGateways.length > 0 &&
@@ -437,7 +454,7 @@ export const Wso2ApiPlatformPage = () => {
             apiCount={apiCount}
             apiTableToolbar={apiTableToolbar}
             visibleApis={visibleApis}
-            columns={apiColumns}
+            columns={effectiveApiColumns}
             apiSearchHasNoResults={apiSearchHasNoResults}
             apiFiltersHaveNoResults={apiFiltersHaveNoResults}
             apiEmptyContent={apiEmptyContent}
