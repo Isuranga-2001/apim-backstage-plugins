@@ -360,6 +360,12 @@ export type Wso2ApiPortalPublishResult = {
   warnings: string[];
 };
 
+export type Wso2ApiPortalPublishOverrides = {
+  displayName: string;
+  productionEndpoint: string;
+  sandboxEndpoint?: string;
+};
+
 export interface Wso2ApiPlatformApi {
   generateApiKey(
     apiId: string,
@@ -423,5 +429,6 @@ export interface Wso2ApiPlatformApi {
   publishToApiPortal(
     entityRef: CompoundEntityRef,
     accessToken: string,
+    overrides: Wso2ApiPortalPublishOverrides,
   ): Promise<Wso2ApiPortalPublishResult>;
 }

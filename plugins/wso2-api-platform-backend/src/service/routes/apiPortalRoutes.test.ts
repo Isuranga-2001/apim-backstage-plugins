@@ -270,6 +270,11 @@ describe('api-portal routes', () => {
   });
 
   describe('POST .../api-portal/publish — forwarded Platform API token', () => {
+    const PUBLISH_OVERRIDES = {
+      displayName: 'Payment API (Portal)',
+      productionEndpoint: 'https://gw.example.com/payments',
+    };
+
     async function seedDefinition() {
       mockClientInstance.getConfig.mockReturnValue(PAYMENT_API_GATEWAY_CONFIG);
       mockClientInstance.getGatewayApiDetail.mockResolvedValue(
@@ -306,7 +311,7 @@ describe('api-portal routes', () => {
       const res = await request(app)
         .post(`${PAYMENT_API_PATH}/publish`)
         .set(PORTAL_TOKEN_HEADER, 'user-supplied-token')
-        .send({});
+        .send(PUBLISH_OVERRIDES);
 
       expect(res.status).toBe(200);
       expect(res.body.operation).toBe('created');
@@ -320,6 +325,59 @@ describe('api-portal routes', () => {
         string
       >;
       expect(createHeaders.Authorization).toBe('Bearer user-supplied-token');
+    });
+
+    it('forwards the display name and endpoint overrides into the portal metadata payload', async () => {
+      await buildApp();
+      await seedDefinition();
+      mockPortalReachableAndPublishable();
+
+      await request(app)
+        .post(`${PAYMENT_API_PATH}/publish`)
+        .set(PORTAL_TOKEN_HEADER, 'user-supplied-token')
+        .send({
+          ...PUBLISH_OVERRIDES,
+          sandboxEndpoint: 'https://sandbox.example.com/payments',
+        });
+
+      const createCall = mockFetch.mock.calls.find(
+        ([url]) => url === CREATE_API_URL,
+      );
+      const body = createCall?.[1]?.body as FormData;
+      const metadata = JSON.parse(body.get('metadata') as string);
+      expect(metadata.name).toBe('Payment API (Portal)');
+      expect(metadata.endPoints).toEqual({
+        productionURL: 'https://gw.example.com/payments',
+        sandboxURL: 'https://sandbox.example.com/payments',
+      });
+    });
+
+    it('rejects with 400 when displayName is missing', async () => {
+      await buildApp();
+      await seedDefinition();
+      mockPortalReachableAndPublishable();
+
+      const res = await request(app)
+        .post(`${PAYMENT_API_PATH}/publish`)
+        .set(PORTAL_TOKEN_HEADER, 'user-supplied-token')
+        .send({ productionEndpoint: PUBLISH_OVERRIDES.productionEndpoint });
+
+      expect(res.status).toBe(400);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('rejects with 400 when productionEndpoint is missing', async () => {
+      await buildApp();
+      await seedDefinition();
+      mockPortalReachableAndPublishable();
+
+      const res = await request(app)
+        .post(`${PAYMENT_API_PATH}/publish`)
+        .set(PORTAL_TOKEN_HEADER, 'user-supplied-token')
+        .send({ displayName: PUBLISH_OVERRIDES.displayName });
+
+      expect(res.status).toBe(400);
+      expect(mockFetch).not.toHaveBeenCalled();
     });
 
     it('rejects with 401 when the portal-token header is missing', async () => {
@@ -348,7 +406,7 @@ describe('api-portal routes', () => {
       const res = await request(app)
         .post(`${PAYMENT_API_PATH}/publish`)
         .set(PORTAL_TOKEN_HEADER, 'user-supplied-token')
-        .send({});
+        .send(PUBLISH_OVERRIDES);
 
       expect(res.status).toBe(503);
       expect(mockFetch.mock.calls.some(([url]) => url === CREATE_API_URL)).toBe(

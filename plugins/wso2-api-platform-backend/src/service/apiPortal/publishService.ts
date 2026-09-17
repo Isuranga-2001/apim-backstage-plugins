@@ -37,6 +37,7 @@ import { ApiPortalConfig } from './config';
 import {
   PortalApiForm,
   PortalApiMetadataPayload,
+  PortalApiPublishOverrides,
   PublishableDocument,
   PublishResult,
   SkippedDocument,
@@ -70,8 +71,10 @@ export function buildPortalMetadata(input: {
   definitionContent: string;
   apiRef: Pick<ApiRef, 'apiId'>;
   config: ApiPortalConfig;
+  overrides?: PortalApiPublishOverrides;
 }): PortalApiMetadataPayload {
-  const { artifact, entity, definitionContent, apiRef, config } = input;
+  const { artifact, entity, definitionContent, apiRef, config, overrides } =
+    input;
 
   const { description: definitionDescription } =
     parseDefinitionInfo(definitionContent);
@@ -79,11 +82,21 @@ export function buildPortalMetadata(input: {
   const technicalOwner = entity.spec?.owner
     ? String(entity.spec.owner)
     : undefined;
-  const productionURL = firstProductionUrl(entity);
+  const displayName = overrides?.displayName || artifact.spec.displayName;
+  const productionURL =
+    overrides?.productionEndpoint || firstProductionUrl(entity);
+  const sandboxURL = overrides?.sandboxEndpoint;
+  const endPoints =
+    productionURL || sandboxURL
+      ? {
+          ...(productionURL ? { productionURL } : {}),
+          ...(sandboxURL ? { sandboxURL } : {}),
+        }
+      : undefined;
 
   return {
     id: artifact.metadata.name,
-    name: artifact.spec.displayName,
+    name: displayName,
     version: artifact.spec.version,
     ...(description ? { description } : {}),
     type: 'REST',
@@ -92,7 +105,7 @@ export function buildPortalMetadata(input: {
     tags: nonGatewayTags(entity),
     labels: config.defaults.labels,
     ...(technicalOwner ? { owners: { technicalOwner } } : {}),
-    ...(productionURL ? { endPoints: { productionURL } } : {}),
+    ...(endPoints ? { endPoints } : {}),
     subscriptionPlans: config.defaults.subscriptionPlans.map(id => ({ id })),
     agentVisibility: config.defaults.agentVisibility,
   };
@@ -191,6 +204,7 @@ export async function preparePublish(opts: {
   documentStore: ApiDocumentStore;
   config: ApiPortalConfig;
   logger: LoggerService;
+  overrides?: PortalApiPublishOverrides;
 }): Promise<PreparedPublish> {
   const {
     apiRef,
@@ -200,6 +214,7 @@ export async function preparePublish(opts: {
     documentStore,
     config,
     logger,
+    overrides,
   } = opts;
 
   if (apiRef.sourceKind !== 'gateway') {
@@ -225,6 +240,7 @@ export async function preparePublish(opts: {
     definitionContent,
     apiRef,
     config,
+    overrides,
   });
 
   const allDocuments = await documentStore.list(apiRef);
@@ -261,6 +277,7 @@ export async function publishApiToPortal(opts: {
   accessToken: string;
   config: ApiPortalConfig;
   logger: LoggerService;
+  overrides?: PortalApiPublishOverrides;
 }): Promise<PublishResult> {
   const {
     apiRef,
@@ -271,6 +288,7 @@ export async function publishApiToPortal(opts: {
     accessToken,
     config,
     logger,
+    overrides,
   } = opts;
 
   const prepared = await preparePublish({
@@ -281,6 +299,7 @@ export async function publishApiToPortal(opts: {
     documentStore,
     config,
     logger,
+    overrides,
   });
 
   const existing = await portalClient.getApi(prepared.metadata.id, accessToken);

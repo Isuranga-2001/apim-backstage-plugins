@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Entity } from '@backstage/catalog-model';
 import { configApiRef, useApi } from '@backstage/core-plugin-api';
 import Box from '@material-ui/core/Box';
@@ -30,8 +30,27 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 import Snackbar from '@material-ui/core/Snackbar';
 import TextField from '@material-ui/core/TextField';
 import Alert from '@material-ui/lab/Alert';
+import Autocomplete from '@material-ui/lab/Autocomplete';
 import { Wso2ApiPortalPublishResult } from '../../../../api';
 import { useApiPortalPublish } from '../hooks/useApiPortalPublish';
+
+const GATEWAY_ENDPOINTS_ANNOTATION = 'wso2-gateway.com/api-endpoints';
+
+/** The gateway's configured runtime URLs (with the API's context appended), as baked into the entity at discovery time. */
+function productionEndpointOptions(entity: Entity): string[] {
+  const raw = entity.metadata.annotations?.[GATEWAY_ENDPOINTS_ANNOTATION];
+  if (!raw) {
+    return [];
+  }
+  try {
+    const endpoints = JSON.parse(raw) as Array<{ urls?: string[] }>;
+    return Array.from(new Set(endpoints[0]?.urls ?? []));
+  } catch {
+    return [];
+  }
+}
+
+let lastUsedApiPortalToken = '';
 
 export const PublishToApiPortalDialog = (options: {
   entity: Entity;
@@ -47,15 +66,35 @@ export const PublishToApiPortalDialog = (options: {
   const { submitting, publish, snackbar, closeSnackbar } =
     useApiPortalPublish(entity);
 
-  const [token, setToken] = useState('');
+  const defaultDisplayName = entity.metadata.title || entity.metadata.name;
+  const endpointOptions = productionEndpointOptions(entity);
+  const defaultProductionEndpoint = endpointOptions[0] ?? '';
+  const defaultSandboxEndpoint = endpointOptions[1] ?? '';
+
+  const [token, setToken] = useState(lastUsedApiPortalToken);
+  const [displayName, setDisplayName] = useState(defaultDisplayName);
+  const [productionEndpoint, setProductionEndpoint] = useState(
+    defaultProductionEndpoint,
+  );
+  const [sandboxEndpoint, setSandboxEndpoint] = useState(
+    defaultSandboxEndpoint,
+  );
   const [error, setError] = useState<string | null>(null);
   const [documentWarnings, setDocumentWarnings] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (open) {
+      setToken(lastUsedApiPortalToken);
+    }
+  }, [open]);
 
   const handleClose = () => {
     if (submitting) {
       return;
     }
-    setToken('');
+    setDisplayName(defaultDisplayName);
+    setProductionEndpoint(defaultProductionEndpoint);
+    setSandboxEndpoint(defaultSandboxEndpoint);
     setError(null);
     setDocumentWarnings([]);
     onClose();
@@ -66,11 +105,22 @@ export const PublishToApiPortalDialog = (options: {
       setError('A Platform API access token is required.');
       return;
     }
+    if (!displayName.trim()) {
+      setError('A display name is required.');
+      return;
+    }
+    if (!productionEndpoint.trim()) {
+      setError('A production endpoint is required.');
+      return;
+    }
     setError(null);
     setDocumentWarnings([]);
     try {
-      const result = await publish(token.trim());
-      setToken('');
+      const result = await publish(token.trim(), {
+        displayName: displayName.trim(),
+        productionEndpoint: productionEndpoint.trim(),
+        sandboxEndpoint: sandboxEndpoint.trim() || undefined,
+      });
       onPublished(result);
       if (result.warnings.length > 0) {
         setDocumentWarnings(result.warnings);
@@ -116,11 +166,75 @@ export const PublishToApiPortalDialog = (options: {
             fullWidth
             type="password"
             label="Platform API Access Token"
-            helperText="Sent with this publish request only — it is not stored."
+            helperText="Defaults to the last token used in this browser session — you can override it."
             value={token}
-            onChange={e => setToken(e.target.value)}
+            onChange={e => {
+              const value = e.target.value;
+              setToken(value);
+              lastUsedApiPortalToken = value;
+            }}
             disabled={submitting}
           />
+          <Box mt={2}>
+            <TextField
+              id="api-portal-display-name"
+              fullWidth
+              required
+              label="Display Name"
+              value={displayName}
+              onChange={e => setDisplayName(e.target.value)}
+              disabled={submitting}
+            />
+          </Box>
+          <Box mt={5}>
+            <Box component="h3" m={0} mb={1} style={{ fontSize: '1rem' }}>
+              Endpoints
+            </Box>
+          </Box>
+
+          <Box mt={2}>
+            <Autocomplete
+              id="api-portal-production-endpoint"
+              freeSolo
+              fullWidth
+              options={endpointOptions}
+              value={productionEndpoint}
+              onChange={(_e, newValue) => setProductionEndpoint(newValue ?? '')}
+              onInputChange={(_e, newInputValue) =>
+                setProductionEndpoint(newInputValue)
+              }
+              disabled={submitting}
+              renderInput={params => (
+                <TextField
+                  {...params}
+                  required
+                  label="Production Endpoint"
+                  helperText="The runtime URL to use as this API's production endpoint on the portal."
+                />
+              )}
+            />
+          </Box>
+          <Box mt={2}>
+            <Autocomplete
+              id="api-portal-sandbox-endpoint"
+              freeSolo
+              fullWidth
+              options={endpointOptions}
+              value={sandboxEndpoint}
+              onChange={(_e, newValue) => setSandboxEndpoint(newValue ?? '')}
+              onInputChange={(_e, newInputValue) =>
+                setSandboxEndpoint(newInputValue)
+              }
+              disabled={submitting}
+              renderInput={params => (
+                <TextField
+                  {...params}
+                  label="Sandbox Endpoint"
+                  helperText="Optional."
+                />
+              )}
+            />
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose} disabled={submitting}>

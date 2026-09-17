@@ -32,6 +32,7 @@ import {
   Wso2ApiPlatformApi,
   Wso2ApiPlatformRuntimeConfig,
   Wso2ApiPortalInfo,
+  Wso2ApiPortalPublishOverrides,
   Wso2ApiPortalPublishResult,
   Wso2DefinitionDiffResponse,
   Wso2GatewaySummary,
@@ -380,10 +381,11 @@ export class Wso2ApiPlatformClient implements Wso2ApiPlatformApi {
   async publishToApiPortal(
     entityRef: CompoundEntityRef,
     accessToken: string,
+    overrides: Wso2ApiPortalPublishOverrides,
   ): Promise<Wso2ApiPortalPublishResult> {
     return this.request<Wso2ApiPortalPublishResult>(
       `${this.entityApiPortalPath(entityRef)}/publish`,
-      { method: 'POST', portalToken: accessToken },
+      { method: 'POST', portalToken: accessToken, body: overrides },
     );
   }
 }

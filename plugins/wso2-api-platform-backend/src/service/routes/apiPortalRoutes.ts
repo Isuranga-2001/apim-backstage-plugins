@@ -17,7 +17,7 @@
  */
 
 import express from 'express';
-import { AuthenticationError } from '@backstage/errors';
+import { AuthenticationError, InputError } from '@backstage/errors';
 import { resolveApiRef } from '../documents/apiRefResolver';
 import { resolvePlatformGateway } from '../documents/gatewayDefinitionVerifier';
 import {
@@ -25,7 +25,10 @@ import {
   publishApiToPortal,
 } from '../apiPortal/publishService';
 import { RouteContext } from './types';
-import { PublishCapabilities } from '../apiPortal/types';
+import {
+  PortalApiPublishOverrides,
+  PublishCapabilities,
+} from '../apiPortal/types';
 
 const API_PORTAL_PATH = '/entities/:kind/:namespace/:name/api-portal';
 const PREVIEW_PATH = `${API_PORTAL_PATH}/preview`;
@@ -41,6 +44,37 @@ function requirePortalToken(req: express.Request): string {
     );
   }
   return token;
+}
+
+function requirePublishOverrides(
+  req: express.Request,
+): PortalApiPublishOverrides {
+  const body = req.body ?? {};
+  const displayName =
+    typeof body.displayName === 'string' ? body.displayName.trim() : '';
+  const productionEndpoint =
+    typeof body.productionEndpoint === 'string'
+      ? body.productionEndpoint.trim()
+      : '';
+  const sandboxEndpoint =
+    typeof body.sandboxEndpoint === 'string' ? body.sandboxEndpoint.trim() : '';
+
+  if (!displayName) {
+    throw new InputError(
+      'displayName is required to publish to the API Portal',
+    );
+  }
+  if (!productionEndpoint) {
+    throw new InputError(
+      'productionEndpoint is required to publish to the API Portal',
+    );
+  }
+
+  return {
+    displayName,
+    productionEndpoint,
+    ...(sandboxEndpoint ? { sandboxEndpoint } : {}),
+  };
 }
 
 export function registerApiPortalRoutes(
@@ -144,6 +178,7 @@ export function registerApiPortalRoutes(
 
   router.post(PUBLISH_PATH, async (req, res) => {
     const accessToken = requirePortalToken(req);
+    const overrides = requirePublishOverrides(req);
     const { apiRef, entity } = await resolve(req);
     await portalClient.checkAccessible();
 
@@ -157,6 +192,7 @@ export function registerApiPortalRoutes(
       accessToken,
       config,
       logger,
+      overrides,
     });
     res.json(result);
   });

@@ -60,6 +60,7 @@ export type {
   Wso2ApiPortalInfo,
   Wso2ApiPortalSkippedDocument,
   Wso2ApiPortalPublishResult,
+  Wso2ApiPortalPublishOverrides,
 } from './types';
 
 export * from './policyHub';

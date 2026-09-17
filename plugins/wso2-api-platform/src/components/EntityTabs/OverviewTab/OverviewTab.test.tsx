@@ -402,6 +402,9 @@ describe('API Portal card', () => {
     fireEvent.change(screen.getByLabelText(/Platform API Access Token/), {
       target: { value: 'token-123' },
     });
+    fireEvent.change(screen.getByLabelText(/Production Endpoint/), {
+      target: { value: 'https://gw.example.com/orders' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Publish' }));
 
     expect(

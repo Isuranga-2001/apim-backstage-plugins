@@ -64,6 +64,12 @@ export type PortalApiForm = {
   definitionFileName: string;
 };
 
+export type PortalApiPublishOverrides = {
+  displayName: string;
+  productionEndpoint: string;
+  sandboxEndpoint?: string;
+};
+
 export type PublishableDocument = { name: string; content: string };
 
 export type SkippedDocument = {

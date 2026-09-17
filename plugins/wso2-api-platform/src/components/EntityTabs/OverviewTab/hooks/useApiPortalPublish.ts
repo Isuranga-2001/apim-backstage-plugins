@@ -20,6 +20,7 @@ import { useMemo, useState } from 'react';
 import { Entity, getCompoundEntityRef } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
 import {
+  Wso2ApiPortalPublishOverrides,
   Wso2ApiPortalPublishResult,
   wso2ApiPlatformApiRef,
 } from '../../../../api';
@@ -48,10 +49,15 @@ export const useApiPortalPublish = (entity: Entity) => {
 
   const publish = async (
     accessToken: string,
+    overrides: Wso2ApiPortalPublishOverrides,
   ): Promise<Wso2ApiPortalPublishResult> => {
     setSubmitting(true);
     try {
-      const result = await wso2Api.publishToApiPortal(entityRef, accessToken);
+      const result = await wso2Api.publishToApiPortal(
+        entityRef,
+        accessToken,
+        overrides,
+      );
       if (result.warnings.length > 0) {
         setSnackbar({
           open: true,
