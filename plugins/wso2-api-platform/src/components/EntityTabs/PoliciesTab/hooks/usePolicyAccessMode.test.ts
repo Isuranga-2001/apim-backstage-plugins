@@ -48,7 +48,7 @@ describe('usePolicyAccessMode', () => {
     expect(result.current.isGatewayDiscovered).toBe(true);
   });
 
-  it('is editable once wso2ApiPlatformGateway.enableWriteOperations is turned on', () => {
+  it('stays read-only even when wso2ApiPlatformGateway.enableWriteOperations is turned on in config, because Full Sync Mode is locked for this release', () => {
     mockConfig({
       'wso2ApiPlatform.storage.enabled': true,
       'wso2ApiPlatformGateway.enableWriteOperations': true,
@@ -62,11 +62,11 @@ describe('usePolicyAccessMode', () => {
         entityWith({ 'wso2.com/api-discovery-type': 'api-platform-gateway' }),
       ),
     );
-    expect(result.current.mode).toBe('editable');
+    expect(result.current.mode).toBe('read-only');
     expect(result.current.editingDisabledReason).toBeUndefined();
   });
 
-  it('is editable but disabled when the gateway is inactive', () => {
+  it('stays read-only (with no editingDisabledReason) regardless of gateway status, since editable mode is locked for this release', () => {
     mockConfig({
       'wso2ApiPlatform.storage.enabled': true,
       'wso2ApiPlatformGateway.enableWriteOperations': true,
@@ -80,10 +80,8 @@ describe('usePolicyAccessMode', () => {
         entityWith({ 'wso2.com/api-discovery-type': 'api-platform-gateway' }),
       ),
     );
-    expect(result.current.mode).toBe('editable');
-    expect(result.current.editingDisabledReason).toBe(
-      'Gateway is currently inactive',
-    );
+    expect(result.current.mode).toBe('read-only');
+    expect(result.current.editingDisabledReason).toBeUndefined();
   });
 
   it('is read-only when definition storage is disabled, even with writes enabled', () => {

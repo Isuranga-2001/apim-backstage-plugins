@@ -35,6 +35,12 @@ A powerful, built-in testing environment allowing developers to test WSO2 APIs d
 
 Provides a heavily typed TypeScript API client (`wso2ApiPlatformApiRef`) that standardizes all communication between the React frontend and the backend plugin. It handles dynamic data fetching for revisions, WSDL payloads, and authorization token negotiation.
 
+## Gateway Write Operations Lock
+
+The Policies tab has an "editable" mode for gateway-discovered APIs, gated (among other things) on `wso2ApiPlatformGateway.enableWriteOperations` being `true` — see `usePolicyAccessMode`. **For this initial release, that mode is hard-locked off**: `isGatewayWriteOperationsEnabled()` in [`src/utils/gatewayWriteAccess.ts`](./src/utils/gatewayWriteAccess.ts) always returns `false` via a `GATEWAY_WRITE_OPERATIONS_LOCKED` constant, regardless of what `enableWriteOperations` is set to in config. The backend plugin enforces an identical lock independently, so this isn't just a UI-level restriction.
+
+**Why:** enabling Full Sync Mode today would let any authenticated Backstage user who holds valid gateway credentials modify **any** API on the gateway, not just ones they own — there is no per-API or per-team authorization model yet. See the [backend plugin's README](../wso2-api-platform-backend/README.md#gateway-write-operations-lock) for the full rationale and the plan for re-enabling this in a future release.
+
 ## Setup & Routing
 
 To integrate this frontend plugin into your Backstage app, you need to configure the routing for the global discovery page and the individual catalog entity cards.

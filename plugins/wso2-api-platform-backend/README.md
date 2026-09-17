@@ -34,6 +34,16 @@ The frontend plugin fetches data dynamically from this backend plugin. The follo
 | **POST**    | `/api/wso2-api-platform/entities/:kind/:namespace/:name/api-portal/preview`            | _(frontend, planned)_                 | Builds the metadata payload and document publish/skip plan without calling the API Portal.                 |
 | **POST**    | `/api/wso2-api-platform/entities/:kind/:namespace/:name/api-portal/publish`            | _(frontend, planned)_                 | Publishes the API's metadata, definition, and markdown documents to the API Portal.                        |
 
+## Gateway Write Operations Lock
+
+`wso2ApiPlatformGateway.enableWriteOperations` (default `false`) controls whether Definition and Policy edits are pushed directly to the gateway ("Full Sync Mode"), as opposed to being staged only in this plugin's own storage while an external process (e.g. an OpenChoreo workflow) reconciles the gateway separately ("OpenChoreo / External Flow Mode"). See the [top-level README](../../README.md#gateway-write-operations-mode) for the full behavior table.
+
+**For this initial release, Full Sync Mode is hard-locked to disabled in code — the config value is ignored entirely.** `GATEWAY_WRITE_OPERATIONS_LOCKED` in [`src/service/config.ts`](./src/service/config.ts) forces the resolved value to `false` no matter what `enableWriteOperations` is set to in any config layer (app-config.yaml, an env var override, a production overlay, etc). The frontend plugin enforces an identical, independent lock (`GATEWAY_WRITE_OPERATIONS_LOCKED` in `wso2-api-platform`'s `src/utils/gatewayWriteAccess.ts`), so this isn't bypassable from the UI either.
+
+**Why:** Full Sync Mode has no per-API or per-team authorization model yet. Every write route (`definitionRoutes.ts`, `policyRoutes.ts`) is gated only on "is this an authenticated Backstage user" — there is no check that the caller is actually allowed to modify this specific API's gateway. Enabling it today would let **any** authenticated Backstage user who holds valid gateway credentials modify **any** API on the gateway, not just ones they own or manage. That gap must be closed before this lock is removed.
+
+**Re-enabling in a future release:** add the missing per-API/per-team authorization checks, then set `GATEWAY_WRITE_OPERATIONS_LOCKED` back to `false` in both this plugin and the frontend plugin so the `enableWriteOperations` config value takes effect again.
+
 ## Document storage
 
 APIs discovered from self-hosted WSO2 gateways and OpenChoreo have no document

@@ -24,7 +24,25 @@ export const GATEWAY_WRITE_OPERATIONS_ENABLED_DEFAULT = false;
 const GATEWAY_WRITE_OPERATIONS_CONFIG_KEY =
   'wso2ApiPlatformGateway.enableWriteOperations';
 
+/**
+ * Full Sync Mode (direct gateway write operations) is intentionally locked
+ * off for this initial release, regardless of what
+ * `wso2ApiPlatformGateway.enableWriteOperations` is set to in config. Kept
+ * in sync with the identical lock in the backend plugin
+ * (`service/config.ts`'s `GATEWAY_WRITE_OPERATIONS_LOCKED`) — see that
+ * file's comment for why: enabling this today would let any authenticated
+ * Backstage user with valid gateway credentials change any API on the
+ * gateway, since there is no per-API/per-team authorization model yet.
+ *
+ * To re-enable in a future release: add the authorization checks described
+ * in the backend's comment, then set this back to `false` in both places.
+ */
+const GATEWAY_WRITE_OPERATIONS_LOCKED = true;
+
 export function isGatewayWriteOperationsEnabled(configApi: ConfigApi): boolean {
+  if (GATEWAY_WRITE_OPERATIONS_LOCKED) {
+    return false;
+  }
   return (
     configApi.getOptionalBoolean(GATEWAY_WRITE_OPERATIONS_CONFIG_KEY) ??
     GATEWAY_WRITE_OPERATIONS_ENABLED_DEFAULT

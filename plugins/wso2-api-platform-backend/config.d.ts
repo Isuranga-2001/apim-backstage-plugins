@@ -146,6 +146,16 @@ export interface Config {
     /**
      * Master switch for pushing Definition/Policy edits to the gateway.
      * Defaults to false.
+     *
+     * IGNORED for this release: this feature is hard-locked to `false` in
+     * code (`GATEWAY_WRITE_OPERATIONS_LOCKED` in the backend's
+     * `service/config.ts`, mirrored in the frontend's
+     * `utils/gatewayWriteAccess.ts`), because it has no per-API/per-team
+     * authorization model yet — enabling it would let any authenticated
+     * Backstage user with valid gateway credentials change any API on the
+     * gateway. Setting this to `true` here currently has no effect. It is
+     * expected to be re-enabled, with that authorization gap addressed, in
+     * a future release.
      * @visibility frontend
      */
     enableWriteOperations?: boolean;
