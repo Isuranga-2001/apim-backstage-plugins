@@ -33,9 +33,9 @@ describe('Wso2PublisherPoliciesList', () => {
     expect(screen.getByText('Rate Limiting')).toBeInTheDocument();
     fireEvent.click(screen.getByText('Rate Limiting'));
 
-    // Dialog title repeats the friendly name; parameter renders inside.
+    // Dialog title repeats the friendly name; parameters render as raw JSON inside.
     expect(screen.getAllByText('Rate Limiting').length).toBeGreaterThan(1);
-    expect(screen.getByText('Limit')).toBeInTheDocument();
+    expect(screen.getByText(/"limit":\s*10/)).toBeInTheDocument();
   });
 
   it('renders "No Global API policies found" when there are none', () => {
