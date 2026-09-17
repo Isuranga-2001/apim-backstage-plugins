@@ -217,28 +217,6 @@ export const ApiDefinitionViewer = ({
     URL.revokeObjectURL(url);
   };
 
-  const handleEditToggle = async () => {
-    if (!isEditing) {
-      setEditedValue(localValue);
-      setSwaggerPreviewError(false);
-      setIsEditing(true);
-      return;
-    }
-
-    if (onPreviewDiff) {
-      setPreviewLoading(true);
-      try {
-        setDiffResult(await onPreviewDiff(editedValue));
-      } catch (e) {
-        // Save re-runs the same check and will surface any real error.
-        setDiffResult(undefined);
-      } finally {
-        setPreviewLoading(false);
-      }
-    }
-    setConfirmOpen(true);
-  };
-
   const handleConfirmSave = async () => {
     setSaving(true);
     try {
@@ -253,6 +231,38 @@ export const ApiDefinitionViewer = ({
     } catch (e) {
       setSaving(false);
     }
+  };
+
+  const handleEditToggle = async () => {
+    if (!isEditing) {
+      setEditedValue(localValue);
+      setSwaggerPreviewError(false);
+      setIsEditing(true);
+      return;
+    }
+
+    let diff: Wso2RestApiArtifactDiff | null | undefined;
+    if (onPreviewDiff) {
+      setPreviewLoading(true);
+      try {
+        diff = await onPreviewDiff(editedValue);
+      } catch (e) {
+        diff = undefined;
+      } finally {
+        setPreviewLoading(false);
+      }
+    }
+    setDiffResult(diff);
+
+    if (diff?.hasChanges) {
+      setConfirmOpen(true);
+      return;
+    }
+
+    if (showSavingWaitDialog) {
+      setConfirmOpen(true);
+    }
+    await handleConfirmSave();
   };
 
   const handleCancelEdit = () => {

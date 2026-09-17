@@ -204,6 +204,36 @@ export async function assertMatchesDiscoveredGatewayApi(
   }
 }
 
+export async function previewDiscoveredApiDiff(
+  client: Wso2ApiPlatformClient,
+  apiRef: Pick<ApiRef, 'sourceKind' | 'gatewayId' | 'apiId'>,
+  content: string,
+  logger: LoggerService,
+): Promise<RestApiArtifactDiff | undefined> {
+  if (!isGatewayDiscovered(apiRef.sourceKind)) {
+    return undefined;
+  }
+  const gateway = resolvePlatformGateway(client, apiRef, logger);
+  if (!gateway) {
+    return undefined;
+  }
+
+  assertLooksLikeOpenApi(content);
+  const previous = await fetchDiscoveredArtifact(client, gateway, apiRef.apiId);
+  const next = mapDefinitionToRestApiArtifact(content, previous);
+  const diff = diffRestApiArtifacts(previous, next);
+
+  return {
+    ...diff,
+    descriptionChange: undefined,
+    hasChanges:
+      !!diff.displayNameChange ||
+      !!diff.versionChange ||
+      diff.addedOperations.length > 0 ||
+      diff.removedOperations.length > 0,
+  };
+}
+
 /** UPDATE preview: returns the diff for the frontend's confirm step. */
 export async function previewGatewayDefinitionUpdate(
   client: Wso2ApiPlatformClient,

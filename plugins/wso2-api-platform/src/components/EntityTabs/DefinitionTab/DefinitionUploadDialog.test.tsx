@@ -165,6 +165,7 @@ describe('DefinitionUploadDialog', () => {
   });
 
   it('uploads a valid YAML definition and calls onSaved', async () => {
+    mockWso2Api.previewDefinitionDiff.mockResolvedValue({ diff: null });
     mockWso2Api.upsertDefinition.mockResolvedValue({
       definition: { content: 'openapi: 3.0.0', format: 'YAML' },
       capabilities: { read: true, write: true },
@@ -195,6 +196,7 @@ describe('DefinitionUploadDialog', () => {
   });
 
   it('blocks all actions behind a wait screen while saving, until the save (and its catalog sync) resolves', async () => {
+    mockWso2Api.previewDefinitionDiff.mockResolvedValue({ diff: null });
     let resolveUpsert: () => void = () => {};
     mockWso2Api.upsertDefinition.mockReturnValue(
       new Promise(resolve => {
@@ -225,13 +227,14 @@ describe('DefinitionUploadDialog', () => {
 
     expect(await screen.findByText('Applying Changes')).toBeDefined();
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
 
     resolveUpsert();
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
   });
 
   it('stays blocked (no backdrop-close) through save completion, and navigates to the home page', async () => {
+    mockWso2Api.previewDefinitionDiff.mockResolvedValue({ diff: null });
     let resolveUpsert: () => void = () => {};
     mockWso2Api.upsertDefinition.mockReturnValue(
       new Promise(resolve => {
@@ -270,6 +273,7 @@ describe('DefinitionUploadDialog', () => {
   });
 
   it('does not show the "Applying Changes" wait screen or navigate home when the save does not push to the gateway', async () => {
+    mockWso2Api.previewDefinitionDiff.mockResolvedValue({ diff: null });
     mockWso2Api.upsertDefinition.mockResolvedValue({
       definition: { content: 'openapi: 3.0.0', format: 'YAML' },
       capabilities: { read: true, write: true },
@@ -434,7 +438,11 @@ describe('DefinitionUploadDialog', () => {
 
     it('returns to the file picker without saving when the user clicks Back', async () => {
       mockWso2Api.previewDefinitionDiff.mockResolvedValue({
-        diff: { addedOperations: [], removedOperations: [], hasChanges: false },
+        diff: {
+          addedOperations: [{ method: 'GET', path: '/books' }],
+          removedOperations: [],
+          hasChanges: true,
+        },
       });
 
       renderDialog({
@@ -460,17 +468,22 @@ describe('DefinitionUploadDialog', () => {
       expect(mockWso2Api.upsertDefinition).not.toHaveBeenCalled();
     });
 
-    it('disables Confirm & Save when the diff reports no changes', async () => {
+    it('replaces the definition directly, skipping the review dialog, when the diff reports no changes', async () => {
       mockWso2Api.previewDefinitionDiff.mockResolvedValue({
         diff: { addedOperations: [], removedOperations: [], hasChanges: false },
       });
+      mockWso2Api.upsertDefinition.mockResolvedValue({
+        definition: { content: 'openapi: 3.0.0', format: 'YAML' },
+        capabilities: { read: true, write: true },
+      });
+      const onSaved = jest.fn();
 
       renderDialog({
         entity: entity,
         open: true,
         hasExistingDefinition: true,
         onClose: jest.fn(),
-        onSaved: jest.fn(),
+        onSaved,
       });
 
       const file = new File(['openapi: 3.0.0'], 'openapi.yaml', {
@@ -481,12 +494,12 @@ describe('DefinitionUploadDialog', () => {
       });
       fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
-      await screen.findByText('Review Changes');
-      const confirmButton = screen.getByRole('button', {
-        name: 'Confirm & Save',
-      }) as HTMLButtonElement;
-      expect(confirmButton.disabled).toBe(true);
-      expect(mockWso2Api.upsertDefinition).not.toHaveBeenCalled();
+      await waitFor(() => expect(onSaved).toHaveBeenCalled());
+      expect(screen.queryByText('Review Changes')).toBeNull();
+      expect(mockWso2Api.upsertDefinition).toHaveBeenCalledWith(
+        { kind: 'API', namespace: 'wso2-gateways', name: 'orders-api' },
+        { fileName: 'openapi.yaml', content: 'openapi: 3.0.0' },
+      );
     });
 
     it('shows an error and stays on the file picker if the diff preview fails', async () => {

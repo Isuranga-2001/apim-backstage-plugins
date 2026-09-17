@@ -39,6 +39,7 @@ import { Wso2RestApiArtifactDiff } from '../../../api/types';
 import { rootRouteRef } from '../../../routes';
 
 const ALLOWED_EXTENSIONS = ['yaml', 'yml', 'json'];
+const WARN_COLOR = '#e7893c';
 
 function readFileAsText(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -144,13 +145,13 @@ export const DefinitionUploadDialog = (options: {
       return;
     }
 
-    if (!hasExistingDefinition) {
-      await handleSave(content);
-      return;
-    }
-
     try {
       const diff = await previewDiff(content);
+      if (!diff?.hasChanges) {
+        setDiffResult(diff);
+        await handleSave(content);
+        return;
+      }
       setDiffResult(diff);
       setPendingContent(content);
     } catch (e) {
@@ -172,6 +173,21 @@ export const DefinitionUploadDialog = (options: {
   };
 
   const isReviewing = pendingContent !== null;
+  const isAddFlow = !hasExistingDefinition;
+  const diffHasChanges = diffResult?.hasChanges === true;
+  const diffHasBlockingMismatch =
+    isAddFlow &&
+    !!(
+      diffResult?.displayNameChange ||
+      diffResult?.versionChange ||
+      (diffResult?.addedOperations.length ?? 0) > 0 ||
+      (diffResult?.removedOperations.length ?? 0) > 0
+    );
+  const blocksAdd = isAddFlow && savePushesToGateway && diffHasBlockingMismatch;
+  let confirmLabel = 'Confirm & Save';
+  if (isAddFlow) {
+    confirmLabel = diffHasChanges ? 'Understand & Confirm' : 'Save';
+  }
 
   let dialogTitle = 'Add Definition';
   if (isReviewing) {
@@ -219,10 +235,22 @@ export const DefinitionUploadDialog = (options: {
                 </Box>
               )}
               {isReviewing ? (
-                <DefinitionDiffSummary
-                  diff={diffResult}
-                  pushesToGateway={savePushesToGateway}
-                />
+                <>
+                  <DefinitionDiffSummary
+                    diff={diffResult}
+                    pushesToGateway={savePushesToGateway}
+                  />
+                  {isAddFlow && diffHasChanges && (
+                    <Alert
+                      severity={blocksAdd ? 'error' : 'warning'}
+                      style={{ marginTop: 8 }}
+                    >
+                      {blocksAdd
+                        ? "This definition doesn't match the API currently discovered on the gateway. Resolve the differences above before adding it."
+                        : 'There may be problems after adding this definition because of the differences above.'}
+                    </Alert>
+                  )}
+                </>
               ) : (
                 <>
                   <input
@@ -271,9 +299,18 @@ export const DefinitionUploadDialog = (options: {
                   variant="contained"
                   color="primary"
                   onClick={handleConfirmReplace}
-                  disabled={applying || diffResult?.hasChanges === false}
+                  style={
+                    confirmLabel === 'Understand & Confirm'
+                      ? { backgroundColor: WARN_COLOR }
+                      : undefined
+                  }
+                  disabled={
+                    applying ||
+                    blocksAdd ||
+                    (!isAddFlow && diffResult?.hasChanges === false)
+                  }
                 >
-                  Confirm & Save
+                  {confirmLabel}
                 </Button>
               </>
             ) : (

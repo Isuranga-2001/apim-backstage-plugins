@@ -37,6 +37,7 @@ import {
 import {
   applyGatewayDefinitionUpdate,
   assertMatchesDiscoveredGatewayApi,
+  previewDiscoveredApiDiff,
   previewGatewayDefinitionUpdate,
 } from '../documents/gatewayDefinitionVerifier';
 import {
@@ -168,6 +169,17 @@ export function registerDefinitionRoutes(
 
     const input = parsePreviewDefinitionInput(req.body);
     const existing = await store.get(apiRef);
+
+    if (!existing) {
+      const diff = await previewDiscoveredApiDiff(
+        client,
+        apiRef,
+        input.content,
+        logger,
+      );
+      res.json({ diff: diff ?? null });
+      return;
+    }
 
     if (!client.getConfig().platformGateway.enableWriteOperations) {
       const diff = diffDefinitionAgainstStored(

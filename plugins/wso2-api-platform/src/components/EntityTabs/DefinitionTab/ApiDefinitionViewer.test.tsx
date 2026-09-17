@@ -82,8 +82,6 @@ describe('ApiDefinitionViewer', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
-    const dialogSaveButtons = screen.getAllByRole('button', { name: 'Save' });
-    fireEvent.click(dialogSaveButtons[dialogSaveButtons.length - 1]);
 
     expect(await screen.findByText('Applying Changes')).toBeInTheDocument();
     expect(
@@ -106,8 +104,6 @@ describe('ApiDefinitionViewer', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
-    const dialogSaveButtons = screen.getAllByRole('button', { name: 'Save' });
-    fireEvent.click(dialogSaveButtons[dialogSaveButtons.length - 1]);
 
     await waitFor(() => expect(onSaveClick).toHaveBeenCalled());
     expect(screen.queryByText('Applying Changes')).toBeNull();
