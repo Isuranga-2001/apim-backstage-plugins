@@ -119,7 +119,7 @@ export function registerDocumentRoutes(
   function assertStorageEnabled() {
     assertEnabled(
       documentStorage.enabled,
-      'Document storage is disabled (wso2ApiPlatform.storage.enabled=false)',
+      'Document storage is disabled (wso2ApiPlatformStorage.enabled=false)',
     );
   }
 

@@ -29,7 +29,7 @@ const GATEWAY_API_ENDPOINTS_ANNOTATION = 'wso2-gateway.com/api-endpoints';
 /**
  * Decides which Docs tab data source an entity should use:
  * - 'store': API Platform gateway-discovered APIs, backed by this plugin's
- *   own document store (unless disabled via wso2ApiPlatform.storage.enabled).
+ *   own document store (unless disabled via wso2ApiPlatformStorage.enabled).
  * - 'annotation': on-prem APIM APIs — existing path, unchanged.
  * - 'unsupported': neither (also covers storage.enabled=false), renders
  *   today's "Documents unavailable" empty state.
@@ -44,7 +44,7 @@ export function useApiDocumentSource(entity: Entity): {
 
   if (isGatewayDiscovered) {
     const storageEnabled =
-      configApi.getOptionalBoolean('wso2ApiPlatform.storage.enabled') ?? true;
+      configApi.getOptionalBoolean('wso2ApiPlatformStorage.enabled') ?? true;
     return { mode: storageEnabled ? 'store' : 'unsupported' };
   }
 

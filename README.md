@@ -84,7 +84,7 @@ The backend plugin owns a relational store (Knex-backed, defaulting to an embedd
 - **Documents** (markdown-only for gateway APIs)
 - **Policies** are read live from the gateway rather than stored, but still routed through this same layer's write-operations gate (see below)
 
-This is controlled by `wso2ApiPlatform.storage.enabled` (default `true`). **With storage disabled, none of the management features below are available** — the relevant backend routes return `501 Not Implemented` and the frontend tabs fall back to a read-only/"unavailable" state, exactly as before this feature existed.
+This is controlled by `wso2ApiPlatformStorage.enabled` (default `true`) — its own top-level config block, independent of `wso2ApiPlatform` (on-prem APIs already have their own backing store on the APIM instance itself). **With storage disabled, none of the management features below are available** — the relevant backend routes return `501 Not Implemented` and the frontend tabs fall back to a read-only/"unavailable" state, exactly as before this feature existed.
 
 With storage **enabled**, gateway-discovered APIs gain:
 
@@ -142,7 +142,7 @@ Gateway-discovered APIs can be published — metadata, definition, and markdown 
 
 Only the **Platform API login** auth mode is currently supported for the API Portal integration — the backend never holds API Portal credentials itself, it simply relays the token the frontend obtained. An **IdP-based auth mode** is reserved in configuration for a future release but is not implemented yet.
 
-**Subscription plans.** Next to the publish buttons, a Subscription Plans panel lets you toggle which plans apply to this API: the four built-in plans (Bronze, Silver, Gold, Unlimited) are always shown, plus any custom plan IDs your org has configured under `wso2ApiPlatform.apiPortal.defaults.subscriptionPlans`. Each toggle saves immediately — the selection is stored per-API alongside the API's other metadata, and it's this stored selection (not the org's full configured plan list) that gets published the next time the API is published.
+**Subscription plans.** Next to the publish buttons, a Subscription Plans panel lets you toggle which plans apply to this API: the four built-in plans (Bronze, Silver, Gold, Unlimited) are always shown, plus any custom plan IDs your org has configured under `wso2ApiPlatformApiPortal.defaults.subscriptionPlans`. Each toggle saves immediately — the selection is stored per-API alongside the API's other metadata, and it's this stored selection (not the org's full configured plan list) that gets published the next time the API is published.
 
 ## Self-Hosted Gateway Integration (Open Choreo)
 

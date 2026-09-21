@@ -36,7 +36,7 @@ export function useApiDefinitionSource(entity: Entity): {
 
   if (isGatewayDiscovered) {
     const storageEnabled =
-      configApi.getOptionalBoolean('wso2ApiPlatform.storage.enabled') ?? true;
+      configApi.getOptionalBoolean('wso2ApiPlatformStorage.enabled') ?? true;
     return { mode: storageEnabled ? 'store' : 'unsupported' };
   }
 

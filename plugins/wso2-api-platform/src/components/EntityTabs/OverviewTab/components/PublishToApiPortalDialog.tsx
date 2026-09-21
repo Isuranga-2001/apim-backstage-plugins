@@ -62,7 +62,7 @@ export const PublishToApiPortalDialog = (options: {
   const { entity, open, onClose, onPublished } = options;
   const configApi = useApi(configApiRef);
   const baseUrl = configApi.getOptionalString(
-    'wso2ApiPlatform.apiPortal.baseUrl',
+    'wso2ApiPlatformApiPortal.baseUrl',
   );
   const { submitting, publish, snackbar, closeSnackbar } =
     useApiPortalPublish(entity);

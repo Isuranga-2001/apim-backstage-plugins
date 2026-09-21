@@ -95,7 +95,7 @@ export function registerDefinitionRoutes(
   function assertStorageEnabled() {
     assertEnabled(
       definitionStorage.enabled,
-      'Definition storage is disabled (wso2ApiPlatform.storage.enabled=false)',
+      'Definition storage is disabled (wso2ApiPlatformStorage.enabled=false)',
     );
   }
 

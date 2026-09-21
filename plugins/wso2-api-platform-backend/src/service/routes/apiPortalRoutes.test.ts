@@ -157,13 +157,11 @@ describe('api-portal routes', () => {
 
     const mockConfig = new ConfigReader({
       backend: { baseUrl: 'http://localhost:7007' },
-      wso2ApiPlatform: {
-        enabled: false,
-        apiPortal: {
-          enabled: true,
-          baseUrl: PORTAL_BASE_URL,
-          ...apiPortalOverrides,
-        },
+      wso2ApiPlatform: { enabled: false },
+      wso2ApiPlatformApiPortal: {
+        enabled: true,
+        baseUrl: PORTAL_BASE_URL,
+        ...apiPortalOverrides,
       },
     });
 

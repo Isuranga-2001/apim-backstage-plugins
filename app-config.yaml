@@ -184,46 +184,45 @@ wso2ApiPlatform:
 
     grantType: client_credentials
   catalogSyncTimeoutSeconds: 60
-  # Document attachments for gateway-discovered APIs.
-  storage:
-    enabled: true
-    documents:
-      maxFileSizeMb: 10
-      maxInlineSizeKb: 512
-      allowedExtensions:
-        - pdf
-        - txt
-        - doc
-        - docx
-        - xls
-        - xlsx
-        - odt
-        - ods
-        - json
-        - yaml
-        - yml
-        - md
-        - png
-        - jpg
-        - jpeg
-        - svg
-    binary:
-      backend: database
-  apiPortal:
-    enabled: ${WSO2_API_PORTAL_ENABLED}
-    baseUrl: ${WSO2_API_PORTAL_BASE_URL}
-    basePath: /api-portal/api/v0.9
-    auth:
-      mode: platform-login
-    defaults:
-      status: PUBLISHED
-      agentVisibility: VISIBLE
-      labels:
-        - default
-      subscriptionPlans: [] # must already exist in the org
-    requestTimeoutSeconds: 30
-    tls:
-      rejectUnauthorized: ${WSO2_TLS_REJECT_UNAUTHORIZED}
+
+wso2ApiPlatformStorage:
+  enabled: true
+  documents:
+    maxFileSizeMb: 10
+    maxInlineSizeKb: 512
+    allowedExtensions:
+      - pdf
+      - txt
+      - doc
+      - docx
+      - xls
+      - xlsx
+      - odt
+      - ods
+      - json
+      - yaml
+      - yml
+      - md
+      - png
+      - jpg
+      - jpeg
+      - svg
+  binary:
+    backend: database
+
+wso2ApiPlatformApiPortal:
+  enabled: ${WSO2_API_PORTAL_ENABLED}
+  baseUrl: ${WSO2_API_PORTAL_BASE_URL}
+  basePath: /api-portal/api/v0.9
+  auth:
+    mode: platform-login
+  defaults:
+    status: PUBLISHED
+    agentVisibility: VISIBLE
+    subscriptionPlans: [] # IDs of *custom* org plans offered for per-API selection
+  requestTimeoutSeconds: 30
+  tls:
+    rejectUnauthorized: ${WSO2_TLS_REJECT_UNAUTHORIZED}
 
 wso2ApiPlatformGateway:
   enabled: true

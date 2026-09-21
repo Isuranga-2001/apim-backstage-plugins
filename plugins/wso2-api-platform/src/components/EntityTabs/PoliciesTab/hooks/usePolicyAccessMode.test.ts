@@ -34,7 +34,7 @@ describe('usePolicyAccessMode', () => {
   });
 
   it('is read-only by default for an API Platform gateway API, even with storage enabled', () => {
-    mockConfig({ 'wso2ApiPlatform.storage.enabled': true });
+    mockConfig({ 'wso2ApiPlatformStorage.enabled': true });
     (useGatewayStatus as jest.Mock).mockReturnValue({
       applicable: true,
       active: true,
@@ -50,7 +50,7 @@ describe('usePolicyAccessMode', () => {
 
   it('stays read-only even when wso2ApiPlatformGateway.enableWriteOperations is turned on in config, because Full Sync Mode is locked for this release', () => {
     mockConfig({
-      'wso2ApiPlatform.storage.enabled': true,
+      'wso2ApiPlatformStorage.enabled': true,
       'wso2ApiPlatformGateway.enableWriteOperations': true,
     });
     (useGatewayStatus as jest.Mock).mockReturnValue({
@@ -68,7 +68,7 @@ describe('usePolicyAccessMode', () => {
 
   it('stays read-only (with no editingDisabledReason) regardless of gateway status, since editable mode is locked for this release', () => {
     mockConfig({
-      'wso2ApiPlatform.storage.enabled': true,
+      'wso2ApiPlatformStorage.enabled': true,
       'wso2ApiPlatformGateway.enableWriteOperations': true,
     });
     (useGatewayStatus as jest.Mock).mockReturnValue({
@@ -86,7 +86,7 @@ describe('usePolicyAccessMode', () => {
 
   it('is read-only when definition storage is disabled, even with writes enabled', () => {
     mockConfig({
-      'wso2ApiPlatform.storage.enabled': false,
+      'wso2ApiPlatformStorage.enabled': false,
       'wso2ApiPlatformGateway.enableWriteOperations': true,
     });
     const { result } = renderHook(() =>

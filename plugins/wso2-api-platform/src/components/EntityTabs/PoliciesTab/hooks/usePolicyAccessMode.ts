@@ -42,7 +42,7 @@ export function usePolicyAccessMode(entity: Entity): PolicyAccessInfo {
   const isGatewayDiscovered = discoveryType === 'api-platform-gateway';
 
   const storageEnabled =
-    configApi.getOptionalBoolean('wso2ApiPlatform.storage.enabled') ?? true;
+    configApi.getOptionalBoolean('wso2ApiPlatformStorage.enabled') ?? true;
   const writeOperationsEnabled = isGatewayWriteOperationsEnabled(configApi);
 
   const mode: PolicyAccessMode =

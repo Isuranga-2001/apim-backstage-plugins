@@ -76,7 +76,7 @@ export const DefinitionUploadDialog = (options: {
 
   const maxSizeKb =
     configApi.getOptionalNumber(
-      'wso2ApiPlatform.storage.definitions.maxSizeKb',
+      'wso2ApiPlatformStorage.definitions.maxSizeKb',
     ) ?? 1024;
   const maxSizeBytes = maxSizeKb * 1024;
 

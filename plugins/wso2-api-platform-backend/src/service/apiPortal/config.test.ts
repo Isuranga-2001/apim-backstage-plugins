@@ -29,12 +29,10 @@ describe('readApiPortalConfig', () => {
   it('reads an enabled platform-login configuration', () => {
     const result = readApiPortalConfig(
       new ConfigReader({
-        wso2ApiPlatform: {
-          apiPortal: {
-            enabled: true,
-            baseUrl: 'https://portal.example.com',
-            auth: { mode: 'platform-login' },
-          },
+        wso2ApiPlatformApiPortal: {
+          enabled: true,
+          baseUrl: 'https://portal.example.com',
+          auth: { mode: 'platform-login' },
         },
       }),
     );
@@ -47,9 +45,7 @@ describe('readApiPortalConfig', () => {
     expect(() =>
       readApiPortalConfig(
         new ConfigReader({
-          wso2ApiPlatform: {
-            apiPortal: { auth: { mode: 'client-credentials' } },
-          },
+          wso2ApiPlatformApiPortal: { auth: { mode: 'client-credentials' } },
         }),
       ),
     ).toThrow(/use 'platform-login' or 'idp'/);
@@ -59,9 +55,7 @@ describe('readApiPortalConfig', () => {
     expect(() =>
       readApiPortalConfig(
         new ConfigReader({
-          wso2ApiPlatform: {
-            apiPortal: { enabled: true, auth: { mode: 'idp' } },
-          },
+          wso2ApiPlatformApiPortal: { enabled: true, auth: { mode: 'idp' } },
         }),
       ),
     ).toThrow(/not implemented yet/);
@@ -71,9 +65,7 @@ describe('readApiPortalConfig', () => {
     expect(() =>
       readApiPortalConfig(
         new ConfigReader({
-          wso2ApiPlatform: {
-            apiPortal: { enabled: false, auth: { mode: 'idp' } },
-          },
+          wso2ApiPlatformApiPortal: { enabled: false, auth: { mode: 'idp' } },
         }),
       ),
     ).not.toThrow();

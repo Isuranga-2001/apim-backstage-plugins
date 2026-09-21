@@ -63,34 +63,38 @@ option. On-prem APIM document types are unaffected by this restriction.
 
 ### Enabling and configuring
 
+`wso2ApiPlatformStorage` is its own top-level config block, independent of
+`wso2ApiPlatform` (on-prem discovery) — on-prem APIs already have their own
+backing store on the APIM instance itself, so this only ever applies to
+gateway-discovered APIs.
+
 ```yaml
-wso2ApiPlatform:
-  storage:
-    enabled: true # master switch; false disables the routes (501) and the Add/Actions UI
-    documents:
-      maxFileSizeMb: 10 # FILE uploads
-      maxInlineSizeKb: 512 # INLINE / MARKDOWN bodies
-      allowedExtensions:
-        [
-          pdf,
-          txt,
-          doc,
-          docx,
-          xls,
-          xlsx,
-          odt,
-          ods,
-          json,
-          yaml,
-          yml,
-          md,
-          png,
-          jpg,
-          jpeg,
-          svg,
-        ]
-    binary:
-      backend: database # only backend implemented in this release
+wso2ApiPlatformStorage:
+  enabled: true # master switch; false disables the routes (501) and the Add/Actions UI
+  documents:
+    maxFileSizeMb: 10 # FILE uploads
+    maxInlineSizeKb: 512 # INLINE / MARKDOWN bodies
+    allowedExtensions:
+      [
+        pdf,
+        txt,
+        doc,
+        docx,
+        xls,
+        xlsx,
+        odt,
+        ods,
+        json,
+        yaml,
+        yml,
+        md,
+        png,
+        jpg,
+        jpeg,
+        svg,
+      ]
+  binary:
+    backend: database # only backend implemented in this release
 ```
 
 ### Database
@@ -157,21 +161,26 @@ document restriction, though (see "Document storage" above).
 
 ### Enabling and configuring
 
+`wso2ApiPlatformApiPortal` is its own top-level config block, independent of
+`wso2ApiPlatform` and `wso2ApiPlatformGateway` — publishing is meant to
+eventually serve both on-prem and gateway-discovered APIs, even though only
+gateway-discovered APIs can publish in this release (enforced in code, not
+by this block's location).
+
 ```yaml
-wso2ApiPlatform:
-  apiPortal:
-    enabled: true
-    baseUrl: ${WSO2_API_PORTAL_BASE_URL} # defaults to the production API Portal if omitted
-    basePath: /api-portal/api/v0.9
-    auth:
-      mode: platform-login # see "Authentication" below; 'idp' is not implemented yet
-    defaults:
-      status: PUBLISHED
-      agentVisibility: VISIBLE
-      subscriptionPlans: [] # IDs of *custom* org plans offered for per-API selection — see "Subscription plans" below
-    requestTimeoutSeconds: 30
-    tls:
-      rejectUnauthorized: true
+wso2ApiPlatformApiPortal:
+  enabled: true
+  baseUrl: ${WSO2_API_PORTAL_BASE_URL} # defaults to the production API Portal if omitted
+  basePath: /api-portal/api/v0.9
+  auth:
+    mode: platform-login # see "Authentication" below; 'idp' is not implemented yet
+  defaults:
+    status: PUBLISHED
+    agentVisibility: VISIBLE
+    subscriptionPlans: [] # IDs of *custom* org plans offered for per-API selection — see "Subscription plans" below
+  requestTimeoutSeconds: 30
+  tls:
+    rejectUnauthorized: true
 ```
 
 Policies are never sent — the portal's metadata schema has no policy field,

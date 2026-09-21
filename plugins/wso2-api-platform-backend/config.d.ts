@@ -42,97 +42,97 @@ export interface Config {
      * @visibility frontend
      */
     catalogSyncTimeoutSeconds?: number;
+  };
+  /**
+   * Configuration for the plugin-owned storage used by APIs
+   * discovered from self-hosted gateways and OpenChoreo gateways.
+   */
+  wso2ApiPlatformStorage?: {
     /**
-     * Configuration for the plugin-owned document store used by APIs
-     * discovered from self-hosted gateways and OpenChoreo.
+     * Master switch for document storage. When false, document routes
+     * return 501 and the frontend Docs tab falls back to its
+     * "unavailable" empty state.
+     * Defaults to true.
+     * @visibility frontend
      */
-    storage?: {
+    enabled?: boolean;
+    documents?: {
       /**
-       * Master switch for document storage. When false, document routes
-       * return 501 and the frontend Docs tab falls back to its
-       * "unavailable" empty state.
-       * Defaults to true.
+       * Maximum size, in megabytes, for FILE document uploads.
+       * Defaults to 10.
        * @visibility frontend
        */
-      enabled?: boolean;
-      documents?: {
-        /**
-         * Maximum size, in megabytes, for FILE document uploads.
-         * Defaults to 10.
-         * @visibility frontend
-         */
-        maxFileSizeMb?: number;
-        /**
-         * Maximum size, in kilobytes, for INLINE/MARKDOWN document bodies.
-         * Defaults to 512.
-         * @visibility frontend
-         */
-        maxInlineSizeKb?: number;
-        /**
-         * Allowed file extensions for FILE uploads (no leading dot). An
-         * empty array disables extension checking.
-         * @visibility frontend
-         */
-        allowedExtensions?: string[];
-        /**
-         * Optional stricter MIME-type allow-list. An empty array derives
-         * allowed types from allowedExtensions instead.
-         */
-        allowedMimeTypes?: string[];
-      };
-      binary?: {
-        /**
-         * Where FILE document bytes are stored. Only 'database' is
-         * implemented today; 's3' and 'filesystem' are reserved.
-         */
-        backend?: 'database' | 's3' | 'filesystem';
-      };
-      definitions?: {
-        /**
-         * Maximum size, in kilobytes, for an uploaded API definition.
-         * Defaults to 1024.
-         * @visibility frontend
-         */
-        maxSizeKb?: number;
-      };
-      policies?: {
-        /**
-         * Maximum size, in kilobytes, for a policy artifact payload.
-         * Defaults to 256.
-         * @visibility frontend
-         */
-        maxSizeKb?: number;
-      };
+      maxFileSizeMb?: number;
+      /**
+       * Maximum size, in kilobytes, for INLINE/MARKDOWN document bodies.
+       * Defaults to 512.
+       * @visibility frontend
+       */
+      maxInlineSizeKb?: number;
+      /**
+       * Allowed file extensions for FILE uploads (no leading dot). An
+       * empty array disables extension checking.
+       * @visibility frontend
+       */
+      allowedExtensions?: string[];
+      /**
+       * Optional stricter MIME-type allow-list. An empty array derives
+       * allowed types from allowedExtensions instead.
+       */
+      allowedMimeTypes?: string[];
     };
-    /** API Portal settings. */
-    apiPortal?: {
-      /** Defaults to false. @visibility frontend */
-      enabled?: boolean;
-      /** API Portal URL. @visibility frontend */
-      baseUrl?: string;
-      /** Defaults to '/api-portal/api/v0.9'. */
-      basePath?: string;
-      auth?: {
-        /** Defaults to 'platform-login'. */
-        mode?: 'platform-login' | 'idp';
-      };
-      defaults?: {
-        /** API status. */
-        status?: 'PUBLISHED' | 'DEPRECATED';
-        /**
-         * IDs of custom org subscription plans (beyond Bronze/Silver/Gold/
-         * Unlimited), offered for per-API selection. Must already exist in
-         * the org; each API's own selection is used at publish time.
-         */
-        subscriptionPlans?: string[];
-        /** Agent visibility. */
-        agentVisibility?: 'VISIBLE' | 'HIDDEN';
-      };
-      /** Request timeout in seconds. */
-      requestTimeoutSeconds?: number;
-      tls?: {
-        rejectUnauthorized?: boolean;
-      };
+    binary?: {
+      /**
+       * Where FILE document bytes are stored. Only 'database' is
+       * implemented today; 's3' and 'filesystem' are reserved.
+       */
+      backend?: 'database' | 's3' | 'filesystem';
+    };
+    definitions?: {
+      /**
+       * Maximum size, in kilobytes, for an uploaded API definition.
+       * Defaults to 1024.
+       * @visibility frontend
+       */
+      maxSizeKb?: number;
+    };
+    policies?: {
+      /**
+       * Maximum size, in kilobytes, for a policy artifact payload.
+       * Defaults to 256.
+       * @visibility frontend
+       */
+      maxSizeKb?: number;
+    };
+  };
+  /** WSO2 API Portal publishing settings. */
+  wso2ApiPlatformApiPortal?: {
+    /** Defaults to false. @visibility frontend */
+    enabled?: boolean;
+    /** API Portal URL. @visibility frontend */
+    baseUrl?: string;
+    /** Defaults to '/api-portal/api/v0.9'. */
+    basePath?: string;
+    auth?: {
+      /** Defaults to 'platform-login'. */
+      mode?: 'platform-login' | 'idp';
+    };
+    defaults?: {
+      /** API status. */
+      status?: 'PUBLISHED' | 'DEPRECATED';
+      /**
+       * IDs of custom org subscription plans (beyond Bronze/Silver/Gold/
+       * Unlimited), offered for per-API selection. Must already exist in
+       * the org; each API's own selection is used at publish time.
+       */
+      subscriptionPlans?: string[];
+      /** Agent visibility. */
+      agentVisibility?: 'VISIBLE' | 'HIDDEN';
+    };
+    /** Request timeout in seconds. */
+    requestTimeoutSeconds?: number;
+    tls?: {
+      rejectUnauthorized?: boolean;
     };
   };
   /**

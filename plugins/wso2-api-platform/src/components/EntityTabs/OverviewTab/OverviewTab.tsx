@@ -121,7 +121,7 @@ const EntityWso2OverviewTabContent = () => {
 
   const configApi = useApi(configApiRef);
   const apiPortalBaseUrl = configApi.getOptionalString(
-    'wso2ApiPlatform.apiPortal.baseUrl',
+    'wso2ApiPlatformApiPortal.baseUrl',
   );
   const { info: apiPortalInfo, loading: apiPortalLoading } =
     useApiPortalCapabilities(entity, isGatewayDiscovered);

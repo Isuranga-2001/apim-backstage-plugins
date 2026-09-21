@@ -66,15 +66,15 @@ export const AddDocumentDialog = (options: {
 
   const maxFileSizeMb =
     configApi.getOptionalNumber(
-      'wso2ApiPlatform.storage.documents.maxFileSizeMb',
+      'wso2ApiPlatformStorage.documents.maxFileSizeMb',
     ) ?? 10;
   const maxInlineSizeKb =
     configApi.getOptionalNumber(
-      'wso2ApiPlatform.storage.documents.maxInlineSizeKb',
+      'wso2ApiPlatformStorage.documents.maxInlineSizeKb',
     ) ?? 512;
   const allowedExtensions =
     configApi.getOptionalStringArray(
-      'wso2ApiPlatform.storage.documents.allowedExtensions',
+      'wso2ApiPlatformStorage.documents.allowedExtensions',
     ) ?? [];
   const maxFileSizeBytes = maxFileSizeMb * 1024 * 1024;
   const maxInlineSizeBytes = maxInlineSizeKb * 1024;

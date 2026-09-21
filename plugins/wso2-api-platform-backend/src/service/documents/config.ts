@@ -75,37 +75,37 @@ function getOptionalStringArray(config: RootConfigService, key: string) {
 export function readDocumentStorageConfig(
   config: RootConfigService,
 ): DocumentStorageConfig {
-  const storageConfig = getOptionalConfig(config, 'wso2ApiPlatform.storage');
+  const storageConfig = getOptionalConfig(config, 'wso2ApiPlatformStorage');
   const enabled = storageConfig?.getOptionalBoolean('enabled') ?? true;
 
   const maxFileSizeMb =
     getOptionalNumber(
       config,
-      'wso2ApiPlatform.storage.documents.maxFileSizeMb',
+      'wso2ApiPlatformStorage.documents.maxFileSizeMb',
     ) ?? DEFAULT_MAX_FILE_SIZE_MB;
   const maxInlineSizeKb =
     getOptionalNumber(
       config,
-      'wso2ApiPlatform.storage.documents.maxInlineSizeKb',
+      'wso2ApiPlatformStorage.documents.maxInlineSizeKb',
     ) ?? DEFAULT_MAX_INLINE_SIZE_KB;
 
   const allowedExtensions = (
     getOptionalStringArray(
       config,
-      'wso2ApiPlatform.storage.documents.allowedExtensions',
+      'wso2ApiPlatformStorage.documents.allowedExtensions',
     ) ?? DEFAULT_ALLOWED_EXTENSIONS
   ).map(ext => ext.toLowerCase().replace(/^\./, ''));
 
   const allowedMimeTypes =
     getOptionalStringArray(
       config,
-      'wso2ApiPlatform.storage.documents.allowedMimeTypes',
+      'wso2ApiPlatformStorage.documents.allowedMimeTypes',
     ) ?? [];
 
   const binaryBackend =
     (getOptionalConfig(
       config,
-      'wso2ApiPlatform.storage.binary',
+      'wso2ApiPlatformStorage.binary',
     )?.getOptionalString('backend') as
       | DocumentStorageConfig['binaryBackend']
       | undefined) ?? 'database';
@@ -142,14 +142,12 @@ const DEFAULT_MAX_DEFINITION_SIZE_KB = 1024;
 export function readDefinitionStorageConfig(
   config: RootConfigService,
 ): DefinitionStorageConfig {
-  const storageConfig = getOptionalConfig(config, 'wso2ApiPlatform.storage');
+  const storageConfig = getOptionalConfig(config, 'wso2ApiPlatformStorage');
   const enabled = storageConfig?.getOptionalBoolean('enabled') ?? true;
 
   const maxSizeKb =
-    getOptionalNumber(
-      config,
-      'wso2ApiPlatform.storage.definitions.maxSizeKb',
-    ) ?? DEFAULT_MAX_DEFINITION_SIZE_KB;
+    getOptionalNumber(config, 'wso2ApiPlatformStorage.definitions.maxSizeKb') ??
+    DEFAULT_MAX_DEFINITION_SIZE_KB;
 
   return {
     enabled: enabled ?? true,
@@ -167,7 +165,7 @@ export function readPolicyStorageConfig(
   config: RootConfigService,
 ): PolicyStorageConfig {
   const maxSizeKb =
-    getOptionalNumber(config, 'wso2ApiPlatform.storage.policies.maxSizeKb') ??
+    getOptionalNumber(config, 'wso2ApiPlatformStorage.policies.maxSizeKb') ??
     DEFAULT_MAX_POLICY_SIZE_KB;
 
   return {

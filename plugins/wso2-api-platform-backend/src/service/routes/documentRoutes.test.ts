@@ -125,10 +125,8 @@ describe('document routes', () => {
 
     const mockConfig = new ConfigReader({
       backend: { baseUrl: 'http://localhost:7007' },
-      wso2ApiPlatform: {
-        enabled: false,
-        storage: storageOverrides,
-      },
+      wso2ApiPlatform: { enabled: false },
+      wso2ApiPlatformStorage: storageOverrides,
     });
 
     mockHttpAuth = {

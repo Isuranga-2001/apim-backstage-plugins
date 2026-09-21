@@ -74,57 +74,57 @@ export function readApiPortalConfig(
   config: RootConfigService,
 ): ApiPortalConfig {
   const enabled =
-    getOptionalBoolean(config, 'wso2ApiPlatform.apiPortal.enabled') ?? false;
+    getOptionalBoolean(config, 'wso2ApiPlatformApiPortal.enabled') ?? false;
 
   const baseUrl =
-    getOptionalString(config, 'wso2ApiPlatform.apiPortal.baseUrl') ??
+    getOptionalString(config, 'wso2ApiPlatformApiPortal.baseUrl') ??
     DEFAULT_API_PORTAL_BASE_URL;
   const basePath =
-    getOptionalString(config, 'wso2ApiPlatform.apiPortal.basePath') ??
+    getOptionalString(config, 'wso2ApiPlatformApiPortal.basePath') ??
     DEFAULT_API_PORTAL_BASE_PATH;
 
   const authMode =
-    (getOptionalString(config, 'wso2ApiPlatform.apiPortal.auth.mode') as
+    (getOptionalString(config, 'wso2ApiPlatformApiPortal.auth.mode') as
       | ApiPortalAuthMode
       | undefined) ?? 'platform-login';
   if (authMode !== 'platform-login' && authMode !== 'idp') {
     throw new Error(
-      `wso2ApiPlatform.apiPortal.auth.mode '${authMode}' is not supported; use 'platform-login' or 'idp'`,
+      `wso2ApiPlatformApiPortal.auth.mode '${authMode}' is not supported; use 'platform-login' or 'idp'`,
     );
   }
   if (enabled && authMode === 'idp') {
     throw new Error(
-      "wso2ApiPlatform.apiPortal.auth.mode 'idp' is not implemented yet; use 'platform-login'",
+      "wso2ApiPlatformApiPortal.auth.mode 'idp' is not implemented yet; use 'platform-login'",
     );
   }
   const auth: ApiPortalConfig['auth'] = { mode: authMode };
 
   const status =
-    (getOptionalString(config, 'wso2ApiPlatform.apiPortal.defaults.status') as
+    (getOptionalString(config, 'wso2ApiPlatformApiPortal.defaults.status') as
       | ApiPortalConfig['defaults']['status']
       | undefined) ?? 'PUBLISHED';
   const agentVisibility =
     (getOptionalString(
       config,
-      'wso2ApiPlatform.apiPortal.defaults.agentVisibility',
+      'wso2ApiPlatformApiPortal.defaults.agentVisibility',
     ) as ApiPortalConfig['defaults']['agentVisibility'] | undefined) ??
     'VISIBLE';
   const subscriptionPlans =
     getOptionalStringArray(
       config,
-      'wso2ApiPlatform.apiPortal.defaults.subscriptionPlans',
+      'wso2ApiPlatformApiPortal.defaults.subscriptionPlans',
     ) ?? [];
 
   const requestTimeoutSeconds =
     getOptionalNumber(
       config,
-      'wso2ApiPlatform.apiPortal.requestTimeoutSeconds',
+      'wso2ApiPlatformApiPortal.requestTimeoutSeconds',
     ) ?? 30;
 
   const tlsRejectUnauthorized =
     getOptionalBoolean(
       config,
-      'wso2ApiPlatform.apiPortal.tls.rejectUnauthorized',
+      'wso2ApiPlatformApiPortal.tls.rejectUnauthorized',
     ) ?? true;
 
   return {
