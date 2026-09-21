@@ -111,7 +111,7 @@ export function buildPortalMetadata(input: {
     status: config.defaults.status,
     referenceId: apiRef.apiId,
     tags: nonGatewayTags(entity),
-    labels: config.defaults.labels,
+    labels: overrides?.labels ?? [],
     ...(technicalOwner ? { owners: { technicalOwner } } : {}),
     ...(endPoints ? { endPoints } : {}),
     subscriptionPlans: (subscriptionPlanIds ?? []).map(id => ({ id })),
@@ -325,6 +325,21 @@ export async function publishApiToPortal(opts: {
         `Invalid subscription plan(s) selected for this API: ${invalidIds.join(
           ', ',
         )} — not available in this org's API Portal. Update the selection in the Overview tab's Subscription Plans panel and try again.`,
+      );
+    }
+  }
+
+  if (overrides?.labels && overrides.labels.length > 0) {
+    const orgLabels = await portalClient.getLabels(accessToken);
+    const availableLabelIds = new Set(orgLabels.map(l => l.id));
+    const invalidLabels = overrides.labels.filter(
+      id => !availableLabelIds.has(id),
+    );
+    if (invalidLabels.length > 0) {
+      throw new InputError(
+        `Invalid label(s): ${invalidLabels.join(
+          ', ',
+        )} — not available in this org's API Portal. Update the labels and try again.`,
       );
     }
   }

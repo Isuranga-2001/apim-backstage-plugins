@@ -24,6 +24,8 @@ import { ApiPortalConfig } from './config';
 import {
   PortalApiForm,
   PortalApiMetadataResponse,
+  PortalLabel,
+  PortalLabelsResponse,
   PortalSubscriptionPlan,
   PortalSubscriptionPlansResponse,
 } from './types';
@@ -138,6 +140,13 @@ export class ApiPortalClient {
       'fetch subscription plans from the API Portal',
     );
     const body = (await response.json()) as PortalSubscriptionPlansResponse;
+    return body.list;
+  }
+
+  async getLabels(token: string): Promise<PortalLabel[]> {
+    const response = await this.request('/labels', { method: 'GET', token });
+    await this.assertOk(response, 'fetch labels from the API Portal');
+    const body = (await response.json()) as PortalLabelsResponse;
     return body.list;
   }
 

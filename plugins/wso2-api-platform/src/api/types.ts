@@ -364,6 +364,7 @@ export type Wso2ApiPortalPublishOverrides = {
   displayName: string;
   productionEndpoint: string;
   sandboxEndpoint?: string;
+  labels: string[];
 };
 
 export type Wso2ApiPortalSubscriptionsResponse = {

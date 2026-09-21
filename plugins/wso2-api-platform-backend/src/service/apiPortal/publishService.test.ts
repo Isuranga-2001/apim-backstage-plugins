@@ -37,7 +37,6 @@ const CONFIG: ApiPortalConfig = {
   auth: { mode: 'platform-login' },
   defaults: {
     status: 'PUBLISHED',
-    labels: ['default'],
     subscriptionPlans: [],
     agentVisibility: 'VISIBLE',
   },
@@ -135,6 +134,7 @@ function buildPortalClient() {
     uploadAssets: jest.fn(),
     deleteAllDocuments: jest.fn().mockResolvedValue(undefined),
     getSubscriptionPlans: jest.fn().mockResolvedValue([]),
+    getLabels: jest.fn().mockResolvedValue([]),
   } as any;
 }
 
@@ -302,6 +302,62 @@ describe('publishApiToPortal', () => {
       config: CONFIG,
       logger,
       subscriptionPlanIds: ['Bronze', 'Gold'],
+    });
+
+    expect(result.operation).toBe('created');
+  });
+
+  it('rejects with a clear message naming the label(s) that do not exist in the org, instead of calling the portal', async () => {
+    const portalClient = buildPortalClient();
+    portalClient.getLabels.mockResolvedValue([{ id: 'default' }]);
+
+    await expect(
+      publishApiToPortal({
+        apiRef: API_REF,
+        entity: ENTITY,
+        client: buildClient(),
+        portalClient,
+        definitionStore: buildDefinitionStore(),
+        documentStore: buildDocumentStore(),
+        accessToken: 'token-1',
+        config: CONFIG,
+        logger,
+        overrides: {
+          displayName: 'Payment API',
+          productionEndpoint: 'https://gw.example.com/payments',
+          labels: ['default', 'Missing-Label'],
+        },
+      }),
+    ).rejects.toThrow(/Missing-Label/);
+    expect(portalClient.getApi).not.toHaveBeenCalled();
+  });
+
+  it('publishes successfully when every selected label exists in the org', async () => {
+    const portalClient = buildPortalClient();
+    portalClient.getLabels.mockResolvedValue([
+      { id: 'default' },
+      { id: 'premium' },
+    ]);
+    portalClient.getApi.mockResolvedValue(undefined);
+    portalClient.createApi.mockResolvedValue({
+      id: 'payment-api-service-v1.0',
+    });
+
+    const result = await publishApiToPortal({
+      apiRef: API_REF,
+      entity: ENTITY,
+      client: buildClient(),
+      portalClient,
+      definitionStore: buildDefinitionStore(),
+      documentStore: buildDocumentStore(),
+      accessToken: 'token-1',
+      config: CONFIG,
+      logger,
+      overrides: {
+        displayName: 'Payment API',
+        productionEndpoint: 'https://gw.example.com/payments',
+        labels: ['default', 'premium'],
+      },
     });
 
     expect(result.operation).toBe('created');
@@ -643,7 +699,7 @@ paths: {}
       status: 'PUBLISHED',
       referenceId: 'payment-api-service-v1.0',
       tags: ['payments'],
-      labels: ['default'],
+      labels: [],
       owners: { technicalOwner: 'user:default/alice' },
       endPoints: { productionURL: 'https://gw.example.com/payments' },
       subscriptionPlans: [{ id: 'Gold' }],
@@ -717,6 +773,22 @@ paths: {}
       config: MAPPER_CONFIG,
     });
     expect(result.subscriptionPlans).toEqual([]);
+  });
+
+  it('maps overrides.labels to the labels field', () => {
+    const result = buildPortalMetadata({
+      artifact: ARTIFACT,
+      entity: MAPPER_ENTITY,
+      definitionContent: DEFINITION_WITH_DESCRIPTION,
+      apiRef: { apiId: 'payment-api-service-v1.0' },
+      config: MAPPER_CONFIG,
+      overrides: {
+        displayName: 'Payment API',
+        productionEndpoint: 'https://gw.example.com/payments',
+        labels: ['default', 'premium'],
+      },
+    });
+    expect(result.labels).toEqual(['default', 'premium']);
   });
 });
 

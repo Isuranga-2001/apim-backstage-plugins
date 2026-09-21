@@ -41,7 +41,6 @@ const CONFIG: ApiPortalConfig = {
   auth: { mode: 'platform-login' },
   defaults: {
     status: 'PUBLISHED',
-    labels: [],
     subscriptionPlans: [],
     agentVisibility: 'VISIBLE',
   },
@@ -226,6 +225,25 @@ describe('ApiPortalClient', () => {
       expect(url).toBe(
         'https://portal.example.com/api-portal/api/v0.9/subscription-plans',
       );
+      expect(options?.method).toBe('GET');
+    });
+  });
+
+  describe('getLabels', () => {
+    it('returns the org label list', async () => {
+      mockFetch.mockResolvedValue(
+        jsonResponse(200, {
+          list: [{ id: 'default' }, { id: 'premium' }],
+          count: 2,
+          pagination: { total: 2, limit: 100, offset: 0 },
+        }),
+      );
+
+      const result = await client.getLabels('token-1');
+
+      expect(result).toEqual([{ id: 'default' }, { id: 'premium' }]);
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://portal.example.com/api-portal/api/v0.9/labels');
       expect(options?.method).toBe('GET');
     });
   });

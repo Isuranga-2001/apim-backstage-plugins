@@ -35,6 +35,7 @@ import { Wso2ApiPortalPublishResult } from '../../../../api';
 import { useApiPortalPublish } from '../hooks/useApiPortalPublish';
 
 const GATEWAY_ENDPOINTS_ANNOTATION = 'wso2-gateway.com/api-endpoints';
+const DEFAULT_LABELS = ['default'];
 
 /** The gateway's configured runtime URLs (with the API's context appended), as baked into the entity at discovery time. */
 function productionEndpointOptions(entity: Entity): string[] {
@@ -79,7 +80,9 @@ export const PublishToApiPortalDialog = (options: {
   const [sandboxEndpoint, setSandboxEndpoint] = useState(
     defaultSandboxEndpoint,
   );
+  const [labels, setLabels] = useState<string[]>(DEFAULT_LABELS);
   const [error, setError] = useState<string | null>(null);
+  const [labelsError, setLabelsError] = useState<string | null>(null);
   const [documentWarnings, setDocumentWarnings] = useState<string[]>([]);
 
   useEffect(() => {
@@ -95,7 +98,9 @@ export const PublishToApiPortalDialog = (options: {
     setDisplayName(defaultDisplayName);
     setProductionEndpoint(defaultProductionEndpoint);
     setSandboxEndpoint(defaultSandboxEndpoint);
+    setLabels(DEFAULT_LABELS);
     setError(null);
+    setLabelsError(null);
     setDocumentWarnings([]);
     onClose();
   };
@@ -113,13 +118,21 @@ export const PublishToApiPortalDialog = (options: {
       setError('A production endpoint is required.');
       return;
     }
+    const trimmedLabels = labels.map(label => label.trim()).filter(Boolean);
+    if (trimmedLabels.length === 0) {
+      setError('At least one label is required.');
+      setLabelsError('At least one label is required.');
+      return;
+    }
     setError(null);
+    setLabelsError(null);
     setDocumentWarnings([]);
     try {
       const result = await publish(token.trim(), {
         displayName: displayName.trim(),
         productionEndpoint: productionEndpoint.trim(),
         sandboxEndpoint: sandboxEndpoint.trim() || undefined,
+        labels: trimmedLabels,
       });
       onPublished(result);
       if (result.warnings.length > 0) {
@@ -128,9 +141,10 @@ export const PublishToApiPortalDialog = (options: {
         onClose();
       }
     } catch (e) {
-      setError(
-        e instanceof Error ? e.message : 'Failed to publish to the API Portal.',
-      );
+      const message =
+        e instanceof Error ? e.message : 'Failed to publish to the API Portal.';
+      setError(message);
+      setLabelsError(/label/i.test(message) ? message : null);
     }
   };
 
@@ -184,6 +198,33 @@ export const PublishToApiPortalDialog = (options: {
               value={displayName}
               onChange={e => setDisplayName(e.target.value)}
               disabled={submitting}
+            />
+          </Box>
+          <Box mt={2}>
+            <Autocomplete<string, true, false, true>
+              id="api-portal-labels"
+              multiple
+              freeSolo
+              fullWidth
+              options={[]}
+              value={labels}
+              onChange={(_e, newValue) => {
+                setLabels(newValue);
+                setLabelsError(null);
+              }}
+              disabled={submitting}
+              renderInput={params => (
+                <TextField
+                  {...params}
+                  required
+                  label="Labels"
+                  error={!!labelsError}
+                  helperText={
+                    labelsError ??
+                    'Type a label and press Enter to add it. Defaults to "default".'
+                  }
+                />
+              )}
             />
           </Box>
           <Box mt={5}>

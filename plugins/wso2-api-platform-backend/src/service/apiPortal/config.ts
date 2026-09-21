@@ -31,7 +31,6 @@ export type ApiPortalConfig = {
   auth: { mode: ApiPortalAuthMode };
   defaults: {
     status: 'PUBLISHED' | 'DEPRECATED';
-    labels: string[];
     subscriptionPlans: string[];
     agentVisibility: 'VISIBLE' | 'HIDDEN';
   };
@@ -110,11 +109,6 @@ export function readApiPortalConfig(
       'wso2ApiPlatform.apiPortal.defaults.agentVisibility',
     ) as ApiPortalConfig['defaults']['agentVisibility'] | undefined) ??
     'VISIBLE';
-  const labels =
-    getOptionalStringArray(
-      config,
-      'wso2ApiPlatform.apiPortal.defaults.labels',
-    ) ?? [];
   const subscriptionPlans =
     getOptionalStringArray(
       config,
@@ -138,7 +132,7 @@ export function readApiPortalConfig(
     baseUrl,
     basePath,
     auth,
-    defaults: { status, labels, subscriptionPlans, agentVisibility },
+    defaults: { status, subscriptionPlans, agentVisibility },
     requestTimeoutSeconds,
     tls: { rejectUnauthorized: tlsRejectUnauthorized },
   };

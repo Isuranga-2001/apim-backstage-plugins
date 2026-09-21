@@ -168,7 +168,6 @@ wso2ApiPlatform:
     defaults:
       status: PUBLISHED
       agentVisibility: VISIBLE
-      labels: [default] # must already exist in the org
       subscriptionPlans: [] # IDs of *custom* org plans offered for per-API selection — see "Subscription plans" below
     requestTimeoutSeconds: 30
     tls:
@@ -195,6 +194,15 @@ as `subscriptionPlans` when the API is published or previewed — an API with
 no selection publishes with none. Selections are stored via the same
 plugin-owned artifact store used for definitions and documents (see
 `DatabaseApiSubscriptionPlanStore`).
+
+### Labels
+
+Unlike subscription plans, labels have no config or storage of their own —
+there is no `defaults.labels` any more. Each publish request carries its own
+`labels: string[]` (entered directly in the frontend's Publish dialog,
+defaulting to `default`), validated against `GET .../labels` before the
+Portal is called; an unknown label rejects the publish with `400` naming it,
+instead of a raw 404 from the Portal.
 
 ### Authentication
 

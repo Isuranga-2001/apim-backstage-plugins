@@ -162,7 +162,6 @@ describe('api-portal routes', () => {
         apiPortal: {
           enabled: true,
           baseUrl: PORTAL_BASE_URL,
-          defaults: { labels: ['default'] },
           ...apiPortalOverrides,
         },
       },
@@ -217,6 +216,13 @@ describe('api-portal routes', () => {
     mockFetch.mockImplementation(async (url: any) => {
       if (url === PORTAL_ROOT_URL) {
         return jsonResponse(200, {});
+      }
+      if (url === `${PORTAL_ROOT_URL}/labels`) {
+        return jsonResponse(200, {
+          list: [{ id: 'default' }],
+          count: 1,
+          pagination: { total: 1, limit: 100, offset: 0 },
+        });
       }
       if (url === GET_API_URL) {
         return jsonResponse(404, {});
@@ -301,6 +307,7 @@ describe('api-portal routes', () => {
     const PUBLISH_OVERRIDES = {
       displayName: 'Payment API (Portal)',
       productionEndpoint: 'https://gw.example.com/payments',
+      labels: ['default'],
     };
 
     it('forwards the frontend-supplied token as the portal Bearer token', async () => {
@@ -380,6 +387,24 @@ describe('api-portal routes', () => {
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
+    it('rejects with 400 when no labels are provided', async () => {
+      await buildApp();
+      await seedDefinition();
+      mockPortalReachableAndPublishable();
+
+      const res = await request(app)
+        .post(`${PAYMENT_API_PATH}/publish`)
+        .set(PORTAL_TOKEN_HEADER, 'user-supplied-token')
+        .send({
+          displayName: PUBLISH_OVERRIDES.displayName,
+          productionEndpoint: PUBLISH_OVERRIDES.productionEndpoint,
+          labels: [],
+        });
+
+      expect(res.status).toBe(400);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
     it('rejects with 401 when the portal-token header is missing', async () => {
       await buildApp();
       await seedDefinition();
@@ -446,6 +471,36 @@ describe('api-portal routes', () => {
         false,
       );
     });
+
+    it('rejects with 400 naming the invalid label when a label does not exist in the org, instead of a raw 404 from the portal', async () => {
+      await buildApp();
+      await seedDefinition();
+
+      mockFetch.mockImplementation(async (url: any) => {
+        if (url === PORTAL_ROOT_URL) {
+          return jsonResponse(200, {});
+        }
+        if (url === `${PORTAL_ROOT_URL}/labels`) {
+          return jsonResponse(200, {
+            list: [{ id: 'premium' }],
+            count: 1,
+            pagination: { total: 1, limit: 100, offset: 0 },
+          });
+        }
+        throw new Error(`Unexpected fetch to ${url}`);
+      });
+
+      const res = await request(app)
+        .post(`${PAYMENT_API_PATH}/publish`)
+        .set(PORTAL_TOKEN_HEADER, 'user-supplied-token')
+        .send(PUBLISH_OVERRIDES);
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.message).toMatch(/default/);
+      expect(mockFetch.mock.calls.some(([url]) => url === CREATE_API_URL)).toBe(
+        false,
+      );
+    });
   });
 
   describe('POST .../api-portal/preview — makes no portal call', () => {
@@ -488,7 +543,7 @@ describe('api-portal routes', () => {
 
     it("reflects the API's persisted subscription plan selection, not the org-wide config list", async () => {
       await buildApp({
-        defaults: { labels: ['default'], subscriptionPlans: ['Gold'] },
+        defaults: { subscriptionPlans: ['Gold'] },
       });
       await seedDefinition();
       await request(app)
@@ -509,7 +564,6 @@ describe('api-portal routes', () => {
     it('reports no selection and the custom plan ids from config (minus the four defaults) initially', async () => {
       await buildApp({
         defaults: {
-          labels: ['default'],
           subscriptionPlans: ['Gold', 'Custom-Plan', 'Silver'],
         },
       });

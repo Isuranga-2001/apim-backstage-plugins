@@ -75,10 +75,22 @@ export type PortalSubscriptionPlansResponse = {
   pagination: { total: number; limit: number; offset: number };
 };
 
+export type PortalLabel = {
+  id: string;
+  displayName?: string;
+};
+
+export type PortalLabelsResponse = {
+  list: PortalLabel[];
+  count: number;
+  pagination: { total: number; limit: number; offset: number };
+};
+
 export type PortalApiPublishOverrides = {
   displayName: string;
   productionEndpoint: string;
   sandboxEndpoint?: string;
+  labels: string[];
 };
 
 /** The four built-in plan IDs; mirrored in the frontend's `utils/subscriptionPlans.ts`. */

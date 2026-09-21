@@ -61,6 +61,12 @@ function requirePublishOverrides(
       : '';
   const sandboxEndpoint =
     typeof body.sandboxEndpoint === 'string' ? body.sandboxEndpoint.trim() : '';
+  const labels = Array.isArray(body.labels)
+    ? body.labels
+        .filter((label: unknown): label is string => typeof label === 'string')
+        .map((label: string) => label.trim())
+        .filter(Boolean)
+    : [];
 
   if (!displayName) {
     throw new InputError(
@@ -72,10 +78,16 @@ function requirePublishOverrides(
       'productionEndpoint is required to publish to the API Portal',
     );
   }
+  if (labels.length === 0) {
+    throw new InputError(
+      'At least one label is required to publish to the API Portal',
+    );
+  }
 
   return {
     displayName,
     productionEndpoint,
+    labels,
     ...(sandboxEndpoint ? { sandboxEndpoint } : {}),
   };
 }

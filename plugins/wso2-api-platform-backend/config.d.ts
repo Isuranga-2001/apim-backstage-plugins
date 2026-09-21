@@ -119,8 +119,6 @@ export interface Config {
       defaults?: {
         /** API status. */
         status?: 'PUBLISHED' | 'DEPRECATED';
-        /** Existing org labels. */
-        labels?: string[];
         /**
          * IDs of custom org subscription plans (beyond Bronze/Silver/Gold/
          * Unlimited), offered for per-API selection. Must already exist in
