@@ -61,6 +61,14 @@ const mockWso2Api = {
     },
   }),
   publishToApiPortal: jest.fn(),
+  getApiPortalSubscriptions: jest.fn().mockResolvedValue({
+    availableCustomPlanIds: [],
+    selectedPlanIds: [],
+  }),
+  updateApiPortalSubscriptions: jest.fn().mockResolvedValue({
+    availableCustomPlanIds: [],
+    selectedPlanIds: [],
+  }),
 };
 
 // Mock @backstage/core-plugin-api directly to be fully sandboxed
@@ -426,5 +434,54 @@ describe('API Portal card', () => {
       name: /Open API Portal/,
     });
     expect(openButton).toHaveAttribute('href', 'https://devportal.example.com');
+  });
+});
+
+describe('API Portal subscription plans', () => {
+  const gatewayEntity: any = {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'API',
+    metadata: {
+      name: 'orders-api',
+      namespace: 'wso2-gateways',
+      annotations: {
+        'wso2.com/api-discovery-type': 'api-platform-gateway',
+      },
+    },
+  };
+
+  beforeEach(() => {
+    mockEntity = gatewayEntity;
+    mockConfigApi.getOptionalString.mockReturnValue(undefined);
+    mockConfigApi.getOptionalBoolean.mockReturnValue(undefined);
+    mockWso2Api.getApiPortalSubscriptions.mockResolvedValue({
+      availableCustomPlanIds: [],
+      selectedPlanIds: [],
+    });
+    mockWso2Api.updateApiPortalSubscriptions.mockResolvedValue({
+      availableCustomPlanIds: [],
+      selectedPlanIds: ['Bronze'],
+    });
+  });
+
+  it('shows the four default subscription plans and toggles one on click', async () => {
+    render(<EntityWso2OverviewTab />);
+
+    expect(await screen.findByText('Subscription Plans')).toBeInTheDocument();
+    expect(screen.getByText('Bronze')).toBeInTheDocument();
+    expect(screen.getByText('Silver')).toBeInTheDocument();
+    expect(screen.getByText('Gold')).toBeInTheDocument();
+    expect(screen.getByText('Unlimited')).toBeInTheDocument();
+    expect(screen.getByText('1000 / min')).toBeInTheDocument();
+    expect(screen.getByText('N/A')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Bronze'));
+
+    await waitFor(() =>
+      expect(mockWso2Api.updateApiPortalSubscriptions).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'orders-api' }),
+        ['Bronze'],
+      ),
+    );
   });
 });

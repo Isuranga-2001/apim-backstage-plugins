@@ -46,6 +46,7 @@ import { Wso2ApiPortalPublishResult } from '../../../api';
 import { formatLifecycleStatus, isServiceEntity } from '../../../utils';
 import { EntityWso2ServiceOverviewCard } from './components/ServiceOverviewCard';
 import { PublishToApiPortalDialog } from './components/PublishToApiPortalDialog';
+import { ApiPortalSubscriptionPlans } from './components/ApiPortalSubscriptionPlans';
 import { useApiPortalCapabilities } from './hooks/useApiPortalCapabilities';
 import { useGatewayStatus } from '../../common/useGatewayStatus';
 import { useApiDefinition } from '../DefinitionTab/hooks/useApiDefinition';
@@ -327,21 +328,7 @@ const EntityWso2OverviewTabContent = () => {
                 </Box>
               ) : (
                 <Box>
-                  {apiPortalBaseUrl ? (
-                    <Box
-                      component="code"
-                      display="inline-block"
-                      px={1}
-                      py={0.5}
-                      mb={1}
-                      borderRadius={4}
-                      bgcolor="action.hover"
-                      fontSize="0.8rem"
-                      style={{ wordBreak: 'break-all' }}
-                    >
-                      {apiPortalBaseUrl}
-                    </Box>
-                  ) : (
+                  {!apiPortalBaseUrl && (
                     <Typography
                       variant="body2"
                       color="textSecondary"
@@ -394,41 +381,51 @@ const EntityWso2OverviewTabContent = () => {
                       </Typography>
                     </Box>
                   )}
-                  <Box display="flex" flexWrap="wrap" gridGap={8} mt={1}>
-                    <Tooltip title={apiPortalPublishDisabledReason}>
-                      <span>
-                        <Button
-                          variant="contained"
-                          color="primary"
-                          startIcon={<PublishIcon />}
-                          disabled={!apiPortalPublishAllowed}
-                          onClick={() => setApiPortalDialogOpen(true)}
-                        >
-                          Publish to API Portal
-                        </Button>
-                      </span>
-                    </Tooltip>
-                    <Tooltip
-                      title={
-                        apiPortalBaseUrl
-                          ? ''
-                          : 'No API Portal base URL is configured'
-                      }
-                    >
-                      <span>
-                        <Button
-                          variant="outlined"
-                          startIcon={<OpenInNewIcon />}
-                          disabled={!apiPortalBaseUrl}
-                          component="a"
-                          href={apiPortalBaseUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          Open API Portal
-                        </Button>
-                      </span>
-                    </Tooltip>
+                  <Box
+                    display="flex"
+                    flexWrap="wrap"
+                    justifyContent="space-between"
+                    alignItems="flex-start"
+                    gridGap={24}
+                    mt={1}
+                  >
+                    <Box display="flex" flexWrap="wrap" gridGap={8}>
+                      <Tooltip title={apiPortalPublishDisabledReason}>
+                        <span>
+                          <Button
+                            variant="contained"
+                            color="primary"
+                            startIcon={<PublishIcon />}
+                            disabled={!apiPortalPublishAllowed}
+                            onClick={() => setApiPortalDialogOpen(true)}
+                          >
+                            Publish to API Portal
+                          </Button>
+                        </span>
+                      </Tooltip>
+                      <Tooltip
+                        title={
+                          apiPortalBaseUrl
+                            ? ''
+                            : 'No API Portal base URL is configured'
+                        }
+                      >
+                        <span>
+                          <Button
+                            variant="outlined"
+                            startIcon={<OpenInNewIcon />}
+                            disabled={!apiPortalBaseUrl}
+                            component="a"
+                            href={apiPortalBaseUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Open API Portal
+                          </Button>
+                        </span>
+                      </Tooltip>
+                    </Box>
+                    <ApiPortalSubscriptionPlans entity={entity} />
                   </Box>
                 </Box>
               )}

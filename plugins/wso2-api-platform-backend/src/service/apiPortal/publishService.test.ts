@@ -17,7 +17,7 @@
  */
 
 import { Entity } from '@backstage/catalog-model';
-import { ConflictError, NotAllowedError } from '@backstage/errors';
+import { ConflictError, InputError, NotAllowedError } from '@backstage/errors';
 import { mockServices } from '@backstage/backend-test-utils';
 import JSZip from 'jszip';
 import {
@@ -134,6 +134,7 @@ function buildPortalClient() {
     updateApi: jest.fn(),
     uploadAssets: jest.fn(),
     deleteAllDocuments: jest.fn().mockResolvedValue(undefined),
+    getSubscriptionPlans: jest.fn().mockResolvedValue([]),
   } as any;
 }
 
@@ -242,6 +243,68 @@ describe('publishApiToPortal', () => {
       'payment-api-service-v1.0',
       'token-1',
     );
+  });
+
+  it('rejects with a clear message naming the plan(s) that do not exist in the org, instead of calling the portal', async () => {
+    const portalClient = buildPortalClient();
+    portalClient.getSubscriptionPlans.mockResolvedValue([{ id: 'Bronze' }]);
+
+    await expect(
+      publishApiToPortal({
+        apiRef: API_REF,
+        entity: ENTITY,
+        client: buildClient(),
+        portalClient,
+        definitionStore: buildDefinitionStore(),
+        documentStore: buildDocumentStore(),
+        accessToken: 'token-1',
+        config: CONFIG,
+        logger,
+        subscriptionPlanIds: ['Bronze', 'Missing-Plan'],
+      }),
+    ).rejects.toThrow(InputError);
+    await expect(
+      publishApiToPortal({
+        apiRef: API_REF,
+        entity: ENTITY,
+        client: buildClient(),
+        portalClient,
+        definitionStore: buildDefinitionStore(),
+        documentStore: buildDocumentStore(),
+        accessToken: 'token-1',
+        config: CONFIG,
+        logger,
+        subscriptionPlanIds: ['Bronze', 'Missing-Plan'],
+      }),
+    ).rejects.toThrow(/Missing-Plan/);
+    expect(portalClient.getApi).not.toHaveBeenCalled();
+  });
+
+  it('publishes successfully when every selected subscription plan exists in the org', async () => {
+    const portalClient = buildPortalClient();
+    portalClient.getSubscriptionPlans.mockResolvedValue([
+      { id: 'Bronze' },
+      { id: 'Gold' },
+    ]);
+    portalClient.getApi.mockResolvedValue(undefined);
+    portalClient.createApi.mockResolvedValue({
+      id: 'payment-api-service-v1.0',
+    });
+
+    const result = await publishApiToPortal({
+      apiRef: API_REF,
+      entity: ENTITY,
+      client: buildClient(),
+      portalClient,
+      definitionStore: buildDefinitionStore(),
+      documentStore: buildDocumentStore(),
+      accessToken: 'token-1',
+      config: CONFIG,
+      logger,
+      subscriptionPlanIds: ['Bronze', 'Gold'],
+    });
+
+    expect(result.operation).toBe('created');
   });
 
   it('updates an existing API by the same handle', async () => {
@@ -568,6 +631,7 @@ paths: {}
       definitionContent: DEFINITION_WITH_DESCRIPTION,
       apiRef: { apiId: 'payment-api-service-v1.0' },
       config: MAPPER_CONFIG,
+      subscriptionPlanIds: ['Gold'],
     });
 
     expect(result).toEqual({
@@ -629,24 +693,30 @@ paths: {}
     expect(result.endPoints).toBeUndefined();
   });
 
-  it('maps config.defaults.subscriptionPlans to {id} refs', () => {
+  it('maps subscriptionPlanIds to {id} refs', () => {
     const result = buildPortalMetadata({
       artifact: ARTIFACT,
       entity: MAPPER_ENTITY,
       definitionContent: DEFINITION_WITH_DESCRIPTION,
       apiRef: { apiId: 'payment-api-service-v1.0' },
-      config: {
-        ...MAPPER_CONFIG,
-        defaults: {
-          ...MAPPER_CONFIG.defaults,
-          subscriptionPlans: ['Gold', 'Silver'],
-        },
-      },
+      config: MAPPER_CONFIG,
+      subscriptionPlanIds: ['Gold', 'Silver'],
     });
     expect(result.subscriptionPlans).toEqual([
       { id: 'Gold' },
       { id: 'Silver' },
     ]);
+  });
+
+  it('defaults to no subscription plans when none are selected for this API', () => {
+    const result = buildPortalMetadata({
+      artifact: ARTIFACT,
+      entity: MAPPER_ENTITY,
+      definitionContent: DEFINITION_WITH_DESCRIPTION,
+      apiRef: { apiId: 'payment-api-service-v1.0' },
+      config: MAPPER_CONFIG,
+    });
+    expect(result.subscriptionPlans).toEqual([]);
   });
 });
 

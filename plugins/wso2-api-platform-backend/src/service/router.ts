@@ -53,6 +53,7 @@ import { ApimPublisherDocumentStore } from './documents/stores/ApimPublisherDocu
 import { DatabaseApiDocumentStore } from './documents/stores/DatabaseApiDocumentStore';
 import { ApiDefinitionStoreResolver } from './documents/stores/ApiDefinitionStoreResolver';
 import { DatabaseApiDefinitionStore } from './documents/stores/DatabaseApiDefinitionStore';
+import { DatabaseApiSubscriptionPlanStore } from './documents/stores/DatabaseApiSubscriptionPlanStore';
 import { readApiPortalConfig } from './apiPortal/config';
 import { ApiPortalClient } from './apiPortal/ApiPortalClient';
 
@@ -154,6 +155,11 @@ export async function createRouter(
       definitionStorage,
     });
 
+    const subscriptionDao = new ArtifactDao(knex, 'subscription-plans');
+    const subscriptionStore = new DatabaseApiSubscriptionPlanStore(
+      subscriptionDao,
+    );
+
     registerApiPortalRoutes(router, {
       ...routeContext,
       httpAuth,
@@ -161,6 +167,7 @@ export async function createRouter(
       apiPortalClient: new ApiPortalClient(apiPortalConfig, logger),
       apiPortalDefinitionStore: definitionDatabaseStore,
       apiPortalDocumentStore: databaseStore,
+      apiPortalSubscriptionStore: subscriptionStore,
     });
   } else {
     logger.warn(

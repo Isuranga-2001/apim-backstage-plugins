@@ -209,6 +209,27 @@ describe('ApiPortalClient', () => {
     });
   });
 
+  describe('getSubscriptionPlans', () => {
+    it('returns the org plan list', async () => {
+      mockFetch.mockResolvedValue(
+        jsonResponse(200, {
+          list: [{ id: 'Bronze' }, { id: 'Custom-Plan' }],
+          count: 2,
+          pagination: { total: 2, limit: 100, offset: 0 },
+        }),
+      );
+
+      const result = await client.getSubscriptionPlans('token-1');
+
+      expect(result).toEqual([{ id: 'Bronze' }, { id: 'Custom-Plan' }]);
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe(
+        'https://portal.example.com/api-portal/api/v0.9/subscription-plans',
+      );
+      expect(options?.method).toBe('GET');
+    });
+  });
+
   describe('uploadAssets', () => {
     it('POSTs the zip under the content field, with optional docMetadata', async () => {
       mockFetch.mockResolvedValue(jsonResponse(201, { message: 'ok' }));

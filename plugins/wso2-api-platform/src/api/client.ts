@@ -34,6 +34,7 @@ import {
   Wso2ApiPortalInfo,
   Wso2ApiPortalPublishOverrides,
   Wso2ApiPortalPublishResult,
+  Wso2ApiPortalSubscriptionsResponse,
   Wso2DefinitionDiffResponse,
   Wso2GatewaySummary,
   Wso2GenerateApiKeyOptions,
@@ -386,6 +387,24 @@ export class Wso2ApiPlatformClient implements Wso2ApiPlatformApi {
     return this.request<Wso2ApiPortalPublishResult>(
       `${this.entityApiPortalPath(entityRef)}/publish`,
       { method: 'POST', portalToken: accessToken, body: overrides },
+    );
+  }
+
+  async getApiPortalSubscriptions(
+    entityRef: CompoundEntityRef,
+  ): Promise<Wso2ApiPortalSubscriptionsResponse> {
+    return this.request<Wso2ApiPortalSubscriptionsResponse>(
+      `${this.entityApiPortalPath(entityRef)}/subscriptions`,
+    );
+  }
+
+  async updateApiPortalSubscriptions(
+    entityRef: CompoundEntityRef,
+    planIds: string[],
+  ): Promise<Wso2ApiPortalSubscriptionsResponse> {
+    return this.request<Wso2ApiPortalSubscriptionsResponse>(
+      `${this.entityApiPortalPath(entityRef)}/subscriptions`,
+      { method: 'PUT', body: { planIds } },
     );
   }
 }

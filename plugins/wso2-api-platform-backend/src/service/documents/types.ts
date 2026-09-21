@@ -150,3 +150,10 @@ export type UpsertDefinitionInput = {
   content: string;
   description?: string;
 };
+
+/** An API's selected subscription plan IDs. */
+export type ApiSubscriptionSelection = {
+  planIds: string[];
+  lastUpdatedBy?: string;
+  lastUpdatedTime?: string;
+};

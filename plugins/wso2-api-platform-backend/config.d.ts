@@ -121,7 +121,11 @@ export interface Config {
         status?: 'PUBLISHED' | 'DEPRECATED';
         /** Existing org labels. */
         labels?: string[];
-        /** Existing org subscription plans. */
+        /**
+         * IDs of custom org subscription plans (beyond Bronze/Silver/Gold/
+         * Unlimited), offered for per-API selection. Must already exist in
+         * the org; each API's own selection is used at publish time.
+         */
         subscriptionPlans?: string[];
         /** Agent visibility. */
         agentVisibility?: 'VISIBLE' | 'HIDDEN';

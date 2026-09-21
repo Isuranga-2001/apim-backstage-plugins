@@ -92,7 +92,7 @@ With storage **enabled**, gateway-discovered APIs gain:
 - **API document management** — attach, edit, and delete markdown documents (previously only on-prem APIM APIs could have documents).
 - **Policy management** — view (and, depending on mode, edit) request/response policies.
 - **A working Try-Out console** — the Try-Out tab needs an actual API definition to build its request forms; for gateway-discovered APIs that definition now comes from this storage layer.
-- **Publishing to the WSO2 API Portal** — publishing needs a definition and (optionally) documents to send, both sourced from storage.
+- **Publishing to the WSO2 API Portal** — publishing needs a definition and (optionally) documents to send, both sourced from storage, plus a per-API subscription plan selection (also stored here — see below).
 
 ### Gateway Write Operations Mode
 
@@ -141,6 +141,8 @@ Gateway-discovered APIs can be published — metadata, definition, and markdown 
 - An optional **sandbox endpoint**, offered the same way.
 
 Only the **Platform API login** auth mode is currently supported for the API Portal integration — the backend never holds API Portal credentials itself, it simply relays the token the frontend obtained. An **IdP-based auth mode** is reserved in configuration for a future release but is not implemented yet.
+
+**Subscription plans.** Next to the publish buttons, a Subscription Plans panel lets you toggle which plans apply to this API: the four built-in plans (Bronze, Silver, Gold, Unlimited) are always shown, plus any custom plan IDs your org has configured under `wso2ApiPlatform.apiPortal.defaults.subscriptionPlans`. Each toggle saves immediately — the selection is stored per-API alongside the API's other metadata, and it's this stored selection (not the org's full configured plan list) that gets published the next time the API is published.
 
 ## Self-Hosted Gateway Integration (Open Choreo)
 

@@ -64,11 +64,30 @@ export type PortalApiForm = {
   definitionFileName: string;
 };
 
+export type PortalSubscriptionPlan = {
+  id: string;
+  displayName?: string;
+};
+
+export type PortalSubscriptionPlansResponse = {
+  list: PortalSubscriptionPlan[];
+  count: number;
+  pagination: { total: number; limit: number; offset: number };
+};
+
 export type PortalApiPublishOverrides = {
   displayName: string;
   productionEndpoint: string;
   sandboxEndpoint?: string;
 };
+
+/** The four built-in plan IDs; mirrored in the frontend's `utils/subscriptionPlans.ts`. */
+export const DEFAULT_SUBSCRIPTION_PLAN_IDS = [
+  'Bronze',
+  'Silver',
+  'Gold',
+  'Unlimited',
+];
 
 export type PublishableDocument = { name: string; content: string };
 

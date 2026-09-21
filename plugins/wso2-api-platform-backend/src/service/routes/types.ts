@@ -29,6 +29,7 @@ import { ApiDocumentStoreResolver } from '../documents/stores/ApiDocumentStoreRe
 import { ApiDefinitionStoreResolver } from '../documents/stores/ApiDefinitionStoreResolver';
 import { ApiDefinitionStore } from '../documents/stores/ApiDefinitionStore';
 import { ApiDocumentStore } from '../documents/stores/ApiDocumentStore';
+import { ApiSubscriptionPlanStore } from '../documents/stores/ApiSubscriptionPlanStore';
 import { ApiPortalConfig } from '../apiPortal/config';
 import { ApiPortalClient } from '../apiPortal/ApiPortalClient';
 
@@ -57,4 +58,5 @@ export type RouteContext = {
   apiPortalClient?: ApiPortalClient;
   apiPortalDefinitionStore?: ApiDefinitionStore;
   apiPortalDocumentStore?: ApiDocumentStore;
+  apiPortalSubscriptionStore?: ApiSubscriptionPlanStore;
 };

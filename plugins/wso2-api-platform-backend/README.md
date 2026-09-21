@@ -18,21 +18,23 @@ The backend plugin is responsible for handling sensitive operations that cannot 
 
 The frontend plugin fetches data dynamically from this backend plugin. The following table outlines the key internal routes exposed by this backend:
 
-| HTTP Method | Backend Route                                                                          | Frontend JavaScript Trigger           | Purpose                                                                                                    |
-| ----------- | -------------------------------------------------------------------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| **POST**    | `/api/wso2-api-platform/apis/:apiId/generate-key`                                      | `wso2Api.generateApiKey(...)`         | Generates a temporary access token for the Gateway via Basic Auth/OAuth credentials.                       |
-| **GET**     | `/api/wso2-api-platform/apis/:apiId/revisions`                                         | `wso2Api.getRevisions(...)`           | Lists deployment revisions of an API in real-time.                                                         |
-| **GET**     | `/api/wso2-api-platform/apis/:apiId/wsdl`                                              | `wso2Api.getApiWsdl(...)`             | Downloads the SOAP API WSDL file/archive payload.                                                          |
-| **GET**     | `/api/wso2-api-platform/apis/:apiId/documents/:documentId/content`                     | _Direct Link URL in UI_               | Streams document file downloads (PDF, MD, TXT, etc.) on-demand. On-prem APIM only — unchanged legacy path. |
-| **GET**     | `/api/wso2-api-platform/entities/:kind/:namespace/:name/documents`                     | `wso2Api.listDocuments(...)`          | Lists documents for an entity.                                                                             |
-| **POST**    | `/api/wso2-api-platform/entities/:kind/:namespace/:name/documents`                     | `wso2Api.createDocument(...)`         | Creates a document (JSON for INLINE/MARKDOWN/URL, multipart for FILE).                                     |
-| **GET**     | `/api/wso2-api-platform/entities/:kind/:namespace/:name/documents/:documentId`         | `wso2Api.getDocument(...)`            | Fetches one document's metadata.                                                                           |
-| **PUT**     | `/api/wso2-api-platform/entities/:kind/:namespace/:name/documents/:documentId`         | `wso2Api.updateDocumentMetadata(...)` | Edits document metadata only.                                                                              |
-| **DELETE**  | `/api/wso2-api-platform/entities/:kind/:namespace/:name/documents/:documentId`         | `wso2Api.deleteDocument(...)`         | Hard-deletes a document.                                                                                   |
-| **GET**     | `/api/wso2-api-platform/entities/:kind/:namespace/:name/documents/:documentId/content` | `wso2Api.getDocumentContentUrl(...)`  | Streams/redirects to document content.                                                                     |
-| **GET**     | `/api/wso2-api-platform/entities/:kind/:namespace/:name/api-portal`                    | _(frontend, planned)_                 | API Portal publish capability check. OpenChoreo only.                                                      |
-| **POST**    | `/api/wso2-api-platform/entities/:kind/:namespace/:name/api-portal/preview`            | _(frontend, planned)_                 | Builds the metadata payload and document publish/skip plan without calling the API Portal.                 |
-| **POST**    | `/api/wso2-api-platform/entities/:kind/:namespace/:name/api-portal/publish`            | _(frontend, planned)_                 | Publishes the API's metadata, definition, and markdown documents to the API Portal.                        |
+| HTTP Method | Backend Route                                                                          | Frontend JavaScript Trigger                 | Purpose                                                                                                    |
+| ----------- | -------------------------------------------------------------------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **POST**    | `/api/wso2-api-platform/apis/:apiId/generate-key`                                      | `wso2Api.generateApiKey(...)`               | Generates a temporary access token for the Gateway via Basic Auth/OAuth credentials.                       |
+| **GET**     | `/api/wso2-api-platform/apis/:apiId/revisions`                                         | `wso2Api.getRevisions(...)`                 | Lists deployment revisions of an API in real-time.                                                         |
+| **GET**     | `/api/wso2-api-platform/apis/:apiId/wsdl`                                              | `wso2Api.getApiWsdl(...)`                   | Downloads the SOAP API WSDL file/archive payload.                                                          |
+| **GET**     | `/api/wso2-api-platform/apis/:apiId/documents/:documentId/content`                     | _Direct Link URL in UI_                     | Streams document file downloads (PDF, MD, TXT, etc.) on-demand. On-prem APIM only — unchanged legacy path. |
+| **GET**     | `/api/wso2-api-platform/entities/:kind/:namespace/:name/documents`                     | `wso2Api.listDocuments(...)`                | Lists documents for an entity.                                                                             |
+| **POST**    | `/api/wso2-api-platform/entities/:kind/:namespace/:name/documents`                     | `wso2Api.createDocument(...)`               | Creates a document (JSON for INLINE/MARKDOWN/URL, multipart for FILE).                                     |
+| **GET**     | `/api/wso2-api-platform/entities/:kind/:namespace/:name/documents/:documentId`         | `wso2Api.getDocument(...)`                  | Fetches one document's metadata.                                                                           |
+| **PUT**     | `/api/wso2-api-platform/entities/:kind/:namespace/:name/documents/:documentId`         | `wso2Api.updateDocumentMetadata(...)`       | Edits document metadata only.                                                                              |
+| **DELETE**  | `/api/wso2-api-platform/entities/:kind/:namespace/:name/documents/:documentId`         | `wso2Api.deleteDocument(...)`               | Hard-deletes a document.                                                                                   |
+| **GET**     | `/api/wso2-api-platform/entities/:kind/:namespace/:name/documents/:documentId/content` | `wso2Api.getDocumentContentUrl(...)`        | Streams/redirects to document content.                                                                     |
+| **GET**     | `/api/wso2-api-platform/entities/:kind/:namespace/:name/api-portal`                    | _(frontend, planned)_                       | API Portal publish capability check. OpenChoreo only.                                                      |
+| **POST**    | `/api/wso2-api-platform/entities/:kind/:namespace/:name/api-portal/preview`            | _(frontend, planned)_                       | Builds the metadata payload and document publish/skip plan without calling the API Portal.                 |
+| **POST**    | `/api/wso2-api-platform/entities/:kind/:namespace/:name/api-portal/publish`            | _(frontend, planned)_                       | Publishes the API's metadata, definition, and markdown documents to the API Portal.                        |
+| **GET**     | `/api/wso2-api-platform/entities/:kind/:namespace/:name/api-portal/subscriptions`      | `wso2Api.getApiPortalSubscriptions(...)`    | Returns this API's selected subscription plan IDs and the available custom plan IDs.                       |
+| **PUT**     | `/api/wso2-api-platform/entities/:kind/:namespace/:name/api-portal/subscriptions`      | `wso2Api.updateApiPortalSubscriptions(...)` | Replaces this API's selected subscription plan IDs.                                                        |
 
 ## Gateway Write Operations Lock
 
@@ -167,7 +169,7 @@ wso2ApiPlatform:
       status: PUBLISHED
       agentVisibility: VISIBLE
       labels: [default] # must already exist in the org
-      subscriptionPlans: [] # must already exist in the org
+      subscriptionPlans: [] # IDs of *custom* org plans offered for per-API selection — see "Subscription plans" below
     requestTimeoutSeconds: 30
     tls:
       rejectUnauthorized: true
@@ -175,6 +177,24 @@ wso2ApiPlatform:
 
 Policies are never sent — the portal's metadata schema has no policy field,
 and platform-api's own portal-publish flow does not send them either.
+
+### Subscription plans
+
+Every API is assumed to have four built-in subscription plans available on
+the API Portal (`Bronze`, `Silver`, `Gold`, `Unlimited`); `defaults.subscriptionPlans`
+above lists any additional _custom_ plan IDs the org has also provisioned
+there. Which of these plans apply to a given API is chosen per-API in the
+frontend's Overview tab (Subscription Plans panel) and persisted immediately
+via:
+
+- `GET .../api-portal/subscriptions` — returns `{ availableCustomPlanIds, selectedPlanIds }`.
+- `PUT .../api-portal/subscriptions` — body `{ planIds: string[] }`; rejects with `400` for any ID that is neither a default nor a configured custom plan.
+
+The persisted selection (not `defaults.subscriptionPlans`) is what gets sent
+as `subscriptionPlans` when the API is published or previewed — an API with
+no selection publishes with none. Selections are stored via the same
+plugin-owned artifact store used for definitions and documents (see
+`DatabaseApiSubscriptionPlanStore`).
 
 ### Authentication
 
