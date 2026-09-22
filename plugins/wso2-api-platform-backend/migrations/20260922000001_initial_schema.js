@@ -17,9 +17,17 @@
  */
 
 /**
- * Metadata-only table for API artifacts (documents today, definitions
- * reserved via artifact_kind). Never contains payloads, so list queries
- * stay cheap. See docs/document-attachment-implementation-plan.md §5.3.
+ * Baseline schema for the document/artifact store, consolidated from the
+ * pre-release migration history (init_artifacts, init_artifact_content,
+ * drop_artifact_visibility) now that the plugin is ready to release.
+ *
+ * `wso2_artifacts` is metadata-only (documents today, definitions reserved
+ * via artifact_kind). Never contains payloads, so list queries stay cheap.
+ * `wso2_artifact_content` is 1:1 with it, split out so list queries never
+ * drag a BLOB, and so an external storage backend can be introduced
+ * without touching the metadata table. URL documents get no row here at
+ * all — the target lives in wso2_artifacts.source_url.
+ * See docs/document-attachment-implementation-plan.md §5.3-5.4.
  *
  * @param {import('knex').Knex} knex
  */
@@ -37,7 +45,6 @@ exports.up = async function up(knex) {
     table.string('other_type_name', 255).nullable();
     table.text('summary').nullable();
     table.string('source_type', 20).notNullable();
-    table.string('visibility', 20).notNullable().defaultTo('API_LEVEL');
     table.text('source_url').nullable();
     table.string('created_by', 255).nullable();
     table
@@ -60,11 +67,38 @@ exports.up = async function up(knex) {
     );
     table.index(['entity_ref'], 'wso2_artifacts_entity_ref_idx');
   });
+
+  await knex.schema.createTable('wso2_artifact_content', table => {
+    table
+      .string('artifact_id', 64)
+      .notNullable()
+      .primary()
+      .references('id')
+      .inTable('wso2_artifacts')
+      .onDelete('CASCADE');
+    table.string('storage_backend', 32).notNullable().defaultTo('database');
+    table.text('storage_ref').nullable();
+    table.string('mime_type', 127).nullable();
+    table.string('file_name', 255).nullable();
+    table.bigInteger('size_bytes').nullable();
+    table.string('checksum', 64).nullable();
+    table.text('content_text').nullable();
+    table.binary('content_blob').nullable();
+    table
+      .timestamp('created_at', { useTz: true })
+      .notNullable()
+      .defaultTo(knex.fn.now());
+    table
+      .timestamp('updated_at', { useTz: true })
+      .notNullable()
+      .defaultTo(knex.fn.now());
+  });
 };
 
 /**
  * @param {import('knex').Knex} knex
  */
 exports.down = async function down(knex) {
+  await knex.schema.dropTableIfExists('wso2_artifact_content');
   await knex.schema.dropTableIfExists('wso2_artifacts');
 };
