@@ -340,9 +340,24 @@ export type Wso2ApiPortalCapabilities = {
   reason?: string;
 };
 
+export type Wso2ApiPortalAuthStrategy = 'manual' | 'service-account' | 'reuse-signin';
+
+export type Wso2ApiPortalAuthProviderConfig = {
+  providerId: string;
+  scopes: string[];
+};
+
+export type Wso2ApiPortalAuthConfig = {
+  mode: 'platform-login' | 'idp';
+  /** Only present when mode is 'idp'. Absent (or 'manual') means the manual token field is shown. */
+  strategy?: Wso2ApiPortalAuthStrategy;
+  reuseSignIn?: Wso2ApiPortalAuthProviderConfig;
+};
+
 export type Wso2ApiPortalInfo = {
   enabled: boolean;
   capabilities: Wso2ApiPortalCapabilities;
+  auth: Wso2ApiPortalAuthConfig;
 };
 
 export type Wso2ApiPortalSkippedDocument = {
@@ -434,9 +449,13 @@ export interface Wso2ApiPlatformApi {
     input: Wso2ApiPolicyArtifact,
   ): Promise<Wso2PolicyDiffResponse>;
   getApiPortalInfo(entityRef: CompoundEntityRef): Promise<Wso2ApiPortalInfo>;
+  /**
+   * accessToken is omitted for the 'service-account' strategy, where the
+   * backend holds its own API Portal identity and needs no token forwarded.
+   */
   publishToApiPortal(
     entityRef: CompoundEntityRef,
-    accessToken: string,
+    accessToken: string | undefined,
     overrides: Wso2ApiPortalPublishOverrides,
   ): Promise<Wso2ApiPortalPublishResult>;
   getApiPortalSubscriptions(

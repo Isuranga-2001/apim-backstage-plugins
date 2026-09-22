@@ -77,6 +77,7 @@ jest.mock('@backstage/core-plugin-api', () => ({
   createApiRef: (options: any) => options,
   useApi: (apiRef: any) =>
     apiRef?.id === 'core.config' ? mockConfigApi : mockWso2Api,
+  useApiHolder: () => ({ get: jest.fn() }),
   useRouteRef: () => (params: any) =>
     `/catalog/${params.namespace}/${params.kind}/${params.name}`,
 }));

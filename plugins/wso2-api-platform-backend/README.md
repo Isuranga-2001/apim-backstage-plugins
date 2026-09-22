@@ -173,7 +173,7 @@ wso2ApiPlatformApiPortal:
   baseUrl: ${WSO2_API_PORTAL_BASE_URL} # defaults to the production API Portal if omitted
   basePath: /api-portal/api/v0.9
   auth:
-    mode: platform-login # see "Authentication" below; 'idp' is not implemented yet
+    mode: platform-login # see "Authentication" below for 'idp' and its strategies
   defaults:
     status: PUBLISHED
     agentVisibility: VISIBLE
@@ -216,7 +216,7 @@ instead of a raw 404 from the Portal.
 ### Authentication
 
 The API Portal's own API supports two ways to authenticate: a Platform API
-login, or an IdP-issued token. Only the Platform API login is implemented:
+login, or an IdP-issued token.
 
 - **`platform-login`** (default): the backend holds no API Portal
   credentials of its own. The frontend logs into the Platform API on the
@@ -224,17 +224,118 @@ login, or an IdP-issued token. Only the Platform API login is implemented:
   call, via the `x-api-portal-access-token` request header. The backend
   simply relays that token as the Bearer token to the API Portal — nothing
   is cached or persisted.
-- **`idp`**: not implemented yet. Setting this mode while `enabled: true`
-  fails at startup with a clear error; it's reserved for a future IdP-backed
-  auth flow.
+- **`idp`**: the API Portal itself is backed by an OIDC-compliant IdP (see
+  ["Setting up the API Portal for IdP-mode publishing"](#setting-up-the-api-portal-for-idp-mode-publishing)
+  below). `auth.idp.strategy` then picks *how the plugin obtains a token*,
+  independently of that portal-side setup:
+
+  | `idp.strategy` | Acts as | Token source | Reaches the backend via |
+  |---|---|---|---|
+  | `manual` (default) | Whoever pastes it | Human, out of band | `x-api-portal-access-token` header — same as `platform-login` |
+  | `service-account` | The plugin backend itself | `grant_type=client_credentials` against `idp.serviceAccount.tokenUrl`, cached in memory until shortly before expiry | No header at all — the backend holds its own token |
+  | `reuse-signin` | The signed-in Backstage user | The *existing* Backstage sign-in provider named in `idp.reuseSignIn.providerId`, via `OAuthApi.getAccessToken()` | `x-api-portal-access-token` header, filled in automatically by the frontend |
+
+  ```yaml
+  wso2ApiPlatformApiPortal:
+    auth:
+      mode: idp
+      idp:
+        strategy: service-account # | manual | reuse-signin
+
+        # Only read when strategy: service-account
+        serviceAccount:
+          tokenUrl: https://idp.example.com/oauth2/token
+          clientId: <m2m-app-client-id>
+          clientSecret: ${API_PORTAL_SERVICE_ACCOUNT_SECRET}
+          audience: <if the IdP requires one>
+          scope: 'dp:api:manage dp:api_content:manage dp:label:read dp:subscription_plan:read'
+
+        # Only read when strategy: reuse-signin
+        reuseSignIn:
+          providerId: oauth2 # an auth provider id ALREADY configured for Backstage's own sign-in
+          scopes: ['dp:api:manage', 'dp:api_content:manage']
+  ```
 
 `POST .../api-portal/publish` returns `503` if the API Portal isn't
-reachable (checked before any publish request is sent), and `401` if the
-`x-api-portal-access-token` header is missing.
+reachable (checked before any publish request is sent), and `401` if a
+token is expected via the header but missing.
+
+**Per-user attribution with `service-account`.** Every publish made under
+`service-account` looks identical in the API Portal's own audit trail,
+regardless of which Backstage user triggered it — the shared service
+identity is what the portal sees. The Backstage actor who triggered the
+publish is still recorded in the plugin's own database, independent of
+which API Portal identity performed the call. `reuse-signin` doesn't have
+this limitation: the signed-in user's own token already carries whatever
+role/scope that person has in the IdP.
 
 **Pre-existing org entities.** Any `labels` and `subscriptionPlans` sent must
 already exist in the org — the portal links by name, it does not create
 them.
+
+## Setting up the API Portal for IdP-mode publishing
+
+This requires no change to the API Portal's own codebase — configuring
+`mode: idp` is a `configs/config.toml` edit on the API Portal deployment
+itself, done by whoever administers it (which may not be the same person
+integrating this Backstage plugin).
+
+### 1. Point the API Portal at an IdP
+
+In the API Portal's `configs/config.toml`:
+
+- `[api_portal.auth] mode = "idp"` and an `[api_portal.auth.idp]` block:
+  `issuer`, `authorization_url`, `token_url`, `jwks_url`, `client_id`,
+  `client_secret`, `audience`, `callback_url`, `scope`. This is generic —
+  any OIDC-compliant IdP works, sourced from that IdP's own
+  `.well-known/openid-configuration`.
+- `[api_portal.auth] idp_org_id` and `[api_portal.auth.claim_mappings]` — the
+  organization-claim match. Skipping this 403s every request, and the error
+  surfaces as a generic 403/HTML page rather than a clear message, so it's
+  easy to miss.
+- `[api_portal.auth.authorization]`'s `role` vs `scope` mode, and which
+  plugin strategy needs which:
+  - `manual` and `reuse-signin` both produce a *human* token → `role` mode
+    fits naturally (a `roles` claim, expanded via
+    `resources/role-to-scope-mapping.yaml`).
+  - `service-account` produces a *machine* token from a client-credentials
+    grant → `scope` mode is the documented, supported path
+    (`role-to-scope-mapping.yaml`'s `platform-api-system` entry exists for
+    exactly this).
+
+See the API Portal repo's own `docs/administer/authentication.md` and
+`docs/administer/asgardeo-setup.md` for the full reference — this plugin
+doesn't own that repo and won't duplicate its content.
+
+### 2. Getting started with Asgardeo
+
+For `manual` and `reuse-signin`, set up an Asgardeo Traditional Web App
+(redirect URLs, a `roles` claim on the token, a `dp_admin` role assigned to
+a test user), point `config.toml` at it, and restart — both produce the
+same *shape* of human token, so one reference setup covers them.
+
+For `service-account`, use an Asgardeo **M2M application** instead of a
+Traditional Web App, and switch `authorization.mode` to `scope` per step 1
+above. A client-credentials grant only issues the `scope`s the app has
+been explicitly authorized for in the Asgardeo console (under that app's
+API Authorization tab) — the plugin's own `serviceAccount.scope` config is
+only what gets *requested*; Asgardeo decides what's actually *granted*.
+
+### Credentials summary
+
+| Strategy | Where the credential lives | Who provisions it |
+|---|---|---|
+| `manual` | Nowhere — typed in per publish | Whoever is publishing |
+| `service-account` | `wso2ApiPlatformApiPortal.auth.idp.serviceAccount` in `app-config` (secret) | Backstage operator, once |
+| `reuse-signin` | Nowhere new — reuses Backstage's existing sign-in credential | Whoever already administers Backstage's primary auth provider |
+
+**`reuse-signin` and the API Portal's `audience` check.** `reuse-signin`
+only works if the API Portal's `audience` check accepts Backstage's own
+client's tokens — either because they're registered against the same IdP
+application, or because `audience` is deliberately left blank to skip that
+check. The latter is a real trade-off (any valid token from that IdP
+tenant becomes usable against the API Portal, not just ones meant for it)
+and should be a documented, deliberate operator choice.
 
 ## License
 

@@ -27,6 +27,7 @@ const UNAVAILABLE: Wso2ApiPortalInfo = {
     publish: false,
     reason: 'Failed to load the API Portal status.',
   },
+  auth: { mode: 'platform-login' },
 };
 
 /** Fetches the API Portal enablement + publish capability for this entity. */
@@ -64,6 +65,7 @@ export function useApiPortalCapabilities(
               ? {
                   enabled: false,
                   capabilities: { publish: false, reason: e.message },
+                  auth: { mode: 'platform-login' },
                 }
               : UNAVAILABLE,
           );

@@ -134,6 +134,7 @@ const PORTAL_ROOT_URL = `${PORTAL_BASE_URL}/api-portal/api/v0.9`;
 const CREATE_API_URL = `${PORTAL_ROOT_URL}/apis`;
 const GET_API_URL = `${CREATE_API_URL}/payment-api-service-v1.0`;
 const PORTAL_TOKEN_HEADER = 'x-api-portal-access-token';
+const SERVICE_ACCOUNT_TOKEN_URL = 'https://idp.example.com/oauth2/token';
 
 function jsonResponse(status: number, body: unknown) {
   return {
@@ -210,8 +211,14 @@ describe('api-portal routes', () => {
       });
   }
 
-  function mockPortalReachableAndPublishable() {
+  function mockPortalReachableAndPublishable(options: { serviceAccountToken?: string } = {}) {
     mockFetch.mockImplementation(async (url: any) => {
+      if (options.serviceAccountToken && url === SERVICE_ACCOUNT_TOKEN_URL) {
+        return jsonResponse(200, {
+          access_token: options.serviceAccountToken,
+          expires_in: 3600,
+        });
+      }
       if (url === PORTAL_ROOT_URL) {
         return jsonResponse(200, {});
       }
@@ -257,6 +264,34 @@ describe('api-portal routes', () => {
       expect(res.body.capabilities).toEqual({
         publish: false,
         reason: 'The API Portal integration is not enabled',
+      });
+    });
+
+    it('reports auth.mode platform-login and no strategy by default', async () => {
+      await buildApp();
+      const res = await request(app).get(PAYMENT_API_PATH);
+      expect(res.body.auth).toEqual({
+        mode: 'platform-login',
+        strategy: undefined,
+        reuseSignIn: undefined,
+      });
+    });
+
+    it('reports the configured idp strategy', async () => {
+      await buildApp({
+        auth: {
+          mode: 'idp',
+          idp: {
+            strategy: 'reuse-signin',
+            reuseSignIn: { providerId: 'oauth2', scopes: ['dp:api:manage'] },
+          },
+        },
+      });
+      const res = await request(app).get(PAYMENT_API_PATH);
+      expect(res.body.auth).toEqual({
+        mode: 'idp',
+        strategy: 'reuse-signin',
+        reuseSignIn: { providerId: 'oauth2', scopes: ['dp:api:manage'] },
       });
     });
 
@@ -498,6 +533,64 @@ describe('api-portal routes', () => {
       expect(mockFetch.mock.calls.some(([url]) => url === CREATE_API_URL)).toBe(
         false,
       );
+    });
+  });
+
+  describe('POST .../api-portal/publish — service-account strategy', () => {
+    const PUBLISH_OVERRIDES = {
+      displayName: 'Payment API (Portal)',
+      productionEndpoint: 'https://gw.example.com/payments',
+      labels: ['default'],
+    };
+
+    async function buildServiceAccountApp() {
+      await buildApp({
+        auth: {
+          mode: 'idp',
+          idp: {
+            strategy: 'service-account',
+            serviceAccount: {
+              tokenUrl: SERVICE_ACCOUNT_TOKEN_URL,
+              clientId: 'client-id',
+              clientSecret: 'client-secret',
+            },
+          },
+        },
+      });
+    }
+
+    it('publishes without requiring the portal-token header, fetching a token server-side instead', async () => {
+      await buildServiceAccountApp();
+      await seedDefinition();
+      mockPortalReachableAndPublishable({ serviceAccountToken: 'sa-token' });
+
+      const res = await request(app)
+        .post(`${PAYMENT_API_PATH}/publish`)
+        .send(PUBLISH_OVERRIDES);
+
+      expect(res.status).toBe(200);
+      const createCall = mockFetch.mock.calls.find(
+        ([url]) => url === CREATE_API_URL,
+      );
+      const createHeaders = (createCall?.[1]?.headers ?? {}) as Record<
+        string,
+        string
+      >;
+      expect(createHeaders.Authorization).toBe('Bearer sa-token');
+    });
+
+    it('reuses the cached service-account token across successive publishes', async () => {
+      await buildServiceAccountApp();
+      await seedDefinition();
+      mockPortalReachableAndPublishable({ serviceAccountToken: 'sa-token' });
+
+      await request(app).post(`${PAYMENT_API_PATH}/publish`).send(PUBLISH_OVERRIDES);
+      await request(app).post(`${PAYMENT_API_PATH}/publish`).send(PUBLISH_OVERRIDES);
+
+      const tokenCalls = mockFetch.mock.calls.filter(
+        ([url]) => url === SERVICE_ACCOUNT_TOKEN_URL,
+      );
+      expect(tokenCalls).toHaveLength(1);
     });
   });
 

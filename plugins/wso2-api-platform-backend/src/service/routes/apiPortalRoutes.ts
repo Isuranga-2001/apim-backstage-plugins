@@ -148,6 +148,7 @@ export function registerApiPortalRoutes(
     apiPortalDocumentStore: documentStore,
     apiPortalSubscriptionStore: subscriptionStore,
   } = context as Required<RouteContext>;
+  const tokenProvider = context.apiPortalTokenProvider;
 
   async function resolve(req: express.Request) {
     const credentials = await httpAuth.credentials(req, { allow: ['user'] });
@@ -200,6 +201,17 @@ export function registerApiPortalRoutes(
     res.json({
       enabled: config.enabled,
       capabilities: await computeCapabilities(apiRef),
+      auth: {
+        mode: config.auth.mode,
+        // Only present when mode is 'idp'. Absent (or 'manual') → the
+        // frontend shows the manual token field; anything else → it
+        // acquires the token itself and never shows the field.
+        strategy:
+          config.auth.mode === 'idp'
+            ? config.auth.idp?.strategy ?? 'manual'
+            : undefined,
+        reuseSignIn: config.auth.idp?.reuseSignIn,
+      },
     });
   });
 
@@ -252,7 +264,9 @@ export function registerApiPortalRoutes(
   });
 
   router.post(PUBLISH_PATH, async (req, res) => {
-    const accessToken = requirePortalToken(req);
+    const accessToken = tokenProvider
+      ? await tokenProvider.getAccessToken()
+      : requirePortalToken(req);
     const overrides = requirePublishOverrides(req);
     const { apiRef, entity } = await resolve(req);
     await portalClient.checkAccessible();

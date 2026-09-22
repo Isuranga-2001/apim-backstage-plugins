@@ -29,10 +29,15 @@ import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import Snackbar from '@material-ui/core/Snackbar';
 import TextField from '@material-ui/core/TextField';
+import Typography from '@material-ui/core/Typography';
 import Alert from '@material-ui/lab/Alert';
 import Autocomplete from '@material-ui/lab/Autocomplete';
-import { Wso2ApiPortalPublishResult } from '../../../../api';
+import {
+  Wso2ApiPortalAuthConfig,
+  Wso2ApiPortalPublishResult,
+} from '../../../../api';
 import { useApiPortalPublish } from '../hooks/useApiPortalPublish';
+import { useApiPortalAuth } from '../../../../hooks/useApiPortalAuth';
 
 const GATEWAY_ENDPOINTS_ANNOTATION = 'wso2-gateway.com/api-endpoints';
 const DEFAULT_LABELS = ['default'];
@@ -58,14 +63,16 @@ export const PublishToApiPortalDialog = (options: {
   open: boolean;
   onClose: () => void;
   onPublished: (result: Wso2ApiPortalPublishResult) => void;
+  authConfig: Wso2ApiPortalAuthConfig;
 }) => {
-  const { entity, open, onClose, onPublished } = options;
+  const { entity, open, onClose, onPublished, authConfig } = options;
   const configApi = useApi(configApiRef);
   const baseUrl = configApi.getOptionalString(
     'wso2ApiPlatformApiPortal.baseUrl',
   );
   const { submitting, publish, snackbar, closeSnackbar } =
     useApiPortalPublish(entity);
+  const authState = useApiPortalAuth(authConfig);
 
   const defaultDisplayName = entity.metadata.title || entity.metadata.name;
   const endpointOptions = productionEndpointOptions(entity);
@@ -85,11 +92,52 @@ export const PublishToApiPortalDialog = (options: {
   const [labelsError, setLabelsError] = useState<string | null>(null);
   const [documentWarnings, setDocumentWarnings] = useState<string[]>([]);
 
+  // Auto-acquired token state (reuse-signin). On
+  // failure we fall back to the manual field rather than dead-ending.
+  const [autoToken, setAutoToken] = useState<string | undefined>(undefined);
+  const [autoTokenFetching, setAutoTokenFetching] = useState(false);
+  const [autoTokenError, setAutoTokenError] = useState<string | null>(null);
+  const showManualField =
+    authState.mode === 'manual' || (authState.mode === 'auto' && !!autoTokenError);
+
   useEffect(() => {
     if (open) {
       setToken(lastUsedApiPortalToken);
     }
   }, [open]);
+
+  useEffect(() => {
+    if (!open || authState.mode !== 'auto') {
+      return undefined;
+    }
+    let cancelled = false;
+    setAutoToken(undefined);
+    setAutoTokenError(null);
+    setAutoTokenFetching(true);
+    authState
+      .getToken()
+      .then(t => {
+        if (!cancelled) {
+          setAutoToken(t);
+        }
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) {
+          setAutoTokenError(
+            e instanceof Error ? e.message : 'Failed to acquire an API Portal token.',
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setAutoTokenFetching(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, authState.mode]);
 
   const handleClose = () => {
     if (submitting) {
@@ -102,13 +150,23 @@ export const PublishToApiPortalDialog = (options: {
     setError(null);
     setLabelsError(null);
     setDocumentWarnings([]);
+    setAutoToken(undefined);
+    setAutoTokenError(null);
     onClose();
   };
 
   const handleConfirm = async () => {
-    if (!token.trim()) {
-      setError('A Platform API access token is required.');
-      return;
+    let accessToken: string | undefined;
+    if (authState.mode === 'service-account') {
+      accessToken = undefined;
+    } else if (authState.mode === 'auto' && !showManualField) {
+      accessToken = autoToken;
+    } else {
+      if (!token.trim()) {
+        setError('A Platform API access token is required.');
+        return;
+      }
+      accessToken = token.trim();
     }
     if (!displayName.trim()) {
       setError('A display name is required.');
@@ -128,7 +186,7 @@ export const PublishToApiPortalDialog = (options: {
     setLabelsError(null);
     setDocumentWarnings([]);
     try {
-      const result = await publish(token.trim(), {
+      const result = await publish(accessToken, {
         displayName: displayName.trim(),
         productionEndpoint: productionEndpoint.trim(),
         sandboxEndpoint: sandboxEndpoint.trim() || undefined,
@@ -175,20 +233,34 @@ export const PublishToApiPortalDialog = (options: {
               ? `This will publish the API to ${baseUrl}.`
               : 'No API Portal base URL is configured.'}
           </DialogContentText>
-          <TextField
-            id="api-portal-access-token"
-            fullWidth
-            type="password"
-            label="Platform API Access Token"
-            helperText="Defaults to the last token used in this browser session — you can override it."
-            value={token}
-            onChange={e => {
-              const value = e.target.value;
-              setToken(value);
-              lastUsedApiPortalToken = value;
-            }}
-            disabled={submitting}
-          />
+          {showManualField && (
+            <TextField
+              id="api-portal-access-token"
+              fullWidth
+              type="password"
+              label="Platform API Access Token"
+              helperText={
+                autoTokenError ??
+                'Defaults to the last token used in this browser session — you can override it.'
+              }
+              error={!!autoTokenError}
+              value={token}
+              onChange={e => {
+                const value = e.target.value;
+                setToken(value);
+                lastUsedApiPortalToken = value;
+              }}
+              disabled={submitting}
+            />
+          )}
+          {authState.mode === 'auto' && !showManualField && autoTokenFetching && (
+            <Box mb={2} display="flex" alignItems="center">
+              <CircularProgress size={16} style={{ marginRight: 8 }} />
+              <Typography variant="body2">
+                Acquiring an API Portal access token…
+              </Typography>
+            </Box>
+          )}
           <Box mt={2}>
             <TextField
               id="api-portal-display-name"
@@ -285,7 +357,11 @@ export const PublishToApiPortalDialog = (options: {
             variant="contained"
             color="primary"
             onClick={handleConfirm}
-            disabled={submitting || !baseUrl}
+            disabled={
+              submitting ||
+              !baseUrl ||
+              (authState.mode === 'auto' && !showManualField && autoTokenFetching)
+            }
           >
             {submitting ? <CircularProgress size={20} /> : 'Publish'}
           </Button>

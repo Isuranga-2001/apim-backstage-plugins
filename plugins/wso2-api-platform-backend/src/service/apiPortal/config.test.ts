@@ -51,14 +51,13 @@ describe('readApiPortalConfig', () => {
     ).toThrow(/use 'platform-login' or 'idp'/);
   });
 
-  it('rejects mode idp when enabled — not implemented yet', () => {
-    expect(() =>
-      readApiPortalConfig(
-        new ConfigReader({
-          wso2ApiPlatformApiPortal: { enabled: true, auth: { mode: 'idp' } },
-        }),
-      ),
-    ).toThrow(/not implemented yet/);
+  it('allows mode idp when enabled, defaulting the strategy to manual', () => {
+    const result = readApiPortalConfig(
+      new ConfigReader({
+        wso2ApiPlatformApiPortal: { enabled: true, auth: { mode: 'idp' } },
+      }),
+    );
+    expect(result.auth).toEqual({ mode: 'idp', idp: { strategy: 'manual' } });
   });
 
   it('allows mode idp when disabled', () => {
@@ -69,5 +68,88 @@ describe('readApiPortalConfig', () => {
         }),
       ),
     ).not.toThrow();
+  });
+
+  it('rejects an unsupported idp.strategy', () => {
+    expect(() =>
+      readApiPortalConfig(
+        new ConfigReader({
+          wso2ApiPlatformApiPortal: {
+            enabled: true,
+            auth: { mode: 'idp', idp: { strategy: 'bogus' } },
+          },
+        }),
+      ),
+    ).toThrow(/idp.strategy 'bogus' is not supported/);
+  });
+
+  it('reads a service-account strategy configuration, applying the default scope', () => {
+    const result = readApiPortalConfig(
+      new ConfigReader({
+        wso2ApiPlatformApiPortal: {
+          enabled: true,
+          auth: {
+            mode: 'idp',
+            idp: {
+              strategy: 'service-account',
+              serviceAccount: {
+                tokenUrl: 'https://idp.example.com/oauth2/token',
+                clientId: 'client-id',
+                clientSecret: 'client-secret',
+              },
+            },
+          },
+        },
+      }),
+    );
+    expect(result.auth).toEqual({
+      mode: 'idp',
+      idp: {
+        strategy: 'service-account',
+        serviceAccount: {
+          tokenUrl: 'https://idp.example.com/oauth2/token',
+          clientId: 'client-id',
+          clientSecret: 'client-secret',
+          audience: undefined,
+          scope:
+            'dp:api:manage dp:api_content:manage dp:label:read dp:subscription_plan:read',
+        },
+        reuseSignIn: undefined,
+      },
+    });
+  });
+
+  it('requires serviceAccount fields when enabled and strategy is service-account', () => {
+    expect(() =>
+      readApiPortalConfig(
+        new ConfigReader({
+          wso2ApiPlatformApiPortal: {
+            enabled: true,
+            auth: { mode: 'idp', idp: { strategy: 'service-account' } },
+          },
+        }),
+      ),
+    ).toThrow();
+  });
+
+  it('reads a reuse-signin strategy configuration', () => {
+    const result = readApiPortalConfig(
+      new ConfigReader({
+        wso2ApiPlatformApiPortal: {
+          enabled: true,
+          auth: {
+            mode: 'idp',
+            idp: {
+              strategy: 'reuse-signin',
+              reuseSignIn: { providerId: 'oauth2', scopes: ['dp:api:manage'] },
+            },
+          },
+        },
+      }),
+    );
+    expect(result.auth.idp?.reuseSignIn).toEqual({
+      providerId: 'oauth2',
+      scopes: ['dp:api:manage'],
+    });
   });
 });

@@ -48,7 +48,7 @@ export const useApiPortalPublish = (entity: Entity) => {
   const closeSnackbar = () => setSnackbar(s => ({ ...s, open: false }));
 
   const publish = async (
-    accessToken: string,
+    accessToken: string | undefined,
     overrides: Wso2ApiPortalPublishOverrides,
   ): Promise<Wso2ApiPortalPublishResult> => {
     setSubmitting(true);

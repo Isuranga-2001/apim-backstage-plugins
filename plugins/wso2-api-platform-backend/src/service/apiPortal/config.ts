@@ -21,14 +21,37 @@ import { RootConfigService } from '@backstage/backend-plugin-api';
 export const DEFAULT_API_PORTAL_BASE_URL =
   'https://devportal.preview-dv.bijira.dev';
 export const DEFAULT_API_PORTAL_BASE_PATH = '/api-portal/api/v0.9';
+export const DEFAULT_SERVICE_ACCOUNT_SCOPE =
+  'dp:api:manage dp:api_content:manage dp:label:read dp:subscription_plan:read';
 
 export type ApiPortalAuthMode = 'platform-login' | 'idp';
+export type ApiPortalIdpStrategy = 'manual' | 'service-account' | 'reuse-signin';
+
+export type ApiPortalServiceAccountConfig = {
+  tokenUrl: string;
+  clientId: string;
+  clientSecret: string;
+  audience?: string;
+  scope: string;
+};
+
+export type ApiPortalReuseSignInConfig = {
+  providerId: string;
+  scopes: string[];
+};
 
 export type ApiPortalConfig = {
   enabled: boolean;
   baseUrl: string;
   basePath: string;
-  auth: { mode: ApiPortalAuthMode };
+  auth: {
+    mode: ApiPortalAuthMode;
+    idp?: {
+      strategy: ApiPortalIdpStrategy;
+      serviceAccount?: ApiPortalServiceAccountConfig;
+      reuseSignIn?: ApiPortalReuseSignInConfig;
+    };
+  };
   defaults: {
     status: 'PUBLISHED' | 'DEPRECATED';
     subscriptionPlans: string[];
@@ -92,12 +115,63 @@ export function readApiPortalConfig(
       `wso2ApiPlatformApiPortal.auth.mode '${authMode}' is not supported; use 'platform-login' or 'idp'`,
     );
   }
-  if (enabled && authMode === 'idp') {
+
+  const strategy =
+    authMode === 'idp'
+      ? (getOptionalString(config, 'wso2ApiPlatformApiPortal.auth.idp.strategy') as
+          | ApiPortalIdpStrategy
+          | undefined) ?? 'manual'
+      : undefined;
+  if (strategy && !['manual', 'service-account', 'reuse-signin'].includes(strategy)) {
     throw new Error(
-      "wso2ApiPlatformApiPortal.auth.mode 'idp' is not implemented yet; use 'platform-login'",
+      `wso2ApiPlatformApiPortal.auth.idp.strategy '${strategy}' is not supported`,
     );
   }
-  const auth: ApiPortalConfig['auth'] = { mode: authMode };
+
+  // Fail at startup, not at first publish click — same discipline as every
+  // other required-when-enabled field in this file.
+  const serviceAccount: ApiPortalServiceAccountConfig | undefined =
+    enabled && strategy === 'service-account'
+      ? {
+          tokenUrl: config.getString(
+            'wso2ApiPlatformApiPortal.auth.idp.serviceAccount.tokenUrl',
+          ),
+          clientId: config.getString(
+            'wso2ApiPlatformApiPortal.auth.idp.serviceAccount.clientId',
+          ),
+          clientSecret: config.getString(
+            'wso2ApiPlatformApiPortal.auth.idp.serviceAccount.clientSecret',
+          ),
+          audience: getOptionalString(
+            config,
+            'wso2ApiPlatformApiPortal.auth.idp.serviceAccount.audience',
+          ),
+          scope:
+            getOptionalString(
+              config,
+              'wso2ApiPlatformApiPortal.auth.idp.serviceAccount.scope',
+            ) ?? DEFAULT_SERVICE_ACCOUNT_SCOPE,
+        }
+      : undefined;
+
+  const reuseSignIn: ApiPortalReuseSignInConfig | undefined =
+    enabled && strategy === 'reuse-signin'
+      ? {
+          providerId: config.getString(
+            'wso2ApiPlatformApiPortal.auth.idp.reuseSignIn.providerId',
+          ),
+          scopes:
+            getOptionalStringArray(
+              config,
+              'wso2ApiPlatformApiPortal.auth.idp.reuseSignIn.scopes',
+            ) ?? [],
+        }
+      : undefined;
+
+  const auth: ApiPortalConfig['auth'] = {
+    mode: authMode,
+    ...(strategy ? { idp: { strategy, serviceAccount, reuseSignIn } } : {}),
+  };
 
   const status =
     (getOptionalString(config, 'wso2ApiPlatformApiPortal.defaults.status') as

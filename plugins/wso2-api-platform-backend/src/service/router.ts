@@ -56,6 +56,7 @@ import { DatabaseApiDefinitionStore } from './documents/stores/DatabaseApiDefini
 import { DatabaseApiSubscriptionPlanStore } from './documents/stores/DatabaseApiSubscriptionPlanStore';
 import { readApiPortalConfig } from './apiPortal/config';
 import { ApiPortalClient } from './apiPortal/ApiPortalClient';
+import { ServiceAccountTokenProvider } from './apiPortal/ServiceAccountTokenProvider';
 
 export interface RouterOptions {
   auth?: AuthService;
@@ -160,11 +161,18 @@ export async function createRouter(
       subscriptionDao,
     );
 
+    const apiPortalTokenProvider =
+      apiPortalConfig.auth.mode === 'idp' &&
+      apiPortalConfig.auth.idp?.strategy === 'service-account'
+        ? new ServiceAccountTokenProvider(apiPortalConfig, logger)
+        : undefined;
+
     registerApiPortalRoutes(router, {
       ...routeContext,
       httpAuth,
       catalog,
       apiPortalClient: new ApiPortalClient(apiPortalConfig, logger),
+      apiPortalTokenProvider,
       apiPortalDefinitionStore: definitionDatabaseStore,
       apiPortalDocumentStore: databaseStore,
       apiPortalSubscriptionStore: subscriptionStore,

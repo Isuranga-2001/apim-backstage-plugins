@@ -116,6 +116,38 @@ export interface Config {
     auth?: {
       /** Defaults to 'platform-login'. */
       mode?: 'platform-login' | 'idp';
+      /** Only read when mode is 'idp'. */
+      idp?: {
+        /**
+         * How the plugin obtains an IdP-issued token when mode is 'idp'.
+         * Defaults to 'manual' — unchanged behavior for existing deployments.
+         */
+        strategy?: 'manual' | 'service-account' | 'reuse-signin';
+        /** Only read when strategy is 'service-account'. */
+        serviceAccount?: {
+          /** Required when strategy is 'service-account' and enabled is true. */
+          tokenUrl?: string;
+          /** Required when strategy is 'service-account' and enabled is true. */
+          clientId?: string;
+          /**
+           * Required when strategy is 'service-account' and enabled is true.
+           * @visibility secret
+           */
+          clientSecret?: string;
+          audience?: string;
+          /**
+           * Defaults to
+           * 'dp:api:manage dp:api_content:manage dp:label:read dp:subscription_plan:read'.
+           */
+          scope?: string;
+        };
+        /** Only read when strategy is 'reuse-signin'. */
+        reuseSignIn?: {
+          /** Required when strategy is 'reuse-signin'. Id of an EXISTING Backstage auth provider. */
+          providerId?: string;
+          scopes?: string[];
+        };
+      };
     };
     defaults?: {
       /** API status. */

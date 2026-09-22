@@ -50,13 +50,28 @@ wso2ApiPlatform:
     clientId: your_client_id_here
     clientSecret: your_client_secret_here
     tokenUrl: https://127.0.0.1:9443/oauth2/token
-  apiPortal:
-    enabled: true
-    baseUrl: https://localhost:9543
-    auth:
-      mode: platform-login
-    tls:
-      rejectUnauthorized: false
+
+# wso2ApiPlatformApiPortal is its own top-level block, not nested under
+# wso2ApiPlatform — see plugins/wso2-api-platform-backend/README.md
+# "API Portal publishing" for the full auth.idp.strategy reference.
+wso2ApiPlatformApiPortal:
+  enabled: true
+  baseUrl: https://localhost:9543
+  tls:
+    rejectUnauthorized: false
+  auth:
+    mode: platform-login
+    # mode: idp
+    # idp:
+    #   strategy: service-account # | manual | reuse-signin
+    #   serviceAccount:
+    #     tokenUrl: https://idp.example.com/oauth2/token
+    #     clientId: your_m2m_client_id_here
+    #     clientSecret: your_m2m_client_secret_here
+    #     scope: 'dp:api:manage dp:api_content:manage dp:label:read dp:subscription_plan:read'
+    #   reuseSignIn:
+    #     providerId: oauth2
+    #     scopes: ['dp:api:manage', 'dp:api_content:manage']
 
 # Self-Hosted Gateway Configuration
 wso2ApiPlatformGateway:

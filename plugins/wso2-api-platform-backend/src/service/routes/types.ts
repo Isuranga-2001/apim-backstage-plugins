@@ -32,6 +32,7 @@ import { ApiDocumentStore } from '../documents/stores/ApiDocumentStore';
 import { ApiSubscriptionPlanStore } from '../documents/stores/ApiSubscriptionPlanStore';
 import { ApiPortalConfig } from '../apiPortal/config';
 import { ApiPortalClient } from '../apiPortal/ApiPortalClient';
+import { ApiPortalTokenProvider } from '../apiPortal/tokenProvider';
 
 export type EnsureAuthenticated = (
   req: express.Request,
@@ -56,6 +57,10 @@ export type RouteContext = {
   policyStorage?: PolicyStorageConfig;
   apiPortalConfig?: ApiPortalConfig;
   apiPortalClient?: ApiPortalClient;
+  // Present only when auth.idp.strategy is 'service-account'; every other
+  // strategy (including 'platform-login') still expects the frontend to
+  // forward a token via the x-api-portal-access-token header.
+  apiPortalTokenProvider?: ApiPortalTokenProvider;
   apiPortalDefinitionStore?: ApiDefinitionStore;
   apiPortalDocumentStore?: ApiDocumentStore;
   apiPortalSubscriptionStore?: ApiSubscriptionPlanStore;

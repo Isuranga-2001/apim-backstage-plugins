@@ -381,7 +381,7 @@ export class Wso2ApiPlatformClient implements Wso2ApiPlatformApi {
 
   async publishToApiPortal(
     entityRef: CompoundEntityRef,
-    accessToken: string,
+    accessToken: string | undefined,
     overrides: Wso2ApiPortalPublishOverrides,
   ): Promise<Wso2ApiPortalPublishResult> {
     return this.request<Wso2ApiPortalPublishResult>(
