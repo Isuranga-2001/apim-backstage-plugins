@@ -340,7 +340,10 @@ export type Wso2ApiPortalCapabilities = {
   reason?: string;
 };
 
-export type Wso2ApiPortalAuthStrategy = 'manual' | 'service-account' | 'reuse-signin';
+export type Wso2ApiPortalAuthStrategy =
+  | 'manual'
+  | 'service-account'
+  | 'reuse-signin';
 
 export type Wso2ApiPortalAuthProviderConfig = {
   providerId: string;

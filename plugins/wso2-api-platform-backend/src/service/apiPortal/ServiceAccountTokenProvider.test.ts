@@ -33,7 +33,9 @@ jest.mock('undici', () => {
 const mockFetch = jest.mocked(undiciFetch);
 
 function buildConfig(
-  overrides: Partial<NonNullable<ApiPortalConfig['auth']['idp']>['serviceAccount']> = {},
+  overrides: Partial<
+    NonNullable<ApiPortalConfig['auth']['idp']>['serviceAccount']
+  > = {},
 ): ApiPortalConfig {
   return {
     enabled: true,
@@ -116,8 +118,12 @@ describe('ServiceAccountTokenProvider', () => {
 
   it('refetches once the cached token is within the expiry safety margin', async () => {
     mockFetch
-      .mockResolvedValueOnce(jsonResponse({ access_token: 'token-1', expires_in: 30 }))
-      .mockResolvedValueOnce(jsonResponse({ access_token: 'token-2', expires_in: 3600 }));
+      .mockResolvedValueOnce(
+        jsonResponse({ access_token: 'token-1', expires_in: 30 }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ access_token: 'token-2', expires_in: 3600 }),
+      );
     const provider = new ServiceAccountTokenProvider(buildConfig(), logger);
 
     const first = await provider.getAccessToken();

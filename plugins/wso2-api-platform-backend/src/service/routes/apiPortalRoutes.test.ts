@@ -211,7 +211,9 @@ describe('api-portal routes', () => {
       });
   }
 
-  function mockPortalReachableAndPublishable(options: { serviceAccountToken?: string } = {}) {
+  function mockPortalReachableAndPublishable(
+    options: { serviceAccountToken?: string } = {},
+  ) {
     mockFetch.mockImplementation(async (url: any) => {
       if (options.serviceAccountToken && url === SERVICE_ACCOUNT_TOKEN_URL) {
         return jsonResponse(200, {
@@ -584,8 +586,12 @@ describe('api-portal routes', () => {
       await seedDefinition();
       mockPortalReachableAndPublishable({ serviceAccountToken: 'sa-token' });
 
-      await request(app).post(`${PAYMENT_API_PATH}/publish`).send(PUBLISH_OVERRIDES);
-      await request(app).post(`${PAYMENT_API_PATH}/publish`).send(PUBLISH_OVERRIDES);
+      await request(app)
+        .post(`${PAYMENT_API_PATH}/publish`)
+        .send(PUBLISH_OVERRIDES);
+      await request(app)
+        .post(`${PAYMENT_API_PATH}/publish`)
+        .send(PUBLISH_OVERRIDES);
 
       const tokenCalls = mockFetch.mock.calls.filter(
         ([url]) => url === SERVICE_ACCOUNT_TOKEN_URL,

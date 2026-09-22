@@ -17,7 +17,11 @@
  */
 
 import { useMemo } from 'react';
-import { createApiRef, OAuthApi, useApiHolder } from '@backstage/core-plugin-api';
+import {
+  createApiRef,
+  OAuthApi,
+  useApiHolder,
+} from '@backstage/core-plugin-api';
 import { Wso2ApiPortalAuthConfig } from '../api';
 
 export type ApiPortalAuthState =
@@ -55,7 +59,9 @@ export function useApiPortalAuth(
     // Backstage's ApiHolder resolves an ApiRef by its `id` string, so an
     // already-registered provider can be looked up by the id named in
     // config, without a compile-time import of it.
-    const authApiRef = createApiRef<OAuthApi>({ id: providerConfig.providerId });
+    const authApiRef = createApiRef<OAuthApi>({
+      id: providerConfig.providerId,
+    });
     const authApi = apiHolder.get(authApiRef);
     if (!authApi) {
       return {

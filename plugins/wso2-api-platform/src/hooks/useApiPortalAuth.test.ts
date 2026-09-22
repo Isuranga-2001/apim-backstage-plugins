@@ -70,7 +70,10 @@ describe('useApiPortalAuth', () => {
   });
 
   it('falls back to manual with an error when reuseSignIn.providerId is not configured', () => {
-    const config: Wso2ApiPortalAuthConfig = { mode: 'idp', strategy: 'reuse-signin' };
+    const config: Wso2ApiPortalAuthConfig = {
+      mode: 'idp',
+      strategy: 'reuse-signin',
+    };
     const { result } = renderHook(() => useApiPortalAuth(config));
     expect(result.current.mode).toBe('manual');
     expect((result.current as any).error).toMatch(/reuseSignIn.providerId/);

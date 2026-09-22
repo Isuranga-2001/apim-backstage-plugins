@@ -25,7 +25,10 @@ export const DEFAULT_SERVICE_ACCOUNT_SCOPE =
   'dp:api:manage dp:api_content:manage dp:label:read dp:subscription_plan:read';
 
 export type ApiPortalAuthMode = 'platform-login' | 'idp';
-export type ApiPortalIdpStrategy = 'manual' | 'service-account' | 'reuse-signin';
+export type ApiPortalIdpStrategy =
+  | 'manual'
+  | 'service-account'
+  | 'reuse-signin';
 
 export type ApiPortalServiceAccountConfig = {
   tokenUrl: string;
@@ -118,11 +121,15 @@ export function readApiPortalConfig(
 
   const strategy =
     authMode === 'idp'
-      ? (getOptionalString(config, 'wso2ApiPlatformApiPortal.auth.idp.strategy') as
-          | ApiPortalIdpStrategy
-          | undefined) ?? 'manual'
+      ? (getOptionalString(
+          config,
+          'wso2ApiPlatformApiPortal.auth.idp.strategy',
+        ) as ApiPortalIdpStrategy | undefined) ?? 'manual'
       : undefined;
-  if (strategy && !['manual', 'service-account', 'reuse-signin'].includes(strategy)) {
+  if (
+    strategy &&
+    !['manual', 'service-account', 'reuse-signin'].includes(strategy)
+  ) {
     throw new Error(
       `wso2ApiPlatformApiPortal.auth.idp.strategy '${strategy}' is not supported`,
     );

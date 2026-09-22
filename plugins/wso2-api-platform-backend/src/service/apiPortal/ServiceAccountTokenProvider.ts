@@ -38,14 +38,11 @@ export class ServiceAccountTokenProvider implements ApiPortalTokenProvider {
   private accessToken?: string;
   private tokenExpiresAt?: number;
 
-  constructor(
-    config: ApiPortalConfig,
-    private readonly logger: LoggerService,
-  ) {
+  constructor(config: ApiPortalConfig, private readonly logger: LoggerService) {
     const serviceAccount = config.auth.idp?.serviceAccount;
     if (!serviceAccount) {
       throw new Error(
-        "ServiceAccountTokenProvider requires wso2ApiPlatformApiPortal.auth.idp.serviceAccount to be configured",
+        'ServiceAccountTokenProvider requires wso2ApiPlatformApiPortal.auth.idp.serviceAccount to be configured',
       );
     }
     this.serviceAccount = serviceAccount;
@@ -70,9 +67,7 @@ export class ServiceAccountTokenProvider implements ApiPortalTokenProvider {
 
     const { tokenUrl, clientId, clientSecret, audience, scope } =
       this.serviceAccount;
-    const auth = Buffer.from(`${clientId}:${clientSecret}`).toString(
-      'base64',
-    );
+    const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 
     const params = new URLSearchParams();
     params.append('grant_type', 'client_credentials');

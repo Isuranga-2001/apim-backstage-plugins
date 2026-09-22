@@ -98,7 +98,8 @@ export const PublishToApiPortalDialog = (options: {
   const [autoTokenFetching, setAutoTokenFetching] = useState(false);
   const [autoTokenError, setAutoTokenError] = useState<string | null>(null);
   const showManualField =
-    authState.mode === 'manual' || (authState.mode === 'auto' && !!autoTokenError);
+    authState.mode === 'manual' ||
+    (authState.mode === 'auto' && !!autoTokenError);
 
   useEffect(() => {
     if (open) {
@@ -124,7 +125,9 @@ export const PublishToApiPortalDialog = (options: {
       .catch((e: unknown) => {
         if (!cancelled) {
           setAutoTokenError(
-            e instanceof Error ? e.message : 'Failed to acquire an API Portal token.',
+            e instanceof Error
+              ? e.message
+              : 'Failed to acquire an API Portal token.',
           );
         }
       })
@@ -253,14 +256,16 @@ export const PublishToApiPortalDialog = (options: {
               disabled={submitting}
             />
           )}
-          {authState.mode === 'auto' && !showManualField && autoTokenFetching && (
-            <Box mb={2} display="flex" alignItems="center">
-              <CircularProgress size={16} style={{ marginRight: 8 }} />
-              <Typography variant="body2">
-                Acquiring an API Portal access token…
-              </Typography>
-            </Box>
-          )}
+          {authState.mode === 'auto' &&
+            !showManualField &&
+            autoTokenFetching && (
+              <Box mb={2} display="flex" alignItems="center">
+                <CircularProgress size={16} style={{ marginRight: 8 }} />
+                <Typography variant="body2">
+                  Acquiring an API Portal access token…
+                </Typography>
+              </Box>
+            )}
           <Box mt={2}>
             <TextField
               id="api-portal-display-name"
@@ -360,7 +365,9 @@ export const PublishToApiPortalDialog = (options: {
             disabled={
               submitting ||
               !baseUrl ||
-              (authState.mode === 'auto' && !showManualField && autoTokenFetching)
+              (authState.mode === 'auto' &&
+                !showManualField &&
+                autoTokenFetching)
             }
           >
             {submitting ? <CircularProgress size={20} /> : 'Publish'}

@@ -226,14 +226,14 @@ login, or an IdP-issued token.
   is cached or persisted.
 - **`idp`**: the API Portal itself is backed by an OIDC-compliant IdP (see
   ["Setting up the API Portal for IdP-mode publishing"](#setting-up-the-api-portal-for-idp-mode-publishing)
-  below). `auth.idp.strategy` then picks *how the plugin obtains a token*,
+  below). `auth.idp.strategy` then picks _how the plugin obtains a token_,
   independently of that portal-side setup:
 
-  | `idp.strategy` | Acts as | Token source | Reaches the backend via |
-  |---|---|---|---|
-  | `manual` (default) | Whoever pastes it | Human, out of band | `x-api-portal-access-token` header — same as `platform-login` |
-  | `service-account` | The plugin backend itself | `grant_type=client_credentials` against `idp.serviceAccount.tokenUrl`, cached in memory until shortly before expiry | No header at all — the backend holds its own token |
-  | `reuse-signin` | The signed-in Backstage user | The *existing* Backstage sign-in provider named in `idp.reuseSignIn.providerId`, via `OAuthApi.getAccessToken()` | `x-api-portal-access-token` header, filled in automatically by the frontend |
+  | `idp.strategy`     | Acts as                      | Token source                                                                                                        | Reaches the backend via                                                     |
+  | ------------------ | ---------------------------- | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+  | `manual` (default) | Whoever pastes it            | Human, out of band                                                                                                  | `x-api-portal-access-token` header — same as `platform-login`               |
+  | `service-account`  | The plugin backend itself    | `grant_type=client_credentials` against `idp.serviceAccount.tokenUrl`, cached in memory until shortly before expiry | No header at all — the backend holds its own token                          |
+  | `reuse-signin`     | The signed-in Backstage user | The _existing_ Backstage sign-in provider named in `idp.reuseSignIn.providerId`, via `OAuthApi.getAccessToken()`    | `x-api-portal-access-token` header, filled in automatically by the frontend |
 
   ```yaml
   wso2ApiPlatformApiPortal:
@@ -295,10 +295,10 @@ In the API Portal's `configs/config.toml`:
   easy to miss.
 - `[api_portal.auth.authorization]`'s `role` vs `scope` mode, and which
   plugin strategy needs which:
-  - `manual` and `reuse-signin` both produce a *human* token → `role` mode
+  - `manual` and `reuse-signin` both produce a _human_ token → `role` mode
     fits naturally (a `roles` claim, expanded via
     `resources/role-to-scope-mapping.yaml`).
-  - `service-account` produces a *machine* token from a client-credentials
+  - `service-account` produces a _machine_ token from a client-credentials
     grant → `scope` mode is the documented, supported path
     (`role-to-scope-mapping.yaml`'s `platform-api-system` entry exists for
     exactly this).
@@ -312,22 +312,22 @@ doesn't own that repo and won't duplicate its content.
 For `manual` and `reuse-signin`, set up an Asgardeo Traditional Web App
 (redirect URLs, a `roles` claim on the token, a `dp_admin` role assigned to
 a test user), point `config.toml` at it, and restart — both produce the
-same *shape* of human token, so one reference setup covers them.
+same _shape_ of human token, so one reference setup covers them.
 
 For `service-account`, use an Asgardeo **M2M application** instead of a
 Traditional Web App, and switch `authorization.mode` to `scope` per step 1
 above. A client-credentials grant only issues the `scope`s the app has
 been explicitly authorized for in the Asgardeo console (under that app's
 API Authorization tab) — the plugin's own `serviceAccount.scope` config is
-only what gets *requested*; Asgardeo decides what's actually *granted*.
+only what gets _requested_; Asgardeo decides what's actually _granted_.
 
 ### Credentials summary
 
-| Strategy | Where the credential lives | Who provisions it |
-|---|---|---|
-| `manual` | Nowhere — typed in per publish | Whoever is publishing |
-| `service-account` | `wso2ApiPlatformApiPortal.auth.idp.serviceAccount` in `app-config` (secret) | Backstage operator, once |
-| `reuse-signin` | Nowhere new — reuses Backstage's existing sign-in credential | Whoever already administers Backstage's primary auth provider |
+| Strategy          | Where the credential lives                                                  | Who provisions it                                             |
+| ----------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `manual`          | Nowhere — typed in per publish                                              | Whoever is publishing                                         |
+| `service-account` | `wso2ApiPlatformApiPortal.auth.idp.serviceAccount` in `app-config` (secret) | Backstage operator, once                                      |
+| `reuse-signin`    | Nowhere new — reuses Backstage's existing sign-in credential                | Whoever already administers Backstage's primary auth provider |
 
 **`reuse-signin` and the API Portal's `audience` check.** `reuse-signin`
 only works if the API Portal's `audience` check accepts Backstage's own

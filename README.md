@@ -144,6 +144,45 @@ Only the **Platform API login** auth mode is currently supported for the API Por
 
 **Subscription plans.** Next to the publish buttons, a Subscription Plans panel lets you toggle which plans apply to this API: the four built-in plans (Bronze, Silver, Gold, Unlimited) are always shown, plus any custom plan IDs your org has configured under `wso2ApiPlatformApiPortal.defaults.subscriptionPlans`. Each toggle saves immediately — the selection is stored per-API alongside the API's other metadata, and it's this stored selection (not the org's full configured plan list) that gets published the next time the API is published.
 
+### Authenticating to the API Portal
+
+Publishing needs a bearer token for the Portal's own REST API. Where that token comes from is controlled by `wso2ApiPlatformApiPortal.auth` in the **backend** plugin's config (`config.d.ts`), and it changes what the dialog shows. There are two top-level methods, and the second one has three strategies for actually obtaining the token.
+
+#### 1. `platform-login` (default) — paste a token manually
+
+```yaml
+wso2ApiPlatformApiPortal:
+  auth:
+    mode: platform-login
+```
+
+The target API Portal is running its own local/dev login (a Platform API username+password session), which has no notion of an external IdP. The dialog shows a **Platform API Access Token** field; you paste in a token you obtained out of band (e.g. via the `ap` CLI or a curl login), and it's sent on that one publish call via the `x-api-portal-access-token` header. Nothing is cached — every publish needs the field filled in again (it does default to the last token used in that browser session, as a convenience).
+
+#### 2. `idp` — the API Portal is backed by an external IdP
+
+```yaml
+wso2ApiPlatformApiPortal:
+  auth:
+    mode: idp
+    idp:
+      strategy: manual # | service-account | reuse-signin
+```
+
+Use this when the API Portal instance itself is configured against a real OIDC IdP (Asgardeo, Keycloak, Entra ID, ...) rather than local/dev login. `idp.strategy` then decides _how the plugin gets a token for that IdP_ — independently of whether the Portal itself is set up correctly, which is a separate, portal-side concern (see the backend README, linked below).
+
+| Strategy           | What it's for                                                                                                                                                                                                                                                                                                                                                               | Dialog behavior                                                                                                                                                                                                                                                                                                 |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `manual` (default) | Same as `platform-login`, but for an IdP-backed Portal: no automated token acquisition is configured, so a human still pastes an IdP-issued token per publish.                                                                                                                                                                                                              | Shows the token field, same as `platform-login`.                                                                                                                                                                                                                                                                |
+| `service-account`  | The plugin backend authenticates as **its own** identity — a dedicated client-credentials app registered in the IdP, used for every publish regardless of who in Backstage triggered it. Use this when you want publishing to work without any human token-wrangling, and don't need per-user attribution on the Portal side.                                               | No token field at all — the backend acquires and caches its own token server-side. The dialog's Publish button just works.                                                                                                                                                                                      |
+| `reuse-signin`     | Your organization already has Backstage's own primary sign-in wired up against the **same IdP** the API Portal trusts. Rather than a second login, the plugin reuses that existing session and asks it for a token scoped for the Portal. Use this when you want each publish attributed to the actual signed-in Backstage user, and Backstage is already on the right IdP. | No token field — the frontend silently fetches a token from your existing sign-in provider (a brief spinner while that happens). Falls back to the manual token field if the configured provider isn't actually registered in the app, or if fetching the token fails, so publishing is never blocked outright. |
+
+Each strategy needs its own configuration, including the exact `dp:*` scopes the Portal expects and (for `service-account`) client credentials. **The full reference — required scopes per strategy, the IdP-side setup (Asgardeo walkthrough, `role`- vs `scope`-mode authorization, the `audience`/org-claim gotchas), and exact config shape for each strategy — lives in the backend plugin's README**, since that's where this config is actually read and validated:
+
+- [`plugins/wso2-api-platform-backend/README.md` § Authentication](./plugins/wso2-api-platform-backend/README.md#authentication)
+- [`plugins/wso2-api-platform-backend/README.md` § Setting up the API Portal for IdP-mode publishing](./plugins/wso2-api-platform-backend/README.md#setting-up-the-api-portal-for-idp-mode-publishing)
+
+**Attribution note.** `service-account` means every publish looks identical in the Portal's own audit trail, regardless of which Backstage user triggered it (the plugin still records the real Backstage actor in its own database). `manual` and `reuse-signin` don't have that limitation — the token used is always the actual person's own.
+
 ## Self-Hosted Gateway Integration (Open Choreo)
 
 If you are deploying self-hosted gateways using the [WSO2 API Platform Gateway Operator](https://openchoreo.dev/ecosystem/item/?id=wso2-api-platform-gateway) in your Kubernetes clusters, you can discover, display, and — once storage is enabled — manage all APIs deployed on them directly within Backstage.
