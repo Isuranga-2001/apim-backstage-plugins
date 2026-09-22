@@ -19,37 +19,63 @@ security:
   - {}
 tags:
   - name: Health
-  - name: Catalog
+  - name: Config
   - name: Gateways
   - name: APIs
-  - name: Services
   - name: Documents
+  - name: Definitions
+  - name: Policies
+  - name: API Portal
 paths:
-  /refresh:
-    post:
+  /config:
+    get:
       tags:
-        - Catalog
-      summary: Request a catalog refresh
-      operationId: refreshWso2Catalog
+        - Config
+      summary: Get resolved runtime configuration
+      description: >
+        Returns which integrations (on-prem APIM, API Platform gateway, API
+        Portal) are enabled, so the frontend can conditionally render
+        features without probing each one.
+      operationId: getWso2RuntimeConfig
       x-codeSamples:
         - lang: curl
-          label: Refresh catalog
+          label: Get runtime config
           source: |
-            curl -X POST 'http://localhost:7007/api/wso2-api-platform/refresh' \
-              -H "X-WSO2-Access-Token: $WSO2_ACCESS_TOKEN"
-      parameters:
-        - $ref: '#/components/parameters/Wso2AccessToken'
+            curl 'http://localhost:7007/api/wso2-api-platform/config'
       responses:
         '200':
-          description: Refresh request accepted.
+          description: Resolved runtime configuration.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageResponse'
-              examples:
-                accepted:
-                  value:
-                    message: Catalog refresh triggered. This may take a few moments to reflect in the catalog.
+                $ref: '#/components/schemas/RuntimeConfigResponse'
+        '500':
+          $ref: '#/components/responses/JsonError'
+  /gateways:
+    get:
+      tags:
+        - Gateways
+      summary: List gateways
+      description: >
+        Combines WSO2 APIM environments (when the on-prem API Manager is
+        enabled) with configured API Platform gateways (when the platform
+        gateway integration is enabled), probing each platform gateway's
+        management API to report Online/Offline status.
+      operationId: listWso2Gateways
+      x-codeSamples:
+        - lang: curl
+          label: List gateways
+          source: |
+            curl 'http://localhost:7007/api/wso2-api-platform/gateways'
+      responses:
+        '200':
+          description: Combined list of APIM environments and API Platform gateways.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GatewaySummary'
         '500':
           $ref: '#/components/responses/JsonError'
   /apis/{apiId}/generate-key:
@@ -57,13 +83,16 @@ paths:
       tags:
         - APIs
       summary: Generate an API key
+      description: >
+        The backend always generates the key using its own configured APIM
+        username/password (Basic Auth). The `X-WSO2-Access-Token` header, if
+        sent, is read but never forwarded to WSO2 for this call.
       operationId: generateWso2ApiKey
       x-codeSamples:
         - lang: curl
           label: Generate API key
           source: |
             curl -X POST 'http://localhost:7007/api/wso2-api-platform/apis/{apiId}/generate-key' \
-              -H "X-WSO2-Access-Token: $WSO2_ACCESS_TOKEN" \
               -H 'Content-Type: application/json' \
               -d '{
                 "keyName": "backstage-key",
@@ -115,6 +144,10 @@ paths:
       tags:
         - APIs
       summary: List API revisions
+      description: >
+        The `X-WSO2-Access-Token` header, if sent, is read but not currently
+        forwarded to WSO2 Publisher — the backend always uses its configured
+        service account token for this call.
       operationId: listWso2ApiRevisions
       x-codeSamples:
         - lang: curl
@@ -140,229 +173,33 @@ paths:
                 $ref: '#/components/schemas/Wso2ApiRevisionsResponse'
         '500':
           $ref: '#/components/responses/JsonError'
-  /services:
-    get:
-      tags:
-        - Services
-      summary: List service catalog services
-      operationId: listWso2Services
-      x-codeSamples:
-        - lang: curl
-          label: List services
-          source: |
-            curl 'http://localhost:7007/api/wso2-api-platform/services?limit=1000&offset=0' \
-              -H "X-WSO2-Access-Token: $WSO2_ACCESS_TOKEN"
-      parameters:
-        - $ref: '#/components/parameters/Wso2AccessToken'
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: integer
-            minimum: 0
-        - name: offset
-          in: query
-          required: false
-          schema:
-            type: integer
-            minimum: 0
-      responses:
-        '200':
-          description: WSO2 Service Catalog service list.
-          content:
-            application/json:
-              schema:
-                type: object
-                additionalProperties: true
-              example:
-                list:
-                  - id: 340d7c69-7a93-4b82-8d09-aaa3dee4d404
-                    name: Pizzashack-Endpoint
-                    description: A Catalog Entry that exposes a REST endpoint
-                    version: v1
-                    serviceKey: Pizzashack-Endpoint-1.0.0
-                    serviceUrl: https://localhost:9443/am/sample/pizzashack/v1/api
-                    definitionType: OAS3
-                    securityType: NONE
-                    mutualSSLEnabled: false
-                    usage: 2
-                    createdTime: '2026-06-04 06:10:55.497'
-                    lastUpdatedTime: '2026-06-04 06:10:55.497'
-                    md5: '{"hash":"b80fcd8e06b9c977bc7d11799df206de19a851b86e23340a8edc3cb37e2f1672","algorithm":"SHA-256"}'
-                    definitionUrl: null
-                pagination:
-                  offset: 0
-                  limit: 1000
-                  total: 1
-                  next: ''
-                  previous: ''
-        '500':
-          $ref: '#/components/responses/JsonError'
-  /services/{serviceId}/usage:
-    get:
-      tags:
-        - Services
-      summary: Get service usage
-      operationId: getWso2ServiceUsage
-      x-codeSamples:
-        - lang: curl
-          label: Get service usage
-          source: |
-            curl 'http://localhost:7007/api/wso2-api-platform/services/{serviceId}/usage' \
-              -H "X-WSO2-Access-Token: $WSO2_ACCESS_TOKEN"
-      parameters:
-        - $ref: '#/components/parameters/ServiceId'
-        - $ref: '#/components/parameters/Wso2AccessToken'
-      responses:
-        '200':
-          description: Service usage returned by WSO2 Service Catalog.
-          content:
-            application/json:
-              schema:
-                type: object
-                additionalProperties: true
-              example:
-                count: 2
-                list:
-                  - id: b23c8513-efe1-4d76-b02a-f08d9e1fb9cc
-                    name: endpoint1
-                    displayName: null
-                    context: /endpoint1/v1
-                    version: v1
-                    provider: admin
-                  - id: 7cfff040-eec1-4cde-9921-50bdaff24e8e
-                    name: Pizzashack-Endpoint2
-                    displayName: null
-                    context: /apiprod2/v1
-                    version: v1
-                    provider: admin
-        '500':
-          $ref: '#/components/responses/JsonError'
-  /services/{serviceId}/definition:
-    get:
-      tags:
-        - Services
-      summary: Get a service definition
-      operationId: getWso2ServiceDefinition
-      x-codeSamples:
-        - lang: curl
-          label: Get service definition
-          source: |
-            curl 'http://localhost:7007/api/wso2-api-platform/services/{serviceId}/definition' \
-              -H "X-WSO2-Access-Token: $WSO2_ACCESS_TOKEN"
-      parameters:
-        - $ref: '#/components/parameters/ServiceId'
-        - $ref: '#/components/parameters/Wso2AccessToken'
-      responses:
-        '200':
-          description: Raw service definition content.
-          content:
-            application/json:
-              schema:
-                type: object
-                additionalProperties: true
-            application/yaml:
-              schema:
-                type: string
-              example: |
-                openapi: 3.0.0
-                info:
-                  description: |
-                    This is a RESTFul API for Pizza Shack online pizza delivery store.
-                  version: 1.0.0
-                  title: PizzaShackAPI
-                  contact:
-                    name: John Doe
-                    url: http://www.pizzashack.com
-                    email: architecture@pizzashack.com
-                  license:
-                    name: Apache 2.0
-                    url: http://www.apache.org/licenses/LICENSE-2.0.html
-                servers:
-                  - url: https://localhost:9443/am/sample/pizzashack/v1/api
-                    description: Local PizzaShack service endpoint
-                paths:
-                  /menu:
-                    get:
-                      summary: List available pizzas
-                      operationId: listPizzas
-                      responses:
-                        '200':
-                          description: Available pizza menu.
-                          content:
-                            application/json:
-                              schema:
-                                type: array
-                                items:
-                                  $ref: '#/components/schemas/Pizza'
-                  /orders:
-                    post:
-                      summary: Create a pizza order
-                      operationId: createOrder
-                      requestBody:
-                        required: true
-                        content:
-                          application/json:
-                            schema:
-                              $ref: '#/components/schemas/Order'
-                      responses:
-                        '201':
-                          description: Order created.
-                          content:
-                            application/json:
-                              schema:
-                                $ref: '#/components/schemas/Order'
-                components:
-                  schemas:
-                    Pizza:
-                      type: object
-                      properties:
-                        id:
-                          type: string
-                        name:
-                          type: string
-                        price:
-                          type: number
-                          format: double
-                    Order:
-                      type: object
-                      required:
-                        - pizzaId
-                        - quantity
-                      properties:
-                        id:
-                          type: string
-                        pizzaId:
-                          type: string
-                        quantity:
-                          type: integer
-                          minimum: 1
-            text/plain:
-              schema:
-                type: string
-        '500':
-          $ref: '#/components/responses/TextError'
   /apis/{apiId}/wsdl:
     get:
       tags:
         - APIs
       summary: Stream an API WSDL document
+      description: >
+        Requests `Accept: application/zip, application/wsdl+xml, text/xml,
+        */*` from WSO2 Publisher and streams back whatever content type it
+        responds with. This route does not read `X-WSO2-Access-Token` — it
+        always uses the backend's configured service account token.
       operationId: getWso2ApiWsdl
       x-codeSamples:
         - lang: curl
           label: Download WSDL
           source: |
             curl 'http://localhost:7007/api/wso2-api-platform/apis/{apiId}/wsdl' \
-              -H "X-WSO2-Access-Token: $WSO2_ACCESS_TOKEN" \
               -o '{apiId}-wsdl'
       parameters:
         - $ref: '#/components/parameters/ApiId'
-        - $ref: '#/components/parameters/Wso2AccessToken'
       responses:
         '200':
           description: WSDL content or archive streamed from WSO2 Publisher.
           content:
             application/xml:
+              schema:
+                type: string
+            application/wsdl+xml:
               schema:
                 type: string
             application/zip:
@@ -387,13 +224,15 @@ paths:
       tags:
         - APIs
       summary: Stream API document content
+      description: >
+        This route does not read `X-WSO2-Access-Token` — it always uses the
+        backend's configured service account token.
       operationId: getWso2ApiDocumentContent
       x-codeSamples:
         - lang: curl
           label: Download API document
           source: |
             curl 'http://localhost:7007/api/wso2-api-platform/apis/{apiId}/documents/{documentId}/content' \
-              -H "X-WSO2-Access-Token: $WSO2_ACCESS_TOKEN" \
               -o 'document-{documentId}'
       parameters:
         - $ref: '#/components/parameters/ApiId'
@@ -402,7 +241,6 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/Wso2AccessToken'
       responses:
         '200':
           description: API document content. Inline WSO2 documents may be returned as text.
@@ -464,9 +302,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiDocumentListResponse'
         '404':
-          $ref: '#/components/responses/JsonError'
+          $ref: '#/components/responses/BackstageError'
         '500':
-          $ref: '#/components/responses/JsonError'
+          $ref: '#/components/responses/BackstageError'
     post:
       tags:
         - Documents
@@ -521,17 +359,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiDocument'
         '400':
-          $ref: '#/components/responses/JsonError'
+          $ref: '#/components/responses/BackstageError'
         '403':
-          $ref: '#/components/responses/JsonError'
+          $ref: '#/components/responses/BackstageError'
         '404':
-          $ref: '#/components/responses/JsonError'
+          $ref: '#/components/responses/BackstageError'
         '409':
-          $ref: '#/components/responses/JsonError'
+          $ref: '#/components/responses/BackstageError'
         '413':
-          $ref: '#/components/responses/JsonError'
+          $ref: '#/components/responses/BackstageError'
         '501':
-          $ref: '#/components/responses/JsonError'
+          $ref: '#/components/responses/BackstageError'
   /entities/{kind}/{namespace}/{name}/documents/{documentId}:
     get:
       tags:
@@ -551,7 +389,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiDocument'
         '404':
-          $ref: '#/components/responses/JsonError'
+          $ref: '#/components/responses/BackstageError'
     put:
       tags:
         - Documents
@@ -580,13 +418,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiDocument'
         '400':
-          $ref: '#/components/responses/JsonError'
+          $ref: '#/components/responses/BackstageError'
         '403':
-          $ref: '#/components/responses/JsonError'
+          $ref: '#/components/responses/BackstageError'
         '404':
-          $ref: '#/components/responses/JsonError'
+          $ref: '#/components/responses/BackstageError'
         '409':
-          $ref: '#/components/responses/JsonError'
+          $ref: '#/components/responses/BackstageError'
     delete:
       tags:
         - Documents
@@ -601,9 +439,9 @@ paths:
         '204':
           description: Document deleted.
         '403':
-          $ref: '#/components/responses/JsonError'
+          $ref: '#/components/responses/BackstageError'
         '404':
-          $ref: '#/components/responses/JsonError'
+          $ref: '#/components/responses/BackstageError'
   /entities/{kind}/{namespace}/{name}/documents/{documentId}/content:
     get:
       tags:
@@ -611,7 +449,9 @@ paths:
       summary: Get document content
       description: >
         Streams FILE/INLINE/MARKDOWN content, or responds `303 See Other`
-        with a `Location` header for URL documents.
+        with a `Location` header for URL documents. FILE documents are
+        streamed with the stored upload's own MIME type (e.g. `application/pdf`
+        for an uploaded PDF), falling back to `application/octet-stream`.
       operationId: getWso2EntityDocumentContent
       parameters:
         - $ref: '#/components/parameters/EntityKind'
@@ -628,6 +468,10 @@ paths:
             text/markdown:
               schema:
                 type: string
+            application/pdf:
+              schema:
+                type: string
+                format: binary
             application/octet-stream:
               schema:
                 type: string
@@ -635,7 +479,418 @@ paths:
         '303':
           description: Redirect to the document's source URL.
         '404':
-          $ref: '#/components/responses/JsonError'
+          $ref: '#/components/responses/BackstageError'
+  /entities/{kind}/{namespace}/{name}/definition:
+    get:
+      tags:
+        - Definitions
+      summary: Get an entity's API definition
+      description: >
+        Returns the plugin-stored OpenAPI definition (if any) and the current
+        write/delete capabilities for this API. `capabilities.delete` is only
+        true while the API Platform gateway's write operations are disabled
+        (`wso2ApiPlatformGateway.enableWriteOperations=false`) — once write
+        operations are enabled, the definition is treated as the gateway's
+        source of truth and deletion is blocked.
+      operationId: getWso2EntityDefinition
+      x-codeSamples:
+        - lang: curl
+          label: Get definition
+          source: |
+            curl 'http://localhost:7007/api/wso2-api-platform/entities/api/wso2-gateways/orders-api/definition'
+      parameters:
+        - $ref: '#/components/parameters/EntityKind'
+        - $ref: '#/components/parameters/EntityNamespace'
+        - $ref: '#/components/parameters/EntityName'
+      responses:
+        '200':
+          description: API definition (`null` if none has been stored yet) and capabilities.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiDefinitionResponse'
+        '404':
+          $ref: '#/components/responses/BackstageError'
+    put:
+      tags:
+        - Definitions
+      summary: Add or update an entity's API definition
+      description: >
+        Validates the uploaded OpenAPI YAML/JSON. For gateway-discovered
+        APIs, when the gateway is reachable, the `info.title`/`info.version`
+        are restored to match the discovered API's immutable identity, and
+        when `wso2ApiPlatformGateway.enableWriteOperations=true` the change is
+        also pushed to the API Platform gateway itself; otherwise it is
+        validated (added-mode) or applied (update-mode) only against the
+        plugin's own store. Triggers a best-effort catalog refresh and
+        catalog re-sync afterwards.
+      operationId: upsertWso2EntityDefinition
+      x-codeSamples:
+        - lang: curl
+          label: Upload a definition
+          source: |
+            curl -X PUT 'http://localhost:7007/api/wso2-api-platform/entities/api/wso2-gateways/orders-api/definition' \
+              -H 'Content-Type: application/json' \
+              -d '{
+                "fileName": "orders-api.yaml",
+                "content": "openapi: 3.0.0\ninfo:\n  title: Orders API\n  version: 1.0.0\npaths: {}\n"
+              }'
+      parameters:
+        - $ref: '#/components/parameters/EntityKind'
+        - $ref: '#/components/parameters/EntityNamespace'
+        - $ref: '#/components/parameters/EntityName'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertApiDefinitionRequest'
+      responses:
+        '200':
+          description: Stored API definition and capabilities.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiDefinitionResponse'
+        '400':
+          $ref: '#/components/responses/BackstageError'
+        '403':
+          $ref: '#/components/responses/BackstageError'
+        '404':
+          $ref: '#/components/responses/BackstageError'
+        '409':
+          $ref: '#/components/responses/BackstageError'
+        '501':
+          $ref: '#/components/responses/BackstageError'
+    delete:
+      tags:
+        - Definitions
+      summary: Delete an entity's API definition
+      description: >
+        Only allowed while gateway write operations are disabled
+        (`wso2ApiPlatformGateway.enableWriteOperations=false`) — otherwise the
+        definition is gateway-managed and deletion is rejected with 403.
+      operationId: deleteWso2EntityDefinition
+      parameters:
+        - $ref: '#/components/parameters/EntityKind'
+        - $ref: '#/components/parameters/EntityNamespace'
+        - $ref: '#/components/parameters/EntityName'
+      responses:
+        '204':
+          description: Definition deleted.
+        '403':
+          $ref: '#/components/responses/BackstageError'
+        '404':
+          $ref: '#/components/responses/BackstageError'
+        '501':
+          $ref: '#/components/responses/BackstageError'
+  /entities/{kind}/{namespace}/{name}/definition/diff:
+    post:
+      tags:
+        - Definitions
+      summary: Preview the effect of uploading a new API definition
+      description: >
+        Does not persist anything. For a gateway-discovered API with no
+        stored definition yet, diffs the uploaded content against the
+        live gateway API. If a definition is already stored and gateway
+        write operations are disabled, diffs against the stored content
+        instead. If write operations are enabled, diffs the (title/version
+        restored) uploaded content against the live gateway API. Returns
+        `{ diff: null }` when there is nothing to compare against (e.g. a
+        non-gateway API, or no gateway discovery URL configured).
+      operationId: previewWso2EntityDefinitionDiff
+      parameters:
+        - $ref: '#/components/parameters/EntityKind'
+        - $ref: '#/components/parameters/EntityNamespace'
+        - $ref: '#/components/parameters/EntityName'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PreviewApiDefinitionRequest'
+      responses:
+        '200':
+          description: Diff preview.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiDefinitionDiffResponse'
+        '400':
+          $ref: '#/components/responses/BackstageError'
+        '403':
+          $ref: '#/components/responses/BackstageError'
+        '404':
+          $ref: '#/components/responses/BackstageError'
+        '409':
+          $ref: '#/components/responses/BackstageError'
+        '501':
+          $ref: '#/components/responses/BackstageError'
+  /entities/{kind}/{namespace}/{name}/policies:
+    get:
+      tags:
+        - Policies
+      summary: Get an entity's gateway-attached policies
+      description: >
+        Only supported for gateway-discovered APIs — returns 404 otherwise,
+        or if no API Platform gateway discovery URL is configured. Reads the
+        policies live from the API Platform gateway's management API; there
+        is no plugin-owned storage for policies.
+      operationId: getWso2EntityPolicies
+      x-codeSamples:
+        - lang: curl
+          label: Get policies
+          source: |
+            curl 'http://localhost:7007/api/wso2-api-platform/entities/api/wso2-gateways/orders-api/policies'
+      parameters:
+        - $ref: '#/components/parameters/EntityKind'
+        - $ref: '#/components/parameters/EntityNamespace'
+        - $ref: '#/components/parameters/EntityName'
+      responses:
+        '200':
+          description: API-level and per-operation policies.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyArtifactResponse'
+        '404':
+          $ref: '#/components/responses/BackstageError'
+    put:
+      tags:
+        - Policies
+      summary: Update an entity's gateway-attached policies
+      description: >
+        Requires `wso2ApiPlatformGateway.enableWriteOperations=true` — returns
+        403 otherwise. Fetches the live gateway API, merges the supplied
+        policies onto it, and pushes a full-replace `PUT` to the gateway's
+        management API.
+      operationId: updateWso2EntityPolicies
+      parameters:
+        - $ref: '#/components/parameters/EntityKind'
+        - $ref: '#/components/parameters/EntityNamespace'
+        - $ref: '#/components/parameters/EntityName'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyArtifact'
+      responses:
+        '200':
+          description: Updated policies as applied to the gateway.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyArtifactResponse'
+        '400':
+          $ref: '#/components/responses/BackstageError'
+        '403':
+          $ref: '#/components/responses/BackstageError'
+        '404':
+          $ref: '#/components/responses/BackstageError'
+        '409':
+          $ref: '#/components/responses/BackstageError'
+  /entities/{kind}/{namespace}/{name}/policies/diff:
+    post:
+      tags:
+        - Policies
+      summary: Preview the effect of a policy update
+      description: >
+        Does not persist anything. Requires
+        `wso2ApiPlatformGateway.enableWriteOperations=true` — returns 403
+        otherwise. Diffs the supplied policies against the live gateway API's
+        current policies.
+      operationId: previewWso2EntityPoliciesDiff
+      parameters:
+        - $ref: '#/components/parameters/EntityKind'
+        - $ref: '#/components/parameters/EntityNamespace'
+        - $ref: '#/components/parameters/EntityName'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyArtifact'
+      responses:
+        '200':
+          description: Diff preview.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyDiffResponse'
+        '400':
+          $ref: '#/components/responses/BackstageError'
+        '403':
+          $ref: '#/components/responses/BackstageError'
+        '404':
+          $ref: '#/components/responses/BackstageError'
+        '409':
+          $ref: '#/components/responses/BackstageError'
+  /entities/{kind}/{namespace}/{name}/api-portal:
+    get:
+      tags:
+        - API Portal
+      summary: Get API Portal integration status for an entity
+      description: >
+        Reports whether the API Portal integration is enabled, whether this
+        specific API is currently publishable (with a reason if not), and
+        which authentication mode the frontend should use.
+      operationId: getWso2EntityApiPortalStatus
+      x-codeSamples:
+        - lang: curl
+          label: Get API Portal status
+          source: |
+            curl 'http://localhost:7007/api/wso2-api-platform/entities/api/wso2-gateways/orders-api/api-portal'
+      parameters:
+        - $ref: '#/components/parameters/EntityKind'
+        - $ref: '#/components/parameters/EntityNamespace'
+        - $ref: '#/components/parameters/EntityName'
+      responses:
+        '200':
+          description: API Portal status for this entity.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiPortalStatusResponse'
+        '404':
+          $ref: '#/components/responses/BackstageError'
+  /entities/{kind}/{namespace}/{name}/api-portal/subscriptions:
+    get:
+      tags:
+        - API Portal
+      summary: Get an entity's selected API Portal subscription plans
+      operationId: getWso2EntityApiPortalSubscriptions
+      parameters:
+        - $ref: '#/components/parameters/EntityKind'
+        - $ref: '#/components/parameters/EntityNamespace'
+        - $ref: '#/components/parameters/EntityName'
+      responses:
+        '200':
+          description: Selected and available subscription plan IDs.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiPortalSubscriptionsResponse'
+        '404':
+          $ref: '#/components/responses/BackstageError'
+    put:
+      tags:
+        - API Portal
+      summary: Set an entity's API Portal subscription plans
+      description: >
+        `planIds` must only contain the four default plan IDs (Bronze,
+        Silver, Gold, Unlimited) plus any custom plan IDs configured in
+        `wso2ApiPortal.defaults.subscriptionPlans` — unknown IDs are
+        rejected with 400.
+      operationId: setWso2EntityApiPortalSubscriptions
+      parameters:
+        - $ref: '#/components/parameters/EntityKind'
+        - $ref: '#/components/parameters/EntityNamespace'
+        - $ref: '#/components/parameters/EntityName'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - planIds
+              properties:
+                planIds:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Updated selected and available subscription plan IDs.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiPortalSubscriptionsResponse'
+        '400':
+          $ref: '#/components/responses/BackstageError'
+        '404':
+          $ref: '#/components/responses/BackstageError'
+  /entities/{kind}/{namespace}/{name}/api-portal/preview:
+    post:
+      tags:
+        - API Portal
+      summary: Preview what publishing this API to the API Portal would send
+      description: >
+        Does not publish anything. Resolves the metadata that would be sent
+        (from the discovered gateway API, entity, and currently-selected
+        subscription plans) and which stored documents would be attached
+        (only `MARKDOWN` documents can be published; others are reported as
+        skipped with a reason).
+      operationId: previewWso2EntityApiPortalPublish
+      parameters:
+        - $ref: '#/components/parameters/EntityKind'
+        - $ref: '#/components/parameters/EntityNamespace'
+        - $ref: '#/components/parameters/EntityName'
+      responses:
+        '200':
+          description: Publish preview.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiPortalPreviewResponse'
+        '400':
+          $ref: '#/components/responses/BackstageError'
+        '403':
+          $ref: '#/components/responses/BackstageError'
+        '404':
+          $ref: '#/components/responses/BackstageError'
+        '409':
+          $ref: '#/components/responses/BackstageError'
+  /entities/{kind}/{namespace}/{name}/api-portal/publish:
+    post:
+      tags:
+        - API Portal
+      summary: Publish (create or update) this API on the API Portal
+      description: >
+        Requires either an IdP-acquired service-account token (when
+        `wso2ApiPortal.auth.mode=idp` with a `service-account` strategy) or an
+        `X-Api-Portal-Access-Token` header carrying a Platform API access
+        token — missing the header in the latter case returns 401. Creates
+        the API on first publish, or updates it (and re-attaches its
+        documents) on subsequent publishes.
+      operationId: publishWso2EntityToApiPortal
+      parameters:
+        - $ref: '#/components/parameters/EntityKind'
+        - $ref: '#/components/parameters/EntityNamespace'
+        - $ref: '#/components/parameters/EntityName'
+        - name: X-Api-Portal-Access-Token
+          in: header
+          required: false
+          schema:
+            type: string
+          description: >
+            Platform API access token used to call the API Portal. Required
+            unless the backend is configured with an IdP service-account
+            token provider.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApiPortalPublishRequest'
+      responses:
+        '200':
+          description: Publish result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiPortalPublishResponse'
+        '400':
+          $ref: '#/components/responses/BackstageError'
+        '401':
+          $ref: '#/components/responses/BackstageError'
+        '403':
+          $ref: '#/components/responses/BackstageError'
+        '404':
+          $ref: '#/components/responses/BackstageError'
+        '409':
+          $ref: '#/components/responses/BackstageError'
 components:
   securitySchemes:
     Wso2AccessTokenAuth:
@@ -646,12 +901,6 @@ components:
   parameters:
     ApiId:
       name: apiId
-      in: path
-      required: true
-      schema:
-        type: string
-    ServiceId:
-      name: serviceId
       in: path
       required: true
       schema:
@@ -688,7 +937,13 @@ components:
       required: false
       schema:
         type: string
-      description: Optional WSO2 access token. If omitted, the backend may use the configured service account token.
+      description: >
+        Optional WSO2 access token. Currently not forwarded to WSO2 by any
+        operation that accepts it — the backend always calls WSO2 using its
+        own configured credentials (Basic Auth for API key generation, or a
+        service account/client-credentials token for Publisher/DevPortal
+        calls). This header is accepted (and its value read) for
+        forward-compatibility, but has no effect on the current request.
   responses:
     JsonError:
       description: Request failed.
@@ -709,14 +964,29 @@ components:
           examples:
             failed:
               value: Error streaming document content
+    BackstageError:
+      description: >
+        Request failed. Shape produced by the default Backstage httpRouter
+        error middleware for errors thrown by the route handler (e.g.
+        `NotFoundError`, `NotAllowedError`, `ConflictError`, `InputError`,
+        `NotImplementedError` from `@backstage/errors`), used by routes that
+        do not catch and reformat errors themselves.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/BackstageErrorResponse'
+          examples:
+            notFound:
+              value:
+                error:
+                  name: NotFoundError
+                  message: "Entity 'api:wso2-gateways/orders-api' not found"
+                request:
+                  method: GET
+                  url: /entities/api/wso2-gateways/orders-api/documents/123
+                response:
+                  statusCode: 404
   schemas:
-    MessageResponse:
-      type: object
-      required:
-        - message
-      properties:
-        message:
-          type: string
     ErrorResponse:
       type: object
       required:
@@ -735,6 +1005,11 @@ components:
             - PRODUCTION
             - SANDBOX
           default: PRODUCTION
+          description: >
+            The backend does not currently validate or default this value —
+            it is forwarded as-is in the request body to WSO2 DevPortal's
+            `POST /apis/{apiId}/api-keys/generate`, which is the actual
+            source of any validation or default.
         validityPeriod:
           type: integer
           description: Validity period in seconds. Use -1 for keys that never expire.
@@ -815,6 +1090,21 @@ components:
           description: Always false in this release — content updates are not yet supported.
         delete:
           type: boolean
+        allowedSourceTypes:
+          type: array
+          description: >
+            Present only for gateway-discovered APIs (self-hosted/OpenChoreo),
+            which currently support markdown documents only — absent for
+            on-prem APIM APIs, which have no such restriction.
+          items:
+            type: string
+            enum:
+              - INLINE
+              - MARKDOWN
+              - URL
+              - FILE
+          example:
+            - MARKDOWN
     ApiDocument:
       type: object
       required:
@@ -939,3 +1229,510 @@ components:
         sourceUrl:
           type: string
           description: Only accepted when the stored document's sourceType is URL.
+    BackstageErrorResponse:
+      type: object
+      required:
+        - error
+        - request
+        - response
+      properties:
+        error:
+          type: object
+          required:
+            - name
+            - message
+          properties:
+            name:
+              type: string
+              description: The thrown error's class name (e.g. NotFoundError, ConflictError).
+              example: NotFoundError
+            message:
+              type: string
+          additionalProperties: true
+        request:
+          type: object
+          properties:
+            method:
+              type: string
+            url:
+              type: string
+        response:
+          type: object
+          properties:
+            statusCode:
+              type: integer
+    RuntimeConfigResponse:
+      type: object
+      required:
+        - apiManager
+        - platformGateway
+        - apiPortal
+      properties:
+        apiManager:
+          type: object
+          required:
+            - enabled
+          properties:
+            enabled:
+              type: boolean
+              description: Whether the on-prem WSO2 API Manager integration is enabled.
+        platformGateway:
+          type: object
+          required:
+            - enabled
+            - enableWriteOperations
+            - gatewayCount
+          properties:
+            enabled:
+              type: boolean
+              description: Whether the API Platform gateway integration is enabled.
+            enableWriteOperations:
+              type: boolean
+              description: >
+                Whether definition/policy write operations are allowed to be
+                pushed to a configured API Platform gateway.
+            gatewayCount:
+              type: integer
+              description: Number of configured API Platform gateways.
+        apiPortal:
+          type: object
+          required:
+            - enabled
+            - baseUrl
+          properties:
+            enabled:
+              type: boolean
+            baseUrl:
+              type: string
+    GatewaySummary:
+      type: object
+      required:
+        - name
+        - type
+        - gatewayType
+        - description
+        - source
+        - urls
+        - status
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          description: '`wso2` for a configured API Platform gateway, or the raw APIM gateway type name (e.g. `Regular`) for an on-prem APIM environment.'
+        gatewayType:
+          type: string
+        description:
+          type: string
+        source:
+          type: string
+          enum:
+            - APIM
+            - Config
+          description: Whether this entry came from on-prem APIM's `/settings` gateway types, or from configured `wso2ApiPlatformGateway.gateways`.
+        urls:
+          type: array
+          items:
+            type: string
+          description: Runtime URLs; always empty for APIM-sourced entries.
+        status:
+          type: string
+          enum:
+            - Online
+            - Offline
+          description: For Config-sourced gateways, probed by calling the gateway's management API; APIM-sourced entries are always reported Online.
+        active:
+          type: boolean
+          description: Present only for Config-sourced gateways — tracked gateway status watchdog result.
+      example:
+        name: dev-gateway
+        type: wso2
+        gatewayType: API Platform
+        description: 'API Platform Gateway: dev-gateway'
+        source: Config
+        urls:
+          - https://dev-gateway.example.com
+        status: Online
+        active: true
+    ApiDefinition:
+      type: object
+      required:
+        - content
+        - format
+      properties:
+        content:
+          type: string
+        format:
+          type: string
+          enum:
+            - YAML
+            - JSON
+        description:
+          type: string
+          description: Extracted from the definition's info.description, restored across updates.
+        fileName:
+          type: string
+        sizeBytes:
+          type: integer
+        createdBy:
+          type: string
+        createdTime:
+          type: string
+        lastUpdatedBy:
+          type: string
+        lastUpdatedTime:
+          type: string
+    ApiDefinitionCapabilities:
+      type: object
+      required:
+        - read
+        - write
+        - delete
+      properties:
+        read:
+          type: boolean
+        write:
+          type: boolean
+        delete:
+          type: boolean
+          description: >
+            True only while gateway write operations are disabled
+            (wso2ApiPlatformGateway.enableWriteOperations=false).
+    ApiDefinitionResponse:
+      type: object
+      required:
+        - definition
+        - capabilities
+      properties:
+        definition:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/ApiDefinition'
+        capabilities:
+          $ref: '#/components/schemas/ApiDefinitionCapabilities'
+    UpsertApiDefinitionRequest:
+      type: object
+      required:
+        - fileName
+        - content
+      properties:
+        fileName:
+          type: string
+          maxLength: 255
+          description: Must end in .yaml, .yml, or .json.
+        content:
+          type: string
+    PreviewApiDefinitionRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+    RestApiOperationRef:
+      type: object
+      required:
+        - method
+        - path
+      properties:
+        method:
+          type: string
+        path:
+          type: string
+    RestApiArtifactDiff:
+      type: object
+      required:
+        - addedOperations
+        - removedOperations
+        - hasChanges
+      properties:
+        displayNameChange:
+          type: object
+          properties:
+            from:
+              type: string
+            to:
+              type: string
+        versionChange:
+          type: object
+          properties:
+            from:
+              type: string
+            to:
+              type: string
+        descriptionChange:
+          type: object
+          properties:
+            from:
+              type: string
+            to:
+              type: string
+        addedOperations:
+          type: array
+          items:
+            $ref: '#/components/schemas/RestApiOperationRef'
+        removedOperations:
+          type: array
+          items:
+            $ref: '#/components/schemas/RestApiOperationRef'
+        hasChanges:
+          type: boolean
+    ApiDefinitionDiffResponse:
+      type: object
+      required:
+        - diff
+      properties:
+        diff:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/RestApiArtifactDiff'
+          description: null when there is nothing to diff against.
+    PolicyChangeRef:
+      type: object
+      required:
+        - name
+        - version
+      properties:
+        name:
+          type: string
+        version:
+          type: string
+    PolicyFlowDiff:
+      type: object
+      required:
+        - flow
+        - added
+        - removed
+        - changed
+      properties:
+        flow:
+          type: string
+          enum:
+            - request
+            - response
+            - fault
+            - flat
+        added:
+          type: array
+          items:
+            $ref: '#/components/schemas/PolicyChangeRef'
+        removed:
+          type: array
+          items:
+            $ref: '#/components/schemas/PolicyChangeRef'
+        changed:
+          type: array
+          items:
+            $ref: '#/components/schemas/PolicyChangeRef'
+    PolicyArtifactOperation:
+      type: object
+      required:
+        - method
+        - path
+      properties:
+        method:
+          type: string
+        path:
+          type: string
+        policies:
+          description: >
+            Either a flat array of policy entries, or a
+            {request,response,fault} object of arrays — mirrors the gateway
+            RestApi resource's own policies shape.
+    PolicyArtifact:
+      type: object
+      required:
+        - apiPolicies
+        - operations
+      properties:
+        apiPolicies:
+          description: >
+            Either a flat array of policy entries, or a
+            {request,response,fault} object of arrays.
+        operations:
+          type: array
+          items:
+            $ref: '#/components/schemas/PolicyArtifactOperation'
+    PolicyArtifactResponse:
+      type: object
+      required:
+        - policies
+      properties:
+        policies:
+          $ref: '#/components/schemas/PolicyArtifact'
+    PolicyDiffResponse:
+      type: object
+      required:
+        - diff
+      properties:
+        diff:
+          nullable: true
+          type: object
+          description: null when write operations are disabled, the API isn't gateway-discovered, or no gateway discovery URL is configured.
+          properties:
+            apiLevel:
+              type: array
+              items:
+                $ref: '#/components/schemas/PolicyFlowDiff'
+            operations:
+              type: array
+              items:
+                type: object
+                properties:
+                  method:
+                    type: string
+                  path:
+                    type: string
+                  flows:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PolicyFlowDiff'
+            hasChanges:
+              type: boolean
+    ApiPortalStatusResponse:
+      type: object
+      required:
+        - enabled
+        - capabilities
+        - auth
+      properties:
+        enabled:
+          type: boolean
+        capabilities:
+          type: object
+          required:
+            - publish
+          properties:
+            publish:
+              type: boolean
+            reason:
+              type: string
+              description: Present when publish is false, explaining why.
+        auth:
+          type: object
+          required:
+            - mode
+          properties:
+            mode:
+              type: string
+              enum:
+                - manual
+                - idp
+            strategy:
+              type: string
+              description: Present only when mode is idp. Absent (or manual) means the frontend shows a manual token field.
+            reuseSignIn:
+              type: boolean
+    ApiPortalSubscriptionsResponse:
+      type: object
+      required:
+        - availableCustomPlanIds
+        - selectedPlanIds
+      properties:
+        availableCustomPlanIds:
+          type: array
+          items:
+            type: string
+          description: Configured custom plan IDs, excluding the four defaults (Bronze, Silver, Gold, Unlimited).
+        selectedPlanIds:
+          type: array
+          items:
+            type: string
+    ApiPortalPreviewResponse:
+      type: object
+      required:
+        - metadata
+        - documents
+      properties:
+        metadata:
+          type: object
+          description: The API Portal metadata payload that would be sent on publish.
+          additionalProperties: true
+        documents:
+          type: object
+          required:
+            - toPublish
+            - skipped
+          properties:
+            toPublish:
+              type: array
+              items:
+                type: string
+              description: Names of documents that would be attached (markdown only).
+            skipped:
+              type: array
+              items:
+                type: object
+                required:
+                  - name
+                  - sourceType
+                  - reason
+                properties:
+                  name:
+                    type: string
+                  sourceType:
+                    type: string
+                  reason:
+                    type: string
+    ApiPortalPublishRequest:
+      type: object
+      required:
+        - displayName
+        - productionEndpoint
+        - labels
+      properties:
+        displayName:
+          type: string
+        productionEndpoint:
+          type: string
+        sandboxEndpoint:
+          type: string
+        labels:
+          type: array
+          items:
+            type: string
+          description: At least one label is required; each must be a valid label ID for the configured API Portal org.
+    ApiPortalPublishResponse:
+      type: object
+      required:
+        - portalApiId
+        - portalUrl
+        - operation
+        - publishedAt
+        - documents
+        - warnings
+      properties:
+        portalApiId:
+          type: string
+        portalUrl:
+          type: string
+        operation:
+          type: string
+          enum:
+            - created
+            - updated
+        publishedAt:
+          type: string
+        documents:
+          type: object
+          required:
+            - published
+            - skipped
+          properties:
+            published:
+              type: integer
+            skipped:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  sourceType:
+                    type: string
+                  reason:
+                    type: string
+        warnings:
+          type: array
+          items:
+            type: string

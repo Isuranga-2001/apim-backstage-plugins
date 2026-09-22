@@ -16,7 +16,6 @@ servers:
 tags:
   - name: OAuth
   - name: Publisher
-  - name: DevPortal
   - name: Service Catalog
   - name: Gateway Discovery
 paths:
@@ -1366,14 +1365,14 @@ paths:
       description: |
         Gets the WSDL definition for SOAP and SOAP-to-REST APIs.
 
-        The catalog WSO2 provider calls this endpoint while syncing SOAP APIs and stores the text WSDL response on the `wso2.com/api-wsdl` entity annotation when available. If WSO2 returns a ZIP archive instead of text WSDL, the provider skips storing it in the catalog annotation.
+        The catalog WSO2 provider calls this endpoint while syncing SOAP APIs and stores the text WSDL response on the `wso2.com/api-wsdl` entity annotation when available. The response body is always decoded as UTF-8 text (the client never parses it as binary); if the decoded text starts with `PK` (the ZIP file signature), the provider treats it as a ZIP archive and skips storing it in the catalog annotation, since a ZIP archive read as text would not be a usable WSDL document.
       x-codeSamples:
         - lang: curl
           label: Get WSDL definition
           source: |
             curl -k 'https://localhost:9447/api/am/publisher/v4/apis/{apiId}/wsdl' \
               -H "Authorization: Bearer $WSO2_ACCESS_TOKEN" \
-              -H "Accept: application/wsdl+xml, text/xml, application/xml, application/zip, */*" \
+              -H "Accept: application/wsdl+xml, text/xml, application/xml, text/plain, */*" \
               -o '{apiId}-wsdl'
       parameters:
         - $ref: '#/components/parameters/ApiId'
@@ -1382,7 +1381,7 @@ paths:
           description: |
             API WSDL definition.
 
-            Returns the WSDL definition for SOAP and SOAP-to-REST APIs. Can be returned as a plain XML document or as a ZIP file.
+            Returns the WSDL definition for SOAP and SOAP-to-REST APIs, as a plain XML document, or as a ZIP archive when WSO2 packages multiple WSDL/XSD files together. Regardless of the returned content type, the client only ever reads the response body as UTF-8 text; it does not decode ZIP archives. A ZIP response is detected after the fact by checking whether the decoded text starts with the `PK` signature, and is then discarded rather than stored.
           content:
             application/wsdl+xml:
               schema:
@@ -1405,7 +1404,8 @@ paths:
             application/zip:
               schema:
                 type: string
-                format: binary
+                description: |
+                  The client reads this response as UTF-8 text rather than binary, so the ZIP archive's bytes are decoded lossily. This is only used to detect (via the leading `PK` signature) and discard ZIP responses; the archive content itself is never extracted or stored.
             text/plain:
               schema:
                 type: string
@@ -1508,12 +1508,75 @@ paths:
                 type: string
         '404':
           $ref: '#/components/responses/Wso2Error'
+  /api/am/publisher/v4/apis/{apiId}/graphql-schema:
+    get:
+      tags:
+        - Publisher
+      summary: Get API GraphQL schema definition
+      operationId: getPublisherApiGraphqlSchema
+      description: |
+        Gets the GraphQL schema definition for APIs of type `GRAPHQL`.
+
+        The catalog provider reads the response as text. If the text parses as JSON with a `schemaDefinition` or `schema` string property, that property's value is used as the GraphQL SDL; otherwise the raw response body is used as-is (assumed to already be GraphQL SDL text).
+      x-codeSamples:
+        - lang: curl
+          label: Get GraphQL schema definition
+          source: |
+            curl -k 'https://localhost:9447/api/am/publisher/v4/apis/{apiId}/graphql-schema' \
+              -H "Authorization: Bearer $WSO2_ACCESS_TOKEN" \
+              -H "Accept: application/wsdl+xml, text/xml, application/xml, text/plain, */*"
+      parameters:
+        - $ref: '#/components/parameters/ApiId'
+      responses:
+        '200':
+          description: |
+            API GraphQL schema definition.
+
+            May be returned as a JSON object containing a `schemaDefinition` or `schema` string property, or as plain GraphQL SDL text.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  schemaDefinition:
+                    type: string
+                  schema:
+                    type: string
+                additionalProperties: true
+              example:
+                schemaDefinition: |
+                  type Query {
+                    hello: String
+                  }
+            text/plain:
+              schema:
+                type: string
+              example: |
+                type Query {
+                  hello: String
+                }
+        '404':
+          $ref: '#/components/responses/Wso2Error'
+        '500':
+          description: Internal server error (e.g. if trying to retrieve the GraphQL schema for a non-GraphQL API type).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Wso2Error'
+              example:
+                code: 500
+                message: 'Internal server error'
+                description: 'Error while retrieving graphql-schema of API : b779100d-982b-4771-b329-ce05a3c98b67'
+                moreInfo: ''
+                error: []
   /api/am/publisher/v4/apis/{apiId}/documents:
     get:
       tags:
         - Publisher
       summary: List API documents
       operationId: listPublisherApiDocuments
+      description: |
+        Lists the documents associated with an API. Unlike the `/apis` and `/services` list endpoints, the catalog provider calls this endpoint once with no `limit`/`offset` query parameters and does not loop through `pagination.total`, so only the first page (WSO2's default page size) is currently fetched; pagination is not implemented for this call.
       x-codeSamples:
         - lang: curl
           label: List API documents
@@ -2491,6 +2554,8 @@ paths:
         - Publisher
       summary: List MCP server documents
       operationId: listPublisherMcpServerDocuments
+      description: |
+        Lists the documents associated with an MCP server. Unlike the `/apis` and `/services` list endpoints, the catalog provider calls this endpoint once with no `limit`/`offset` query parameters and does not loop through `pagination.total`, so only the first page (WSO2's default page size) is currently fetched; pagination is not implemented for this call.
       x-codeSamples:
         - lang: curl
           label: List MCP server documents
@@ -2516,80 +2581,6 @@ paths:
                   next: ''
                   previous: ''
         '404':
-          $ref: '#/components/responses/Wso2Error'
-  /api/am/devportal/v3/apis/{apiId}/api-keys/generate:
-    post:
-      tags:
-        - DevPortal
-      summary: Generate an API key through WSO2 DevPortal
-      description: Direct calls to this DevPortal endpoint use WSO2 user credentials with Basic Authentication.
-      operationId: generateDevportalApiKey
-      security:
-        - BasicAuth: []
-      x-codeSamples:
-        - lang: curl
-          label: Curl command with Basic Auth
-          source: |
-            curl -k -X POST 'https://localhost:9447/api/am/devportal/v3/apis/{apiId}/api-keys/generate' \
-              -u "$WSO2_USERNAME:$WSO2_PASSWORD" \
-              -H 'Content-Type: application/json' \
-              -d '{
-                "keyType": "PRODUCTION",
-                "keyName": "backstage-key",
-                "validityPeriod": 345600,
-                "additionalProperties": {
-                  "permittedIP": "192.168.1.1",
-                  "permittedReferer": ""
-                }
-              }'
-      parameters:
-        - $ref: '#/components/parameters/ApiId'
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                keyType:
-                  type: string
-                  enum:
-                    - PRODUCTION
-                    - SANDBOX
-                  example: PRODUCTION
-                keyName:
-                  type: string
-                  example: backstage-key
-                validityPeriod:
-                  type: integer
-                  description: Validity period in seconds. Use -1 for keys that never expire.
-                  example: 345600
-                additionalProperties:
-                  type: object
-                  properties:
-                    permittedIP:
-                      type: string
-                      description: Optional IP address restriction. Send an empty string when not used.
-                      example: 192.168.1.1
-                    permittedReferer:
-                      type: string
-                      description: Optional HTTP referrer restriction. Send an empty string when not used.
-                      example: ''
-                  additionalProperties: true
-                  example:
-                    permittedIP: 192.168.1.1
-                    permittedReferer: ''
-      responses:
-        '200':
-          description: Generated key response.
-          content:
-            application/json:
-              schema:
-                type: object
-                additionalProperties: true
-        '401':
-          $ref: '#/components/responses/Wso2Error'
-        '500':
           $ref: '#/components/responses/Wso2Error'
   /api/am/service-catalog/v1/services:
     get:

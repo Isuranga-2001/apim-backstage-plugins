@@ -133,14 +133,13 @@ When `enableWriteOperations` is `true`, saving a definition or policy also pushe
 
 ### Publishing to the WSO2 API Portal
 
+**Tested against:** all API Portal publishing features — publishing itself, and every authentication method (`platform-login`, `idp` with `service-account`, `idp` with `reuse-signin`) — have been verified end-to-end against the API Portal's initial [`1.0.0-beta` release](https://github.com/wso2/api-platform/tree/developer-portal/v1.0.0-beta). Configure an instance from that branch, with its publishing API (`/api-portal/api/v0.9`) enabled, to exercise these features yourself.
+
 Gateway-discovered APIs can be published — metadata, definition, and markdown documents — to a WSO2 API Portal instance, independent of the `enableWriteOperations` switch. From the Overview tab's "Publish to API Portal" dialog you provide:
 
-- A **Platform API access token** (kept in memory only, for the current browser session — never persisted or sent anywhere but the publish request itself; the dialog defaults to the last token used but always lets you override it).
 - A **display name** (defaults to the entity's title, editable).
 - A **production endpoint**, required, defaulting to the API's configured gateway runtime URL — offered as a dropdown when multiple runtime URLs are configured, but always overridable by typing a custom URL.
 - An optional **sandbox endpoint**, offered the same way.
-
-Only the **Platform API login** auth mode is currently supported for the API Portal integration — the backend never holds API Portal credentials itself, it simply relays the token the frontend obtained. An **IdP-based auth mode** is reserved in configuration for a future release but is not implemented yet.
 
 **Subscription plans.** Next to the publish buttons, a Subscription Plans panel lets you toggle which plans apply to this API: the four built-in plans (Bronze, Silver, Gold, Unlimited) are always shown, plus any custom plan IDs your org has configured under `wso2ApiPlatformApiPortal.defaults.subscriptionPlans`. Each toggle saves immediately — the selection is stored per-API alongside the API's other metadata, and it's this stored selection (not the org's full configured plan list) that gets published the next time the API is published.
 
