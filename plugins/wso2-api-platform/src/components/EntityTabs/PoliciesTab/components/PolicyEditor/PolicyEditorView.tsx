@@ -213,6 +213,12 @@ export function PolicyEditorView({
     setEditing({ scope: s, policyIndex: index, policy: policiesFor(s)[index] });
   };
 
+  const closeFlow = () => {
+    setPicked(null);
+    setEditing(null);
+    setScope(null);
+  };
+
   const confirmPolicy = (policy: ApiPolicy) => {
     if (!scope) return;
     if (editing) {
@@ -229,12 +235,6 @@ export function PolicyEditorView({
       setPoliciesFor(scope, [...policiesFor(scope), policy]);
     }
     closeFlow();
-  };
-
-  const closeFlow = () => {
-    setPicked(null);
-    setEditing(null);
-    setScope(null);
   };
 
   const removeAt = (s: PolicyScope, i: number) =>
@@ -313,6 +313,58 @@ export function PolicyEditorView({
 
   const isGraphQl = (apiType || '').toUpperCase() === 'GRAPHQL';
 
+  const renderResourceSection = () => {
+    if (isGraphQl) {
+      return (
+        <Typography variant="body2" color="textSecondary">
+          Operation level policies are not supported for GraphQL APIs.
+        </Typography>
+      );
+    }
+    if (operations.length === 0) {
+      return (
+        <Typography variant="body2" color="textSecondary">
+          No resources available.
+        </Typography>
+      );
+    }
+    return (
+      <Box display="flex" flexDirection="column" style={{ gap: 8 }}>
+        {operations.map((op, index) => {
+          const colors = getMethodColor(op.method);
+          const count = countFlows(op.flows);
+          return (
+            <Accordion key={index} elevation={0} variant="outlined">
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Box display="flex" alignItems="center" style={{ gap: 12 }}>
+                  <Chip
+                    label={op.method}
+                    size="small"
+                    style={{
+                      backgroundColor: colors.main,
+                      color: 'white',
+                      fontWeight: 700,
+                      minWidth: 58,
+                    }}
+                  />
+                  <Typography noWrap style={{ fontFamily: CODE_FONT_FAMILY }}>
+                    {op.path}
+                  </Typography>
+                  {count > 0 && (
+                    <Chip label={count} size="small" variant="outlined" />
+                  )}
+                </Box>
+              </AccordionSummary>
+              <AccordionDetails style={{ display: 'block' }}>
+                {renderFlows('operation', index, op.flows, op.isFlat)}
+              </AccordionDetails>
+            </Accordion>
+          );
+        })}
+      </Box>
+    );
+  };
+
   return (
     <Box p={2}>
       {editingDisabledReason && (
@@ -368,60 +420,7 @@ export function PolicyEditorView({
               <Typography style={{ fontWeight: 600, marginBottom: 8 }}>
                 Resources
               </Typography>
-              {isGraphQl ? (
-                <Typography variant="body2" color="textSecondary">
-                  Operation level policies are not supported for GraphQL APIs.
-                </Typography>
-              ) : operations.length === 0 ? (
-                <Typography variant="body2" color="textSecondary">
-                  No resources available.
-                </Typography>
-              ) : (
-                <Box display="flex" flexDirection="column" style={{ gap: 8 }}>
-                  {operations.map((op, index) => {
-                    const colors = getMethodColor(op.method);
-                    const count = countFlows(op.flows);
-                    return (
-                      <Accordion key={index} elevation={0} variant="outlined">
-                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                          <Box
-                            display="flex"
-                            alignItems="center"
-                            style={{ gap: 12 }}
-                          >
-                            <Chip
-                              label={op.method}
-                              size="small"
-                              style={{
-                                backgroundColor: colors.main,
-                                color: 'white',
-                                fontWeight: 700,
-                                minWidth: 58,
-                              }}
-                            />
-                            <Typography
-                              noWrap
-                              style={{ fontFamily: CODE_FONT_FAMILY }}
-                            >
-                              {op.path}
-                            </Typography>
-                            {count > 0 && (
-                              <Chip
-                                label={count}
-                                size="small"
-                                variant="outlined"
-                              />
-                            )}
-                          </Box>
-                        </AccordionSummary>
-                        <AccordionDetails style={{ display: 'block' }}>
-                          {renderFlows('operation', index, op.flows, op.isFlat)}
-                        </AccordionDetails>
-                      </Accordion>
-                    );
-                  })}
-                </Box>
-              )}
+              {renderResourceSection()}
             </CardContent>
           </Card>
         </Box>

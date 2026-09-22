@@ -93,7 +93,7 @@ export function normalizeFlowPolicies(raw: any): {
   flows: FlowPolicies;
   isFlat: boolean;
 } {
-  if (raw == null || Array.isArray(raw)) {
+  if (raw === null || raw === undefined || Array.isArray(raw)) {
     return {
       flows: {
         request: ((raw as any[]) ?? []).map(toApiPolicy),

@@ -60,8 +60,10 @@ export type PolicyDefinition = {
 
 const asArray = (value: unknown): unknown[] =>
   Array.isArray(value) ? value : [];
-const str = (value: unknown): string =>
-  typeof value === 'string' ? value : value == null ? '' : String(value);
+const str = (value: unknown): string => {
+  if (typeof value === 'string') return value;
+  return value === null || value === undefined ? '' : String(value);
+};
 const asRecord = (value: unknown): Record<string, unknown> =>
   value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
 

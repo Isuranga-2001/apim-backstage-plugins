@@ -342,7 +342,7 @@ export function normalizePolicyFlows(raw: unknown): {
   flows: NormalizedPolicyFlows;
   isFlat: boolean;
 } {
-  if (raw == null || Array.isArray(raw)) {
+  if (raw === null || raw === undefined || Array.isArray(raw)) {
     return {
       flows: { request: raw ?? [], response: [], fault: [] },
       isFlat: true,

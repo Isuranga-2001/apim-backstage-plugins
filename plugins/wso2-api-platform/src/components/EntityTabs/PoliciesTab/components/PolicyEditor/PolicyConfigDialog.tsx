@@ -79,8 +79,11 @@ export function PolicyConfigDialog({
     Record<string, ParameterValues>
   >({});
   const formKey = policy ? `${policy.name}@${policy.version}` : '';
-  const values =
-    valuesByKey[formKey] ?? (schema ? initValues(schema, initialValues) : {});
+  const values = useMemo(
+    () =>
+      valuesByKey[formKey] ?? (schema ? initValues(schema, initialValues) : {}),
+    [valuesByKey, formKey, schema, initialValues],
+  );
 
   const update = (next: ParameterValues) =>
     setValuesByKey(prev => ({ ...prev, [formKey]: next }));
@@ -117,6 +120,54 @@ export function PolicyConfigDialog({
     onConfirm({ name: policy.name, version: policy.version, params: values });
   };
 
+  const renderContent = () => {
+    if (definitionQuery.loading || (!schema && !definitionQuery.error)) {
+      return (
+        <Box display="flex" justifyContent="center" py={6}>
+          <CircularProgress size={24} />
+        </Box>
+      );
+    }
+    if (definitionQuery.error) {
+      return (
+        <WarningPanel severity="error" title="Failed to load policy definition">
+          <Box display="flex" flexDirection="column" style={{ gap: 8 }}>
+            <Typography variant="body2">
+              {definitionQuery.error.message ||
+                'Unable to load the policy definition.'}
+            </Typography>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => definitionQuery.retry()}
+              style={{ alignSelf: 'flex-start' }}
+            >
+              Retry
+            </Button>
+          </Box>
+        </WarningPanel>
+      );
+    }
+    if (!hasParams) {
+      return (
+        <Typography variant="body2" color="textSecondary">
+          This policy has no configurable parameters.
+        </Typography>
+      );
+    }
+    return (
+      <SchemaField
+        key={formKey}
+        onAddItem={onAddItem}
+        onChange={onFieldChange}
+        onRemoveItem={onRemoveItem}
+        path=""
+        schema={schema!}
+        values={values}
+      />
+    );
+  };
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle disableTypography>
@@ -131,47 +182,7 @@ export function PolicyConfigDialog({
         </Box>
       </DialogTitle>
 
-      <DialogContent dividers>
-        {definitionQuery.loading || (!schema && !definitionQuery.error) ? (
-          <Box display="flex" justifyContent="center" py={6}>
-            <CircularProgress size={24} />
-          </Box>
-        ) : definitionQuery.error ? (
-          <WarningPanel
-            severity="error"
-            title="Failed to load policy definition"
-          >
-            <Box display="flex" flexDirection="column" style={{ gap: 8 }}>
-              <Typography variant="body2">
-                {definitionQuery.error.message ||
-                  'Unable to load the policy definition.'}
-              </Typography>
-              <Button
-                size="small"
-                variant="outlined"
-                onClick={() => definitionQuery.retry()}
-                style={{ alignSelf: 'flex-start' }}
-              >
-                Retry
-              </Button>
-            </Box>
-          </WarningPanel>
-        ) : !hasParams ? (
-          <Typography variant="body2" color="textSecondary">
-            This policy has no configurable parameters.
-          </Typography>
-        ) : (
-          <SchemaField
-            key={formKey}
-            onAddItem={onAddItem}
-            onChange={onFieldChange}
-            onRemoveItem={onRemoveItem}
-            path=""
-            schema={schema!}
-            values={values}
-          />
-        )}
-      </DialogContent>
+      <DialogContent dividers>{renderContent()}</DialogContent>
 
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>

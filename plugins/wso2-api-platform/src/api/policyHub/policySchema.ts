@@ -49,7 +49,8 @@ const segments = (path: string): (string | number)[] =>
 export const getByPath = (root: unknown, path: string): unknown => {
   let cur: unknown = root;
   for (const seg of segments(path)) {
-    if (cur == null || typeof cur !== 'object') return undefined;
+    if (cur === null || cur === undefined || typeof cur !== 'object')
+      return undefined;
     cur = (cur as Record<string | number, unknown>)[seg];
   }
   return cur;

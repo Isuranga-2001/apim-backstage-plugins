@@ -53,6 +53,12 @@ type FieldProps = {
 const propLabel = (key: string, title?: string): string =>
   title || (key ? key.charAt(0).toUpperCase() + key.slice(1) : key);
 
+/** Parses a text field's raw string into a number when the field is numeric, leaving empty input as `''` rather than `NaN`. */
+const parseFieldValue = (isNumeric: boolean, raw: string): string | number => {
+  if (!isNumeric) return raw;
+  return raw === '' ? '' : Number(raw);
+};
+
 const FieldLabel = ({
   label,
   required,
@@ -159,14 +165,7 @@ function MapField({
             ) : (
               <TextField
                 onChange={event =>
-                  setVal(
-                    index,
-                    isNum
-                      ? event.target.value === ''
-                        ? ''
-                        : Number(event.target.value)
-                      : event.target.value,
-                  )
+                  setVal(index, parseFieldValue(isNum, event.target.value))
                 }
                 placeholder="Value"
                 size="small"
@@ -428,14 +427,7 @@ export function SchemaField({
       <TextField
         fullWidth
         onChange={event =>
-          onChange(
-            path,
-            isNumber
-              ? event.target.value === ''
-                ? ''
-                : Number(event.target.value)
-              : event.target.value,
-          )
+          onChange(path, parseFieldValue(isNumber, event.target.value))
         }
         placeholder={schema.default !== undefined ? String(schema.default) : ''}
         size="small"

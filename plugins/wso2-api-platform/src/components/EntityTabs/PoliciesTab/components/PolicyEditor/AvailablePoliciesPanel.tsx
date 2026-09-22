@@ -75,6 +75,97 @@ export function AvailablePoliciesPanel() {
   const total = policiesQuery.value?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
+  const renderPolicyList = () => {
+    if (policiesQuery.loading) {
+      return (
+        <Box display="flex" justifyContent="center" py={6}>
+          <CircularProgress size={24} />
+        </Box>
+      );
+    }
+    if (policiesQuery.error) {
+      return (
+        <WarningPanel severity="error" title="Failed to load policies">
+          <Box display="flex" flexDirection="column" style={{ gap: 8 }}>
+            <Typography variant="body2">
+              {policiesQuery.error.message ||
+                'Unable to load policies from the Policy Hub.'}
+            </Typography>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => policiesQuery.retry()}
+              style={{ alignSelf: 'flex-start' }}
+            >
+              Retry
+            </Button>
+          </Box>
+        </WarningPanel>
+      );
+    }
+    if (filtered.length === 0) {
+      return (
+        <EmptyState
+          title="No policies"
+          missing="content"
+          description="No policies match the filter."
+        />
+      );
+    }
+    return (
+      <Box display="flex" flexDirection="column" style={{ gap: 8 }}>
+        {filtered.map(policy => (
+          <Box
+            draggable
+            key={`${policy.name}@${policy.version}`}
+            onDragEnd={() => setDraggedPolicy(null)}
+            onDragStart={event => {
+              setDraggedPolicy({
+                name: policy.name,
+                version: policy.version,
+                displayName: policy.displayName,
+              });
+              event.dataTransfer.effectAllowed = 'copy';
+              event.dataTransfer.setData(POLICY_DND_MIME, policy.name);
+            }}
+            display="flex"
+            alignItems="center"
+            p={1.25}
+            style={{
+              gap: 8,
+              border: '1px solid rgba(0,0,0,0.12)',
+              borderRadius: 6,
+              cursor: 'grab',
+            }}
+          >
+            <Box display="flex" color="text.disabled">
+              <DragIndicatorIcon fontSize="small" />
+            </Box>
+            <Avatar
+              src={policy.iconUrl}
+              style={{ width: 28, height: 28 }}
+              variant="rounded"
+            >
+              <SecurityIcon fontSize="small" />
+            </Avatar>
+            <Typography
+              noWrap
+              variant="body2"
+              style={{ flex: 1, fontWeight: 600, minWidth: 0 }}
+            >
+              {policy.displayName}
+            </Typography>
+            <Chip
+              label={formatPolicyVersion(policy.version)}
+              size="small"
+              variant="outlined"
+            />
+          </Box>
+        ))}
+      </Box>
+    );
+  };
+
   return (
     <Box display="flex" flexDirection="column" height="100%">
       <Box
@@ -147,85 +238,7 @@ export function AvailablePoliciesPanel() {
       )}
 
       <Box flex={1} mt={1.5} style={{ overflowY: 'auto' }}>
-        {policiesQuery.loading ? (
-          <Box display="flex" justifyContent="center" py={6}>
-            <CircularProgress size={24} />
-          </Box>
-        ) : policiesQuery.error ? (
-          <WarningPanel severity="error" title="Failed to load policies">
-            <Box display="flex" flexDirection="column" style={{ gap: 8 }}>
-              <Typography variant="body2">
-                {policiesQuery.error.message ||
-                  'Unable to load policies from the Policy Hub.'}
-              </Typography>
-              <Button
-                size="small"
-                variant="outlined"
-                onClick={() => policiesQuery.retry()}
-                style={{ alignSelf: 'flex-start' }}
-              >
-                Retry
-              </Button>
-            </Box>
-          </WarningPanel>
-        ) : filtered.length === 0 ? (
-          <EmptyState
-            title="No policies"
-            missing="content"
-            description="No policies match the filter."
-          />
-        ) : (
-          <Box display="flex" flexDirection="column" style={{ gap: 8 }}>
-            {filtered.map(policy => (
-              <Box
-                draggable
-                key={`${policy.name}@${policy.version}`}
-                onDragEnd={() => setDraggedPolicy(null)}
-                onDragStart={event => {
-                  setDraggedPolicy({
-                    name: policy.name,
-                    version: policy.version,
-                    displayName: policy.displayName,
-                  });
-                  event.dataTransfer.effectAllowed = 'copy';
-                  event.dataTransfer.setData(POLICY_DND_MIME, policy.name);
-                }}
-                display="flex"
-                alignItems="center"
-                p={1.25}
-                style={{
-                  gap: 8,
-                  border: '1px solid rgba(0,0,0,0.12)',
-                  borderRadius: 6,
-                  cursor: 'grab',
-                }}
-              >
-                <Box display="flex" color="text.disabled">
-                  <DragIndicatorIcon fontSize="small" />
-                </Box>
-                <Avatar
-                  src={policy.iconUrl}
-                  style={{ width: 28, height: 28 }}
-                  variant="rounded"
-                >
-                  <SecurityIcon fontSize="small" />
-                </Avatar>
-                <Typography
-                  noWrap
-                  variant="body2"
-                  style={{ flex: 1, fontWeight: 600, minWidth: 0 }}
-                >
-                  {policy.displayName}
-                </Typography>
-                <Chip
-                  label={formatPolicyVersion(policy.version)}
-                  size="small"
-                  variant="outlined"
-                />
-              </Box>
-            ))}
-          </Box>
-        )}
+        {renderPolicyList()}
       </Box>
 
       <PolicyPagination
